@@ -1,0 +1,133 @@
+version: '3.9'
+
+services:
+  # ======================== BASE DE DATOS ========================
+  postgres_auth:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: autenticacion_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_reportes:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: reportes_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_reportes_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ======================== REDIS (OPCIONAL) ========================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ======================== SERVICIO DE AUTENTICACIÓN ========================
+  auth_service:
+    build:
+      context: ./autenticacion_autorizacion
+      dockerfile: Dockerfile
+    environment:
+      DEBUG: "False"
+      DATABASE_URL: postgresql://postgres:postgres@postgres_auth:5432/autenticacion_db
+      SECRET_KEY: django-insecure-cambiar-en-produccion
+      ALLOWED_HOSTS: "*"
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres_auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./autenticacion_autorizacion:/app
+      - auth_logs:/app/logs
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ======================== SERVICIO DE REPORTES ========================
+  reportes_service:
+    build:
+      context: ./reportes
+      dockerfile: Dockerfile
+    environment:
+      DEBUG: "False"
+      DATABASE_URL: postgresql://postgres:postgres@postgres_reportes:5432/reportes_db
+      SECRET_KEY: django-insecure-cambiar-en-produccion
+      ALLOWED_HOSTS: "*"
+      REDIS_URL: redis://redis:6379/1
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres_reportes:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./reportes:/app
+      - reportes_logs:/app/logs
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ======================== NGINX (REVERSE PROXY) ========================
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - auth_service
+      - reportes_service
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_auth_data:
+  postgres_reportes_data:
+  redis_data:
+  auth_logs:
+  reportes_logs:
+
+networks:
+  default:
+    name: bite_network
