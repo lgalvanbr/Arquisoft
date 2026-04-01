@@ -31,6 +31,6 @@ urlpatterns = [
     path('api/reportes/historial', report_views.obtener_historial_reportes, name='obtener_historial_reportes'),
     
     # ======================== HEALTH CHECK ========================
-    path('api/health', auth_views.health_check, name='health_check'),
-    path('api/health', report_views.health_check, name='health_check'),
+    path('api/auth/health', auth_views.health_check, name='health_check'),
+    path('api/reportes/health', report_views.health_check, name='health_check'),
 ]
