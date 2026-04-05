@@ -308,6 +308,10 @@ resource "aws_lb" "app_alb" {
   security_groups    = [aws_security_group.traffic_lb.id]
   subnets            = data.aws_subnets.default.ids
 
+  enable_deletion_protection = false
+  enable_http2               = true
+  enable_cross_zone_load_balancing = true
+
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-alb"
   })
