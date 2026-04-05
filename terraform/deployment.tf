@@ -241,7 +241,7 @@ resource "aws_instance" "app_instances" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
 
-  user_data = base64encode(<<-EOT
+  user_data = <<-EOT
 #!/bin/bash
 export DATABASE_HOST=${aws_instance.database.private_ip}
 echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
@@ -300,7 +300,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable gunicorn
 sudo systemctl start gunicorn
 EOT
-  )
+  
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-app-lb-${each.key}"
