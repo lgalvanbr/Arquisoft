@@ -60,10 +60,17 @@ TEMPLATES = [
 WSGI_APPLICATION = 'finops_platform.wsgi.application'
 
 # Database
+# Configure PostgreSQL connection for AWS deployment
+# When running in AWS EC2, DATABASE_HOST should be set to the private IP of the report-db instance
+# The variable is set automatically by the user_data script in terraform/deployment.tf
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'monitoring_db'),
+        'USER': os.getenv('DB_USER', 'report_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'isis2503'),
+        'HOST': os.getenv('DATABASE_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
