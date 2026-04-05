@@ -332,11 +332,116 @@ python reportes/manage.py runserver 8001
 
 ---
 
+## 🧪 Testing ASR (Application Service Requirements)
+
+### Load Testing with JMeter
+
+Located in `/jmeter/` directory:
+
+```bash
+jmeter/
+├── load-test-asr.jmx              # Main JMeter test plan
+├── README.md                        # Full documentation
+├── QUICKSTART.md                    # Quick reference guide
+├── IMPLEMENTATION_SUMMARY.md        # Detailed implementation details
+└── run-load-test.sh                 # Automated execution script
+```
+
+#### Quick Start
+
+1. **Get ALB DNS** (after Terraform deployment):
+   ```bash
+   cd terraform/
+   terraform output alb_dns_name
+   ```
+
+2. **Run the test**:
+   ```bash
+   # Option 1: GUI (interactive)
+   jmeter -t jmeter/load-test-asr.jmx
+   
+   # Option 2: Headless (automatic)
+   bash jmeter/run-load-test.sh ./results <alb-dns-name>
+   ```
+
+#### Test Configuration
+
+- **Load Profile**: 5,000 → 12,000 concurrent users over 10 minutes
+- **Endpoints Tested**:
+  - `POST /api/auth/login` (JWT authentication)
+  - `GET /api/reportes/proyecto` (with Bearer token)
+  - `GET /api/reportes/consumo` (with Bearer token)
+- **User**: `report_user` / `isis2503`
+- **Authentication**: JWT Bearer tokens extracted from login response
+- **Request Pattern**: Alternating between proyecto and consumo endpoints
+
+#### ASR Success Criteria
+
+✅ **Availability**: ≥95% (error rate < 5%)
+✅ **Latency**: 2-5 seconds average (p50)
+✅ **Consistency**: 95th percentile < 7 seconds
+✅ **Throughput**: 100+ requests/sec at peak load
+
+#### Results and Analysis
+
+After test completion:
+- **HTML Report**: `results_html/index.html` (charts and metrics)
+- **Aggregate Report**: Percentile breakdown (p50, p90, p95, p99)
+- **Error Analysis**: HTTP status codes and timeouts
+- **Performance Trends**: Latency over time during ramp-up
+
+See `jmeter/README.md` for detailed metrics interpretation and troubleshooting.
+
+---
+
+## 🏗️ Infrastructure as Code (Terraform)
+
+AWS deployment files in `/terraform/`:
+
+```bash
+terraform/
+├── deployment.tf                    # Complete AWS infrastructure
+├── install_terraform.sh             # Terraform installation script
+└── README.md                        # Deployment documentation
+```
+
+#### Infrastructure Components
+
+- **Application Load Balancer** (report-alb)
+  - Port 80 (HTTP)
+  - Target Group with Round-Robin balancing
+  - Health check: `/api/reportes/health` (30s intervals)
+
+- **EC2 Instances** (report-app-lb-a, report-app-lb-b)
+  - Instance type: t2.micro
+  - Runs Django application on port 8080
+  - PostgreSQL support via environment variables
+
+- **RDS Database** (report-db)
+  - Engine: PostgreSQL
+  - Credentials: `report_user` / `isis2503`
+  - Database name: `monitoring_db`
+
+#### Django Configuration
+
+`finops_platform/settings.py` configured for PostgreSQL with environment variables:
+- `DATABASE_HOST`: RDS endpoint
+- `DB_NAME`: Database name
+- `DB_USER`: Database user
+- `DB_PASSWORD`: Database password
+- `DB_PORT`: PostgreSQL port (5432)
+
+See `terraform/README.md` for deployment instructions.
+
+---
+
 ## 📚 Documentación Adicional
 
 - **Seguridad**: Todos los endpoints (excepto health check y registro) requieren token JWT
 - **CORS**: Configurado para localhost:3000, 8000, 8001
 - **Logging**: Se registran todos los eventos en logs/
 - **Errores**: Respuestas HTTP estándar con mensajes descriptivos
+- **JMeter Testing**: Completa validación del ASR (ver `jmeter/` directorio)
+- **Terraform Deployment**: Infrastructure as Code en AWS (ver `terraform/` directorio)
 
 ---

@@ -25,14 +25,12 @@ def obtener_reporte_mensual(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def obtener_reporte_proyecto(request):
     """GET /api/reportes/proyecto"""
     return Response({'mensaje': 'Reporte por proyecto'}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def obtener_consumo_nube(request):
     """GET /api/reportes/consumo"""
     return Response({'mensaje': 'Consumo nube'}, status=status.HTTP_200_OK)
