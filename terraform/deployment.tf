@@ -285,8 +285,8 @@ ExecStart=/usr/bin/python3 -m gunicorn \
   --worker-class sync \
   --bind 0.0.0.0:8080 \
   --timeout 30 \
-  --access-logfile /var/log/gunicorn-access.log \
-  --error-logfile /var/log/gunicorn-error.log \
+  --access-logfile - \
+  --error-logfile - \
   finops_platform.wsgi:application
 
 Restart=on-failure
