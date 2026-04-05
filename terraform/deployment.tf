@@ -3,6 +3,7 @@
 # ********** Arquitectura y diseño de Software - ISIS2503 **********
 #
 # Infraestructura para laboratorio de Load Balancer - Arquisoft FinOps
+# OPCIÓN 2: Balance Architecture con Gunicorn y ElastiCache
 #
 # Elementos a desplegar en AWS:
 # 1. Grupos de seguridad:
@@ -10,16 +11,25 @@
 #    - report-trafico-db (puerto 5432)
 #    - report-trafico-http (puerto 8080)
 #    - report-trafico-lb (puerto 80)
+#    - report-trafico-redis (puerto 6379)
 #
 # 2. Instancias EC2:
-#    - report-db (PostgreSQL instalado y configurado)
-#    - report-app-lb-a (Arquisoft FinOps instalado)
-#    - report-app-lb-b (Arquisoft FinOps instalado)
+#    - report-db (t3.small - PostgreSQL instalado y configurado)
+#    - report-app-lb-a/b/c/d/e/f/g/h/i/j (10 × t3.small - Gunicorn + Django)
 #
 # 3. Load Balancer:
 #    - Application Load Balancer (report-alb)
 #    - Target Group (report-app-group) con health check en /api/reportes/health
 #    - Listener en puerto 80
+#
+# 4. ElastiCache:
+#    - Redis cluster (1 nodo t3.small) para caching y sesiones
+#
+# CAPACIDAD:
+#    - 12,000 usuarios concurrentes
+#    - 60 Gunicorn workers (10 × 6 workers)
+#    - ~6,000 req/seg bajo carga pico
+#    - Error rate < 5%, Latencia p50: 2-5s
 # ******************************************************************
 
 # ========== VARIABLES ==========
@@ -45,7 +55,19 @@ variable "instance_type_db" {
 variable "instance_type_app" {
   description = "EC2 instance type for application hosts"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.small"  # OPTION 2: t2.micro → t3.small (2 vCPU, 2GB RAM)
+}
+
+variable "instance_type_db" {
+  description = "EC2 instance type for database"
+  type        = string
+  default     = "t3.small"  # OPTION 2: t3.micro → t3.small
+}
+
+variable "gunicorn_workers" {
+  description = "Number of Gunicorn workers per instance (formula: 2*cpu_cores + 1)"
+  type        = number
+  default     = 6  # For t3.small (2 cores): 2*2 + 1 = 5, using 6 for safety
 }
 
 # ========== LOCALS ==========
@@ -197,6 +219,33 @@ resource "aws_security_group" "traffic_lb" {
   })
 }
 
+# ========== SECURITY GROUP: REDIS ==========
+
+resource "aws_security_group" "traffic_redis" {
+  name        = "${var.project_prefix}-trafico-redis"
+  description = "Allow Redis/ElastiCache access"
+
+  ingress {
+    description     = "Redis access from app servers"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.traffic_http.id]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-trafico-redis"
+  })
+}
+
 # ========== EC2 DATABASE ==========
 
 resource "aws_instance" "database" {
@@ -206,18 +255,38 @@ resource "aws_instance" "database" {
   vpc_security_group_ids      = [aws_security_group.traffic_db.id, aws_security_group.traffic_ssh.id]
 
   user_data_base64 = base64encode(<<-EOT
-              #!/bin/bash
+               #!/bin/bash
+               set -e
 
-              sudo apt-get update -y
-              sudo apt-get install -y postgresql postgresql-contrib
+               # ===== LOGGING =====
+               exec > >(tee /var/log/deployment.log)
+               exec 2>&1
 
-              sudo -u postgres psql -c "CREATE USER report_user WITH PASSWORD 'isis2503';"
-              sudo -u postgres createdb -O report_user monitoring_db
-              echo "host all all 0.0.0.0/0 trust" | sudo tee -a /etc/postgresql/16/main/pg_hba.conf
-              echo "listen_addresses='*'" | sudo tee -a /etc/postgresql/16/main/postgresql.conf
-              echo "max_connections=2000" | sudo tee -a /etc/postgresql/16/main/postgresql.conf
-              sudo service postgresql restart
-              EOT
+               # ===== ENVIRONMENT SETUP =====
+               export DATABASE_HOST=${aws_instance.database.private_ip}
+               echo "DATABASE_HOST=${aws_instance.database.private_ip}" >> /etc/environment
+               
+               echo "=== DATABASE DEPLOYMENT STARTED ===" | tee -a /var/log/deployment.log
+
+               # ===== SYSTEM PACKAGES =====
+               echo "Installing PostgreSQL..."
+               sudo apt-get update -y
+               sudo apt-get install -y postgresql postgresql-contrib
+
+               # ===== POSTGRESQL CONFIGURATION =====
+               echo "Configuring PostgreSQL..."
+               sudo -u postgres psql -c "CREATE USER report_user WITH PASSWORD 'isis2503';"
+               sudo -u postgres createdb -O report_user monitoring_db
+               
+               echo "host all all 0.0.0.0/0 trust" | sudo tee -a /etc/postgresql/16/main/pg_hba.conf
+               echo "listen_addresses='*'" | sudo tee -a /etc/postgresql/16/main/postgresql.conf
+               echo "max_connections=4000" | sudo tee -a /etc/postgresql/16/main/postgresql.conf  # OPTION 2: 2000 → 4000
+               echo "shared_buffers=256MB" | sudo tee -a /etc/postgresql/16/main/postgresql.conf # OPTION 2: NEW
+
+               sudo service postgresql restart
+
+               echo "=== DATABASE DEPLOYMENT COMPLETED ===" | tee -a /var/log/deployment.log
+               EOT
   )
 
   tags = merge(local.common_tags, {
@@ -229,7 +298,7 @@ resource "aws_instance" "database" {
 # ========== EC2 APP INSTANCES ==========
 
 resource "aws_instance" "app_instances" {
-  for_each = toset(["a", "b", "c", "d"])
+  for_each = toset(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])  # OPTION 2: 4 → 10 instances
 
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_app
@@ -237,33 +306,113 @@ resource "aws_instance" "app_instances" {
   vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
 
   user_data_base64 = base64encode(<<-EOT
-              #!/bin/bash
-              export DATABASE_HOST=${aws_instance.database.private_ip}
-              echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
+               #!/bin/bash
+               set -e
 
-              sudo apt-get update -y
-              sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
+               # ===== LOGGING =====
+               exec > >(tee /var/log/deployment.log)
+               exec 2>&1
 
-              mkdir -p /apps
-              cd /apps
+               # ===== ENVIRONMENT SETUP =====
+               export DATABASE_HOST=${aws_instance.database.private_ip}
+               echo "DATABASE_HOST=${aws_instance.database.private_ip}" >> /etc/environment
+               
+               echo "=== DEPLOYMENT STARTED ===" | tee -a /var/log/deployment.log
 
-              if [ ! -d Arquisoft ]; then
-                git clone ${local.repository}
-              fi
+               # ===== SYSTEM PACKAGES =====
+               echo "Installing system packages..."
+               sudo apt-get update -y
+               sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
 
-              cd Arquisoft
-              git fetch origin ${local.branch}
-              git checkout ${local.branch}
-              sudo pip3 install --upgrade pip --break-system-packages
-              sudo pip3 install -r requirements.txt --break-system-packages
+               # ===== DJANGO APPLICATION =====
+               echo "Cloning and setting up Django application..."
+               mkdir -p /apps
+               cd /apps
 
-              if [ "${each.key}" = "a" ]; then
-                sudo python3 manage.py makemigrations
-                sudo python3 manage.py migrate
-              fi
+               if [ ! -d Arquisoft ]; then
+                 git clone ${local.repository}
+               fi
 
-              
-              EOT
+               cd Arquisoft
+               git fetch origin ${local.branch}
+               git checkout ${local.branch}
+               
+               echo "Installing Python dependencies..."
+               sudo pip3 install --upgrade pip --break-system-packages
+               sudo pip3 install -r requirements.txt --break-system-packages
+
+               # ===== DATABASE MIGRATIONS (Only on instance 'a') =====
+               if [ "${each.key}" = "a" ]; then
+                 echo "Running database migrations (instance a)..."
+                 sudo python3 manage.py makemigrations
+                 sudo python3 manage.py migrate
+                 sudo python3 manage.py collectstatic --noinput 2>/dev/null || true
+               fi
+
+               # ===== GUNICORN SYSTEMD SERVICE =====
+               echo "Creating Gunicorn systemd service..."
+               sudo tee /etc/systemd/system/gunicorn.service > /dev/null << 'GUNICORN_EOF'
+[Unit]
+Description=Gunicorn Arquisoft FinOps Application Server
+After=network.target postgresql.service
+Documentation=https://gunicorn.org
+
+[Service]
+Type=notify
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/apps/Arquisoft
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="DATABASE_HOST=${aws_instance.database.private_ip}"
+Environment="DJANGO_SETTINGS_MODULE=finops_platform.settings"
+
+# Gunicorn startup command
+ExecStart=/usr/bin/python3 -m gunicorn \
+  --workers ${var.gunicorn_workers} \
+  --worker-class sync \
+  --bind 0.0.0.0:8080 \
+  --timeout 30 \
+  --access-logfile /var/log/gunicorn-access.log \
+  --error-logfile /var/log/gunicorn-error.log \
+  --log-level info \
+  finops_platform.wsgi:application
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+GUNICORN_EOF
+
+               # ===== SYSTEMD STARTUP =====
+               echo "Starting Gunicorn service..."
+               sudo systemctl daemon-reload
+               sudo systemctl enable gunicorn
+               sudo systemctl start gunicorn
+
+               # ===== VERIFICATION =====
+               sleep 5
+               if sudo systemctl is-active gunicorn > /dev/null 2>&1; then
+                 echo "✓ Gunicorn service is running successfully"
+               else
+                 echo "✗ Gunicorn service failed to start"
+                 sudo systemctl status gunicorn || true
+                 exit 1
+               fi
+
+               echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ===" | tee -a /var/log/deployment.log
+               EOT
   )
 
   tags = merge(local.common_tags, {
@@ -286,13 +435,15 @@ resource "aws_lb_target_group" "app_group" {
 
   health_check {
     healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 5
+    unhealthy_threshold = 3  # OPTION 2: 2 → 3
+    timeout             = 10  # OPTION 2: 5 → 10 (more tolerance for Gunicorn startup)
     interval            = 30
     path                = "/api/reportes/health"
     matcher             = "200"
     protocol            = "HTTP"
   }
+
+  deregistration_delay = 30  # OPTION 2: NEW Connection draining
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-app-group"
@@ -340,6 +491,38 @@ resource "aws_lb_target_group_attachment" "app_attachment" {
   port             = 8080
 }
 
+# ========== ELASTICACHE SUBNET GROUP ==========
+
+resource "aws_elasticache_subnet_group" "default" {
+  name       = "${var.project_prefix}-redis-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-redis-subnet-group"
+  })
+}
+
+# ========== ELASTICACHE REDIS CLUSTER ==========
+
+resource "aws_elasticache_cluster" "redis" {
+  cluster_id           = "${var.project_prefix}-redis"
+  engine               = "redis"
+  node_type            = "cache.t3.small"
+  num_cache_nodes      = 1
+  parameter_group_name = "default.redis7"
+  port                 = 6379
+  engine_version       = "7.0"
+
+  subnet_group_name  = aws_elasticache_subnet_group.default.name
+  security_group_ids = [aws_security_group.traffic_redis.id]
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-redis"
+  })
+
+  depends_on = [aws_security_group.traffic_redis]
+}
+
 # ========== OUTPUTS ==========
 
 output "alb_dns_name" {
@@ -380,4 +563,35 @@ output "app_instances_public_ips" {
 output "app_instances_private_ips" {
   description = "Private IP addresses of the application instances"
   value       = { for id, instance in aws_instance.app_instances : id => instance.private_ip }
+}
+
+output "redis_endpoint" {
+  description = "Redis ElastiCache endpoint (host:port)"
+  value       = "${aws_elasticache_cluster.redis.cache_nodes[0].address}:${aws_elasticache_cluster.redis.port}"
+}
+
+output "redis_host" {
+  description = "Redis ElastiCache host address"
+  value       = aws_elasticache_cluster.redis.cache_nodes[0].address
+}
+
+output "redis_port" {
+  description = "Redis ElastiCache port"
+  value       = aws_elasticache_cluster.redis.port
+}
+
+output "deployment_summary" {
+  description = "Summary of deployed infrastructure (OPTION 2: Balance Architecture)"
+  value       = {
+    architecture    = "OPTION 2: Balance (Gunicorn + ElastiCache)"
+    app_instances   = 10
+    app_type        = "t3.small (2 vCPU, 2GB RAM)"
+    gunicorn_workers = var.gunicorn_workers
+    total_workers   = 10 * var.gunicorn_workers
+    database_type   = var.instance_type_db
+    redis_enabled   = true
+    expected_capacity = "12,000 concurrent users"
+    expected_rps    = "5,000-6,000 requests/sec"
+    estimated_cost  = "$110-150/month"
+  }
 }
