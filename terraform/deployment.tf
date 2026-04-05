@@ -51,7 +51,7 @@ variable "instance_type_app" {
 # ========== LOCALS ==========
 
 locals {
-  project_name = "\-arquisoft"
+  project_name = "${var.project_prefix}-arquisoft"
   repository   = "https://github.com/AriadnaVargas/Arquisoft.git"
   branch       = "main"
 
@@ -98,7 +98,7 @@ data "aws_subnets" "default" {
 # ========== SECURITY GROUPS ==========
 
 resource "aws_security_group" "traffic_ssh" {
-    name        = "\-trafico-ssh"
+    name        = "${var.project_prefix}-trafico-ssh"
     description = "Allow SSH access"
 
     ingress {
@@ -118,12 +118,12 @@ resource "aws_security_group" "traffic_ssh" {
     }
 
     tags = merge(local.common_tags, {
-        Name = "\-trafico-ssh"
+        Name = "${var.project_prefix}-trafico-ssh"
     })
 }
 
 resource "aws_security_group" "traffic_db" {
-  name        = "\-trafico-db"
+  name        = "${var.project_prefix}-trafico-db"
   description = "Allow PostgreSQL access"
 
   ingress {
@@ -143,12 +143,12 @@ resource "aws_security_group" "traffic_db" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "\-trafico-db"
+    Name = "${var.project_prefix}-trafico-db"
   })
 }
 
 resource "aws_security_group" "traffic_http" {
-  name        = "\-trafico-http"
+  name        = "${var.project_prefix}-trafico-http"
   description = "Allow HTTP traffic to application"
 
   ingress {
@@ -168,12 +168,12 @@ resource "aws_security_group" "traffic_http" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "\-trafico-http"
+    Name = "${var.project_prefix}-trafico-http"
   })
 }
 
 resource "aws_security_group" "traffic_lb" {
-  name        = "\-trafico-lb"
+  name        = "${var.project_prefix}-trafico-lb"
   description = "Allow HTTP traffic from internet to load balancer"
 
   ingress {
@@ -193,7 +193,7 @@ resource "aws_security_group" "traffic_lb" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "\-trafico-lb"
+    Name = "${var.project_prefix}-trafico-lb"
   })
 }
 
@@ -221,7 +221,7 @@ resource "aws_instance" "database" {
   )
 
   tags = merge(local.common_tags, {
-    Name = "\-db"
+    Name = "${var.project_prefix}-db"
     Role = "database"
   })
 }
@@ -238,8 +238,8 @@ resource "aws_instance" "app_instances" {
 
   user_data = base64encode(<<-EOT
               #!/bin/bash
-              export DATABASE_HOST=\
-              echo "DATABASE_HOST=\" | sudo tee -a /etc/environment
+              export DATABASE_HOST=${aws_instance.database.private_ip}
+              echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
 
               sudo apt-get update -y
               sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
@@ -248,17 +248,16 @@ resource "aws_instance" "app_instances" {
               cd /apps
 
               if [ ! -d Arquisoft ]; then
-                git clone 
+                git clone ${local.repository}
               fi
 
               cd Arquisoft
-              git fetch origin 
-              git checkout 
+              git fetch origin ${local.branch}
+              git checkout ${local.branch}
               sudo pip3 install --upgrade pip --break-system-packages
               sudo pip3 install -r requirements.txt --break-system-packages
 
-              # Solo ejecutar migraciones en la instancia 'a'
-              if [ "" = "a" ]; then
+              if [ "${each.key}" = "a" ]; then
                 sudo python3 manage.py makemigrations
                 sudo python3 manage.py migrate
               fi
@@ -268,7 +267,7 @@ resource "aws_instance" "app_instances" {
   )
 
   tags = merge(local.common_tags, {
-    Name = "\-app-lb-\"
+    Name = "${var.project_prefix}-app-lb-${each.key}"
     Role = "application"
   })
 
@@ -278,7 +277,7 @@ resource "aws_instance" "app_instances" {
 # ========== TARGET GROUP ==========
 
 resource "aws_lb_target_group" "app_group" {
-  name        = "\-app-group"
+  name        = "${var.project_prefix}-app-group"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
@@ -294,14 +293,14 @@ resource "aws_lb_target_group" "app_group" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "\-app-group"
+    Name = "${var.project_prefix}-app-group"
   })
 }
 
 # ========== APPLICATION LOAD BALANCER ==========
 
 resource "aws_lb" "app_alb" {
-  name               = "\-alb"
+  name               = "${var.project_prefix}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.traffic_lb.id]
@@ -310,7 +309,7 @@ resource "aws_lb" "app_alb" {
   load_balancing_algorithm_type = "round_robin"
 
   tags = merge(local.common_tags, {
-    Name = "\-alb"
+    Name = "${var.project_prefix}-alb"
   })
 }
 
@@ -346,7 +345,7 @@ output "alb_dns_name" {
 
 output "access_url" {
   description = "URL to access the application through the load balancer"
-  value       = "http://\"
+  value       = "http://${aws_lb.app_alb.dns_name}"
 }
 
 output "alb_arn" {
