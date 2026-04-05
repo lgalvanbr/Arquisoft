@@ -241,33 +241,34 @@ resource "aws_instance" "app_instances" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
 
-  user_data = <<-EOT
-              #!/bin/bash
-              sudo export DATABASE_HOST=${aws_instance.database.private_ip}
-              echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
+  user_data = base64encode(<<-EOT
+#!/bin/bash
+export DATABASE_HOST=${aws_instance.database.private_ip}
+echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
 
-              sudo apt-get update -y
-              sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
+sudo apt-get update -y
+sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
 
-              mkdir -p /apps
-              cd /apps
+sudo mkdir -p /apps
+cd /apps
 
-              if [ ! -d Arquisoft ]; then
-                git clone ${local.repository}
-              fi
+if [ ! -d Arquisoft ]; then
+  sudo git clone ${local.repository}
+fi
 
-              cd Arquisoft
-              git fetch origin ${local.branch}
-              git checkout ${local.branch}
-              sudo pip3 install --upgrade pip --break-system-packages
-              sudo pip3 install -r requirements.txt --break-system-packages
+cd Arquisoft
+sudo git fetch origin ${local.branch}
+sudo git checkout ${local.branch}
 
-              if [ "${each.key}" = "a" ]; then
-                sudo python3 manage.py makemigrations
-                sudo python3 manage.py migrate
-              fi
+sudo pip3 install --upgrade pip --break-system-packages
+sudo pip3 install -r requirements.txt --break-system-packages
 
-              sudo tee /etc/systemd/system/gunicorn.service > /dev/null << 'GUNICORN_EOF'
+if [ "${each.key}" = "a" ]; then
+  sudo python3 manage.py makemigrations
+  sudo python3 manage.py migrate
+fi
+
+sudo tee /etc/systemd/system/gunicorn.service > /dev/null <<'GUNICORN_EOF'
 [Unit]
 Description=Gunicorn Arquisoft FinOps Application Server
 After=network.target
@@ -295,10 +296,11 @@ RestartSec=5
 WantedBy=multi-user.target
 GUNICORN_EOF
 
-              sudo systemctl daemon-reload
-              sudo systemctl enable gunicorn
-              sudo systemctl start gunicorn
-              EOT
+sudo systemctl daemon-reload
+sudo systemctl enable gunicorn
+sudo systemctl start gunicorn
+EOT
+  )
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-app-lb-${each.key}"
