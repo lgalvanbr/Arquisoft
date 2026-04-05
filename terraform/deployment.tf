@@ -242,52 +242,62 @@ resource "aws_instance" "app_instances" {
   vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
 
   user_data_base64 = base64encode(<<-EOT
-               #!/bin/bash
-               set -e
+#!/bin/bash
+set -e
 
-               # ===== LOGGING =====
-               exec > >(tee /var/log/deployment.log)
-               exec 2>&1
+# ===== LOGGING =====
+exec > >(tee /var/log/deployment.log)
+exec 2>&1
 
-               # ===== ENVIRONMENT SETUP =====
-               export DATABASE_HOST=${aws_instance.database.private_ip}
-               echo "DATABASE_HOST=${aws_instance.database.private_ip}" >> /etc/environment
-               
-               echo "=== DEPLOYMENT STARTED ===" | tee -a /var/log/deployment.log
+# ===== ENVIRONMENT SETUP =====
+export DATABASE_HOST=${aws_instance.database.private_ip}
+echo "DATABASE_HOST=${aws_instance.database.private_ip}" >> /etc/environment
 
-               # ===== SYSTEM PACKAGES =====
-               echo "Installing system packages..."
-               sudo apt-get update -y
-               sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
+echo "=== DEPLOYMENT STARTED ===" | tee -a /var/log/deployment.log
 
-               # ===== DJANGO APPLICATION =====
-               echo "Cloning and setting up Django application..."
-               mkdir -p /apps
-               cd /apps
+# ===== SYSTEM PACKAGES =====
+echo "Installing system packages..."
+sudo apt-get update -y
+sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
 
-               if [ ! -d Arquisoft ]; then
-                 git clone ${local.repository}
-               fi
+# ===== DJANGO APPLICATION =====
+echo "Cloning and setting up Django application..."
+sudo mkdir -p /apps
+cd /apps
 
-               cd Arquisoft
-               git fetch origin ${local.branch}
-               git checkout ${local.branch}
-               
-               echo "Installing Python dependencies..."
-               sudo pip3 install --upgrade pip --break-system-packages
-               sudo pip3 install -r requirements.txt --break-system-packages
+# Clone repository if not already cloned
+if [ ! -d Arquisoft ]; then
+  echo "Cloning Arquisoft repository..."
+  sudo git clone ${local.repository}
+fi
 
-               # ===== DATABASE MIGRATIONS (Only on instance 'a') =====
-               if [ "${each.key}" = "a" ]; then
-                 echo "Running database migrations (instance a)..."
-                 sudo python3 manage.py makemigrations
-                 sudo python3 manage.py migrate
-                 sudo python3 manage.py collectstatic --noinput 2>/dev/null || true
-               fi
+cd Arquisoft
 
-               # ===== GUNICORN SYSTEMD SERVICE =====
-               echo "Creating Gunicorn systemd service..."
-               sudo tee /etc/systemd/system/gunicorn.service > /dev/null << 'GUNICORN_EOF'
+# Fetch and checkout branch
+echo "Fetching latest code from ${local.branch}..."
+sudo git fetch origin ${local.branch}
+sudo git checkout ${local.branch}
+
+# Ensure correct permissions
+sudo chown -R ubuntu:ubuntu /apps
+
+# Install Python dependencies
+echo "Installing Python dependencies..."
+sudo pip3 install --upgrade pip --break-system-packages
+sudo pip3 install -r requirements.txt --break-system-packages
+
+# ===== DATABASE MIGRATIONS (Only on instance 'a') =====
+if [ "${each.key}" = "a" ]; then
+  echo "Running database migrations (instance a)..."
+  cd /apps/Arquisoft
+  sudo python3 manage.py makemigrations
+  sudo python3 manage.py migrate
+  sudo python3 manage.py collectstatic --noinput 2>/dev/null || true
+fi
+
+# ===== GUNICORN SYSTEMD SERVICE =====
+echo "Creating Gunicorn systemd service..."
+sudo tee /etc/systemd/system/gunicorn.service > /dev/null << 'GUNICORN_EOF'
 [Unit]
 Description=Gunicorn Arquisoft FinOps Application Server
 After=network.target postgresql.service
@@ -331,24 +341,24 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 GUNICORN_EOF
 
-               # ===== SYSTEMD STARTUP =====
-               echo "Starting Gunicorn service..."
-               sudo systemctl daemon-reload
-               sudo systemctl enable gunicorn
-               sudo systemctl start gunicorn
+# ===== SYSTEMD STARTUP =====
+echo "Starting Gunicorn service..."
+sudo systemctl daemon-reload
+sudo systemctl enable gunicorn
+sudo systemctl start gunicorn
 
-               # ===== VERIFICATION =====
-               sleep 5
-               if sudo systemctl is-active gunicorn > /dev/null 2>&1; then
-                 echo "✓ Gunicorn service is running successfully"
-               else
-                 echo "✗ Gunicorn service failed to start"
-                 sudo systemctl status gunicorn || true
-                 exit 1
-               fi
+# ===== VERIFICATION =====
+sleep 5
+if sudo systemctl is-active gunicorn > /dev/null 2>&1; then
+  echo "✓ Gunicorn service is running successfully"
+else
+  echo "✗ Gunicorn service failed to start"
+  sudo systemctl status gunicorn || true
+  exit 1
+fi
 
-               echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ===" | tee -a /var/log/deployment.log
-               EOT
+echo "=== DEPLOYMENT COMPLETED SUCCESSFULLY ===" | tee -a /var/log/deployment.log
+EOT
   )
 
   tags = merge(local.common_tags, {
