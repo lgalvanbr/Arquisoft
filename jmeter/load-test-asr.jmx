@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Arquisoft FinOps - ASR Load Test (Base 5K + Incremental 7K)">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Arquisoft FinOps - ASR Load Test (Sequential: 5K then 7K)">
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
     </TestPlan>
     <hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Base Load - 5K Constant Users">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Phase 1: Base Load - 5K Instant Users">
         <intProp name="ThreadGroup.num_threads">5000</intProp>
         <intProp name="ThreadGroup.ramp_time">0</intProp>
         <longProp name="ThreadGroup.duration">600</longProp>
@@ -21,7 +23,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop - Alternate Endpoints">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop - Alternate Endpoints" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
           <intProp name="LoopController.loops">-1</intProp>
         </LoopController>
@@ -29,7 +31,7 @@
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/reportes/proyecto" enabled="true">
             <intProp name="HTTPSampler.connect_timeout">30000</intProp>
             <intProp name="HTTPSampler.response_timeout">30000</intProp>
-            <stringProp name="HTTPSampler.domain">report-alb-2066091839.us-east-1.elb.amazonaws.com</stringProp>
+            <stringProp name="HTTPSampler.domain">report-alb-29924765.us-east-1.elb.amazonaws.com</stringProp>
             <stringProp name="HTTPSampler.port">80</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/api/reportes/proyecto</stringProp>
@@ -55,7 +57,7 @@
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/reportes/consumo" enabled="true">
             <intProp name="HTTPSampler.connect_timeout">30000</intProp>
             <intProp name="HTTPSampler.response_timeout">30000</intProp>
-            <stringProp name="HTTPSampler.domain">report-alb-2066091839.us-east-1.elb.amazonaws.com</stringProp>
+            <stringProp name="HTTPSampler.domain">report-alb-29924765.us-east-1.elb.amazonaws.com</stringProp>
             <stringProp name="HTTPSampler.port">80</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/api/reportes/consumo</stringProp>
@@ -80,7 +82,7 @@
           </hashTree>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Incremental Load - 7K Users Ramped Over 10min">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Phase 2: Incremental Load - 7K Users Ramped Over 10min" enabled="true">
         <intProp name="ThreadGroup.num_threads">7000</intProp>
         <intProp name="ThreadGroup.ramp_time">600</intProp>
         <longProp name="ThreadGroup.duration">600</longProp>
@@ -93,15 +95,15 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop - Alternate Endpoints">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop - Alternate Endpoints" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
           <intProp name="LoopController.loops">-1</intProp>
         </LoopController>
         <hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/reportes/proyecto">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/reportes/proyecto" enabled="true">
             <intProp name="HTTPSampler.connect_timeout">30000</intProp>
             <intProp name="HTTPSampler.response_timeout">30000</intProp>
-            <stringProp name="HTTPSampler.domain">report-alb-2066091839.us-east-1.elb.amazonaws.com</stringProp>
+            <stringProp name="HTTPSampler.domain">report-alb-29924765.us-east-1.elb.amazonaws.com</stringProp>
             <stringProp name="HTTPSampler.port">80</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/api/reportes/proyecto</stringProp>
@@ -124,10 +126,10 @@
             </HeaderManager>
             <hashTree/>
           </hashTree>
-          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/reportes/consumo">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/reportes/consumo" enabled="true">
             <intProp name="HTTPSampler.connect_timeout">30000</intProp>
             <intProp name="HTTPSampler.response_timeout">30000</intProp>
-            <stringProp name="HTTPSampler.domain">report-alb-2066091839.us-east-1.elb.amazonaws.com</stringProp>
+            <stringProp name="HTTPSampler.domain">report-alb-29924765.us-east-1.elb.amazonaws.com</stringProp>
             <stringProp name="HTTPSampler.port">80</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">/api/reportes/consumo</stringProp>
@@ -152,7 +154,7 @@
           </hashTree>
         </hashTree>
       </hashTree>
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
