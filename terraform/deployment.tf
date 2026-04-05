@@ -13,7 +13,7 @@
 #
 # 2. Instancias EC2:
 #    - report-db (PostgreSQL instalado y configurado)
-#    - report-app-lb-a/b/c/d (4 × t3.small con Gunicorn)
+#    - report-app-lb-a/b/c (3 × t3.small)
 #
 # 3. Load Balancer:
 #    - Application Load Balancer (report-alb)
@@ -44,13 +44,7 @@ variable "instance_type_db" {
 variable "instance_type_app" {
   description = "EC2 instance type for application hosts"
   type        = string
-  default     = "t3.small"
-}
-
-variable "gunicorn_workers" {
-  description = "Number of Gunicorn workers per instance"
-  type        = number
-  default     = 4
+  default     = "t2.nano"
 }
 
 # ========== LOCALS ==========
@@ -234,7 +228,7 @@ resource "aws_instance" "database" {
 # ========== EC2 APP INSTANCES ==========
 
 resource "aws_instance" "app_instances" {
-  for_each = toset(["a", "b", "c", "d"])
+  for_each = toset(["a", "b", "c"])
 
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_app
@@ -267,40 +261,7 @@ if [ "${each.key}" = "a" ]; then
   sudo python3 manage.py makemigrations
   sudo python3 manage.py migrate
 fi
-
-sudo tee /etc/systemd/system/gunicorn.service > /dev/null <<'GUNICORN_EOF'
-[Unit]
-Description=Gunicorn Arquisoft FinOps Application Server
-After=network.target
-
-[Service]
-Type=notify
-User=ubuntu
-Group=ubuntu
-WorkingDirectory=/apps/Arquisoft
-Environment="DATABASE_HOST=${aws_instance.database.private_ip}"
-
-ExecStart=/usr/bin/python3 -m gunicorn \
-  --workers ${var.gunicorn_workers} \
-  --worker-class sync \
-  --bind 0.0.0.0:8080 \
-  --timeout 30 \
-  --access-logfile - \
-  --error-logfile - \
-  finops_platform.wsgi:application
-
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-GUNICORN_EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable gunicorn
-sudo systemctl start gunicorn
 EOT
-  
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-app-lb-${each.key}"
