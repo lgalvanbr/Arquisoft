@@ -205,7 +205,7 @@ resource "aws_instance" "database" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.traffic_db.id, aws_security_group.traffic_ssh.id]
 
-  user_data = base64encode(<<-EOT
+  user_data_base64 = base64encode(<<-EOT
               #!/bin/bash
 
               sudo apt-get update -y
@@ -236,7 +236,7 @@ resource "aws_instance" "app_instances" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
 
-  user_data = base64encode(<<-EOT
+  user_data_base64 = base64encode(<<-EOT
               #!/bin/bash
               export DATABASE_HOST=${aws_instance.database.private_ip}
               echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
@@ -282,6 +282,8 @@ resource "aws_lb_target_group" "app_group" {
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
 
+  load_balancing_algorithm_type = "round_robin"
+
   health_check {
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -305,8 +307,6 @@ resource "aws_lb" "app_alb" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.traffic_lb.id]
   subnets            = data.aws_subnets.default.ids
-
-  load_balancing_algorithm_type = "round_robin"
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-alb"
