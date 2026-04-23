@@ -1,0 +1,57 @@
+<div style="background: linear-gradient(135deg, rgba(230,242,255,0.8) 0%, rgba(243,230,255,0.8) 100%); border: 1px solid #dcdfe6; padding: 25px; border-radius: 16px; font-family: Segoe UI, Arial, sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+
+    <div style="border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px; margin-bottom: 18px;">
+      <h2 style="margin: 0; color: #4b0082; font-weight: 300; font-size: 24px;">
+        Plantilla de diseño del experimento — ASR1 (latencia y bloqueo)
+      </h2>
+    </div>
+  
+    <table style="width: 100%; border-collapse: collapse; border-radius: 12px; overflow: hidden;">
+      <tbody>
+        <tr>
+          <td style="width: 34%; background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Título del experimento</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">Validación de latencia end-to-end (&lt; 2 s) para detección de intentos fallidos y restricción temporal (IntentoBloqueado) con ALB y dos instancias EC2</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">ASRs involucrados</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;"><strong>ASR1 — Latencia:</strong> como consultor tecnológico de BITE.CO, ante múltiples intentos fallidos de autenticación (con el sistema operando correctamente), se debe detectar el comportamiento anómalo y restringir el acceso temporalmente <strong>en menos de 2 segundos</strong>.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Propósito del experimento</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">Comprobar si el diseño desplegado (ALB + instancia + modelo de bloqueo) satisface el ASR1 del sprint: tiempo total desde la petición en el balanceador hasta la persistencia del bloqueo inferior a 2 s, con health checks estables y registro de auditoría.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Resultados esperados</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">Health Check del balanceador en estado <em>Healthy</em> bajo carga JMeter; registro en <code>AuditoriaAcceso</code> y, ante reincidencia, creación de bloqueo en <code>IntentoBloqueado</code> con <code>activo = True</code> y <code>fecha_bloqueo_hasta</code>; latencia medida en JMeter &lt; 2000 ms end-to-end; uso correcto de la IP del cliente vía balanceador para <code>esta_bloqueado()</code>; consumo de recursos de la instancia dentro de límites operativos sin fallos del ALB.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Elementos de arquitectura</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">Application Load Balancer <code>report-alb</code> orientado a Internet; dos instancias EC2 t2.nano como backends (<code>report-app-lb-a</code>, <code>report-app-lb-b</code>); Security Groups (<code>report-trafico-lb</code>, <code>report-trafico-http</code>, <code>report-trafico-ssh</code>, <code>report-trafico-db</code>); Target Group <code>report-app-group</code> con health checks en HTTP:8080; base de datos en instancia dedicada y modelos Django (<code>IntentoBloqueado</code>, <code>AuditoriaAcceso</code>); cliente de prueba JMeter contra el endpoint de login del balanceador.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Estilos de arquitectura asociados y argumentación</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;"><strong>Microservicios:</strong> autenticación, usuarios, recursos cloud, reportes y empresa como servicios independientes para desplegar y escalar por separado, mejorar mantenibilidad y evolución del sistema. En el experimento se valida el flujo crítico de autenticación/bloqueo expuesto tras el ALB.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Tácticas asociadas y argumentación</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;"><strong>Distribución de carga:</strong> el balanceador concentra el tráfico y prepara el escalado horizontal si se añaden instancias. <strong>Aislamiento de recursos:</strong> separación de bases de datos de autenticación y de negocio para reducir contención y mejorar desempeño.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Infraestructura computacional requerida</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">ALB público (<code>report-alb</code>, Internet-facing, IPv4); 2× EC2 t2.nano (<code>report-app-lb-a</code> y <code>report-app-lb-b</code>) en us-east-1; 1× EC2 t3.micro para base de datos (<code>report-db</code>); reglas de Security Group (HTTP 8080 desde el ALB hacia las instancias); Target Group <code>report-app-group</code> con 2 targets healthy y health check activo; estación de pruebas con JMeter; conectividad a la base de datos del servicio de autenticación.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Tecnologías y argumentación</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">AWS ALB, EC2, Security Groups y Target Groups; aplicación (p. ej. Django) con modelos <code>IntentoBloqueado</code> y <code>AuditoriaAcceso</code>; Apache JMeter para hilos concurrentes y medición de latencia en el endpoint de login expuesto por el DNS del balanceador.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Descripción del experimento</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">Se envían ráfagas de solicitudes de login fallidas al ALB; el tráfico llega a la instancia activa; el servidor aplica la lógica de detección y persiste en <code>intentos_bloqueados</code> con <code>activo</code> y <code>fecha_bloqueo_hasta</code>. Las métricas se obtienen de los reportes de JMeter (tiempo desde envío hasta respuesta de bloqueo) y de la consola AWS (estado del target y del balanceador). Se contrasta el tiempo total con el umbral de 2 s del ASR1.</td>
+        </tr>
+        <tr>
+          <td style="background: #2f4a6d; color: #fff; font-weight: 600; padding: 12px 14px; border: 1px solid #fff;">Plan de uso de IAG</td>
+          <td style="background: rgba(255,255,255,0.55); color: #333; padding: 12px 14px; border: 1px solid #fff;">Se utilizó IAG (GitHub Copilot) para: (1) generación de la estructura base del plan de pruebas JMeter, (2) revisión de configuración de Security Groups en AWS, y (3) redacción y estructuración del documento de evidencia del experimento.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
