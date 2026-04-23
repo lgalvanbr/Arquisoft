@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinOps Platform · BITE.CO</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #273449;
+      --border: #334155;
+      --accent: #38bdf8;
+      --accent2: #818cf8;
+      --green: #34d399;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --radius: 10px;
+    }
+
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ===== AUTH ===== */
+    #auth-section {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+    .auth-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 100%; max-width: 420px;
+      padding: 36px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .auth-logo { text-align: center; margin-bottom: 28px; }
+    .auth-logo h1 { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.03em; }
+    .auth-logo p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 8px; padding: 4px; margin-bottom: 24px; }
+    .tab {
+      flex: 1; padding: 8px; border: none; background: none; color: var(--muted);
+      border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;
+    }
+    .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-group input {
+      width: 100%; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.2s;
+    }
+    .form-group input:focus { border-color: var(--accent); }
+
+    .btn {
+      width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 14px;
+      font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: var(--accent); color: #0f172a; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+    .msg { font-size: 13px; padding: 10px 14px; border-radius: 8px; margin-top: 16px; display: none; }
+    .msg.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+    .msg.success { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: var(--green); }
+
+    /* ===== DASHBOARD ===== */
+    #dashboard { display: none; min-height: 100vh; flex-direction: column; }
+
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 58px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-brand { font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .user-badge { font-size: 13px; color: var(--muted); }
+    .health-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .btn-logout { padding: 6px 14px; font-size: 13px; border: 1px solid var(--border); background: none; color: var(--muted); border-radius: 6px; cursor: pointer; }
+    .btn-logout:hover { color: var(--red); border-color: var(--red); }
+
+    .layout { display: flex; flex: 1; }
+
+    .sidebar {
+      width: 220px; background: var(--surface); border-right: 1px solid var(--border);
+      padding: 20px 12px; flex-shrink: 0;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted);
+      margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left;
+      transition: all 0.15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(56,189,248,0.1); color: var(--accent); font-weight: 600; }
+    .nav-icon { font-size: 16px; }
+    .nav-label { color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; padding: 14px 12px 6px; }
+
+    .main { flex: 1; padding: 28px; overflow-y: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .page-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
+    .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px;
+    }
+    .card-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .card-value { font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -0.03em; }
+    .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .section-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px; margin-bottom: 20px;
+    }
+    .section-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+
+    .response-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 16px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px;
+      color: var(--green); white-space: pre-wrap; min-height: 80px; max-height: 320px; overflow-y: auto;
+    }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+      border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .badge-green { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+    .badge-red { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+    .badge-yellow { background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+
+    .btn-action {
+      padding: 9px 18px; border: none; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer; background: var(--accent); color: #0f172a;
+      transition: opacity 0.2s; margin-top: 12px;
+    }
+    .btn-action:hover { opacity: 0.85; }
+    .btn-action.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 14px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(51,65,85,0.5); }
+    tr:last-child td { border-bottom: none; }
+
+    .endpoint-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .method-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: monospace; }
+    .method-get { background: rgba(52,211,153,0.15); color: var(--green); }
+    .method-post { background: rgba(129,140,248,0.15); color: var(--accent2); }
+    .endpoint-path { font-family: monospace; font-size: 13px; color: var(--text); }
+
+    @media (max-width: 640px) {
+      .sidebar { display: none; }
+      .cards { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================= AUTH ============================= -->
+<div id="auth-section">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <h1>⚡ FinOps Platform</h1>
+      <p>BITE.CO · Gestión de costos cloud</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('login')">Iniciar sesión</button>
+      <button class="tab" onclick="switchTab('register')">Registrarse</button>
+    </div>
+
+    <!-- Login -->
+    <div id="tab-login">
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" id="login-username" placeholder="tu_usuario" />
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-password" placeholder="••••••••" />
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Ingresar</button>
+    </div>
+
+    <!-- Register -->
+    <div id="tab-register" style="display:none">
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" id="reg-username" placeholder="nuevo_usuario" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="correo@empresa.com" />
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="reg-password" placeholder="mínimo 8 caracteres" />
+      </div>
+      <div class="form-group">
+        <label>Empresa</label>
+        <input type="text" id="reg-empresa" placeholder="BITE.CO" />
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
+    </div>
+
+    <div class="msg error" id="auth-error"></div>
+    <div class="msg success" id="auth-success"></div>
+  </div>
+</div>
+
+<!-- ============================= DASHBOARD ============================= -->
+<div id="dashboard">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-brand">⚡ FinOps Platform</div>
+    <div class="topbar-right">
+      <span><span class="health-dot" id="health-dot"></span><span id="health-status-text" style="font-size:12px;color:var(--muted)">verificando...</span></span>
+      <span class="user-badge" id="user-display">—</span>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="nav-label">Principal</div>
+      <button class="nav-item active" onclick="showPage('overview')"><span class="nav-icon">🏠</span> Inicio</button>
+      <button class="nav-item" onclick="showPage('reportes')"><span class="nav-icon">📊</span> Reportes</button>
+      <button class="nav-item" onclick="showPage('consumo')"><span class="nav-icon">☁️</span> Consumo</button>
+      <div class="nav-label">Análisis</div>
+      <button class="nav-item" onclick="showPage('analisis')"><span class="nav-icon">🔍</span> Optimización</button>
+      <button class="nav-item" onclick="showPage('tendencias')"><span class="nav-icon">📈</span> Tendencias</button>
+      <div class="nav-label">Sistema</div>
+      <button class="nav-item" onclick="showPage('health')"><span class="nav-icon">💚</span> Health Check</button>
+      <button class="nav-item" onclick="showPage('api')"><span class="nav-icon">🔌</span> API Explorer</button>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+
+      <!-- OVERVIEW -->
+      <div class="page active" id="page-overview">
+        <div class="page-title">Panel de control</div>
+        <div class="page-sub">Resumen de tu plataforma FinOps en tiempo real</div>
+
+        <div class="cards">
+          <div class="card">
+            <div class="card-label">Estado del sistema</div>
+            <div class="card-value" id="ov-health">—</div>
+            <div class="card-sub">reportes · auth</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Instancias activas</div>
+            <div class="card-value" style="color:var(--green)">2</div>
+            <div class="card-sub">app-a · app-b (Load Balanced)</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Usuario actual</div>
+            <div class="card-value" style="font-size:18px" id="ov-user">—</div>
+            <div class="card-sub" id="ov-rol">—</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Token JWT</div>
+            <div class="card-value" style="font-size:14px;color:var(--accent2)">Activo</div>
+            <div class="card-sub">Access + Refresh</div>
+          </div>
+        </div>
+
+        <div class="section-box">
+          <h3>Información de tu cuenta</h3>
+          <div id="me-data" class="response-box">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- REPORTES -->
+      <div class="page" id="page-reportes">
+        <div class="page-title">Reportes mensuales</div>
+        <div class="page-sub">Consolidado de costos AWS y GCP por mes (&lt;100ms)</div>
+
+        <div class="section-box">
+          <h3>Reporte mensual</h3>
+          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/mensual', 'reportes-result')">
+            Cargar reporte
+          </button>
+          <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/proyecto', 'reportes-result')" style="margin-left:8px">
+            Por proyecto
+          </button>
+          <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/historial', 'reportes-result')" style="margin-left:8px">
+            Historial
+          </button>
+          <div style="margin-top:16px">
+            <div class="response-box" id="reportes-result">Presiona un botón para cargar datos...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONSUMO -->
+      <div class="page" id="page-consumo">
+        <div class="page-title">Consumo cloud</div>
+        <div class="page-sub">Registro de consumo AWS y GCP por servicio y proyecto</div>
+
+        <div class="section-box">
+          <h3>Datos de consumo</h3>
+          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/consumo', 'consumo-result')">
+            Ver consumo
+          </button>
+          <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/gastos', 'consumo-result')" style="margin-left:8px">
+            Gastos por servicio
+          </button>
+          <div style="margin-top:16px">
+            <div class="response-box" id="consumo-result">Presiona un botón para cargar datos...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANÁLISIS -->
+      <div class="page" id="page-analisis">
+        <div class="page-title">Análisis de optimización</div>
+        <div class="page-sub">Detección de oportunidades de ahorro en tu infraestructura</div>
+
+        <div class="section-box">
+          <h3>Oportunidades detectadas</h3>
+          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/analisis', 'analisis-result')">
+            Ejecutar análisis
+          </button>
+          <div style="margin-top:16px">
+            <div class="response-box" id="analisis-result">Presiona para iniciar el análisis...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TENDENCIAS -->
+      <div class="page" id="page-tendencias">
+        <div class="page-title">Tendencias y anomalías</div>
+        <div class="page-sub">Patrones de consumo y detección de comportamientos anómalos</div>
+
+        <div class="section-box">
+          <h3>Análisis de tendencias</h3>
+          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/tendencias', 'tendencias-result')">
+            Ver tendencias
+          </button>
+          <div style="margin-top:16px">
+            <div class="response-box" id="tendencias-result">Presiona para cargar tendencias...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HEALTH -->
+      <div class="page" id="page-health">
+        <div class="page-title">Health Check</div>
+        <div class="page-sub">Estado de los servicios desplegados en AWS</div>
+
+        <div class="cards">
+          <div class="card">
+            <div class="card-label">Servicio Reportes</div>
+            <div id="health-reportes-badge" style="margin-top:8px">—</div>
+            <div class="card-sub" style="margin-top:8px" id="health-reportes-sub">GET /api/reportes/health</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Servicio Auth</div>
+            <div id="health-auth-badge" style="margin-top:8px">—</div>
+            <div class="card-sub" style="margin-top:8px" id="health-auth-sub">GET /api/auth/health</div>
+          </div>
+        </div>
+
+        <div class="section-box">
+          <h3>Verificar ahora</h3>
+          <button class="btn-action" onclick="runHealthCheck()">Ejecutar health check</button>
+          <div style="margin-top:16px">
+            <div class="response-box" id="health-result">Presiona para verificar el estado del sistema...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API EXPLORER -->
+      <div class="page" id="page-api">
+        <div class="page-title">API Explorer</div>
+        <div class="page-sub">Explora y prueba todos los endpoints disponibles</div>
+
+        <div class="section-box">
+          <h3>Autenticación</h3>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/register</span> — Registrar usuario</div>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/login</span> — Login y obtener tokens JWT</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/auth/me</span> — Info del usuario autenticado</div>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/refresh</span> — Refrescar token</div>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/logout</span> — Cerrar sesión</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/auth/audit/historial</span> — Historial de accesos</div>
+        </div>
+
+        <div class="section-box">
+          <h3>Reportes</h3>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/mensual</span> — Reporte mensual (&lt;100ms)</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/proyecto</span> — Reporte por proyecto</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/consumo</span> — Consumo cloud</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/gastos</span> — Gastos por servicio</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/analisis</span> — Análisis de optimización</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/tendencias</span> — Tendencias y anomalías</div>
+          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/historial</span> — Historial de reportes</div>
+        </div>
+
+        <div class="section-box">
+          <h3>Probar endpoint personalizado</h3>
+          <div class="form-group">
+            <label>Endpoint (relativo)</label>
+            <input type="text" id="custom-endpoint" placeholder="/api/reportes/consumo" style="font-family:monospace" />
+          </div>
+          <button class="btn-action" onclick="fetchEndpoint(document.getElementById('custom-endpoint').value, 'custom-result')">
+            Ejecutar GET
+          </button>
+          <div style="margin-top:16px">
+            <div class="response-box" id="custom-result">Respuesta aparecerá aquí...</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /layout -->
+</div><!-- /dashboard -->
+
+<script>
+  // ========== STATE ==========
+  let accessToken = localStorage.getItem('access_token') || null;
+  let currentUser = null;
+
+  // ========== AUTH TABS ==========
+  function switchTab(tab) {
+    document.getElementById('tab-login').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+    });
+    hideAuthMsg();
+  }
+
+  function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg; el.style.display = 'block';
+    document.getElementById('auth-success').style.display = 'none';
+  }
+  function showAuthSuccess(msg) {
+    const el = document.getElementById('auth-success');
+    el.textContent = msg; el.style.display = 'block';
+    document.getElementById('auth-error').style.display = 'none';
+  }
+  function hideAuthMsg() {
+    document.getElementById('auth-error').style.display = 'none';
+    document.getElementById('auth-success').style.display = 'none';
+  }
+
+  // ========== LOGIN ==========
+  async function doLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!username || !password) { showAuthError('Completa todos los campos'); return; }
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { showAuthError(data.error || data.detail || 'Error al iniciar sesión'); return; }
+
+      accessToken = data.access_token || data.access;
+      localStorage.setItem('access_token', accessToken);
+      if (data.refresh_token || data.refresh) {
+        localStorage.setItem('refresh_token', data.refresh_token || data.refresh);
+      }
+      enterDashboard(data.user || { username });
+    } catch (e) {
+      showAuthError('No se pudo conectar al servidor');
+    }
+  }
+
+  // ========== REGISTER ==========
+  async function doRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const empresa = document.getElementById('reg-empresa').value.trim();
+    if (!username || !email || !password) { showAuthError('Completa los campos requeridos'); return; }
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, empresa })
+      });
+      const data = await res.json();
+      if (!res.ok) { showAuthError(data.error || data.detail || 'Error al registrar'); return; }
+
+      showAuthSuccess('Cuenta creada. Ahora inicia sesión.');
+      switchTab('login');
+      document.getElementById('login-username').value = username;
+    } catch (e) {
+      showAuthError('No se pudo conectar al servidor');
+    }
+  }
+
+  // ========== LOGOUT ==========
+  async function doLogout() {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' }
+      });
+    } catch (_) {}
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    accessToken = null;
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('auth-section').style.display = 'flex';
+  }
+
+  // ========== DASHBOARD ==========
+  function enterDashboard(user) {
+    currentUser = user;
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'flex';
+    document.getElementById('user-display').textContent = user.username || user;
+    document.getElementById('ov-user').textContent = user.username || user;
+    document.getElementById('ov-rol').textContent = user.rol || 'usuario';
+    loadOverview();
+    startHealthPoll();
+  }
+
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // ========== API CALLS ==========
+  async function apiFetch(path) {
+    const res = await fetch(path, {
+      headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' }
+    });
+    return { res, data: await res.json() };
+  }
+
+  async function fetchEndpoint(path, targetId) {
+    const box = document.getElementById(targetId);
+    box.innerHTML = '<span class="spinner"></span>Cargando...';
+    try {
+      const { res, data } = await apiFetch(path);
+      box.style.color = res.ok ? 'var(--green)' : 'var(--red)';
+      box.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      box.style.color = 'var(--red)';
+      box.textContent = 'Error de conexión: ' + e.message;
+    }
+  }
+
+  async function loadOverview() {
+    try {
+      const { data } = await apiFetch('/api/auth/me');
+      document.getElementById('me-data').textContent = JSON.stringify(data, null, 2);
+      if (data.username) document.getElementById('ov-user').textContent = data.username;
+      if (data.rol) document.getElementById('ov-rol').textContent = 'Rol: ' + data.rol;
+    } catch (_) {
+      document.getElementById('me-data').textContent = 'No disponible';
+    }
+  }
+
+  async function runHealthCheck() {
+    const box = document.getElementById('health-result');
+    box.innerHTML = '<span class="spinner"></span>Verificando...';
+    const results = {};
+
+    for (const [key, path] of [['reportes', '/api/reportes/health'], ['auth', '/api/auth/health']]) {
+      try {
+        const { res, data } = await apiFetch(path);
+        results[path] = { status: res.status, data };
+        const badge = document.getElementById('health-' + key + '-badge');
+        if (res.ok) {
+          badge.innerHTML = '<span class="status-badge badge-green">● Saludable</span>';
+        } else {
+          badge.innerHTML = '<span class="status-badge badge-red">● Error ' + res.status + '</span>';
+        }
+      } catch (e) {
+        results[path] = { error: e.message };
+        document.getElementById('health-' + key + '-badge').innerHTML = '<span class="status-badge badge-red">● Sin conexión</span>';
+      }
+    }
+
+    box.style.color = 'var(--green)';
+    box.textContent = JSON.stringify(results, null, 2);
+  }
+
+  // ========== HEALTH POLL ==========
+  async function checkHealthDot() {
+    try {
+      const res = await fetch('/api/reportes/health');
+      const ok = res.ok;
+      document.getElementById('health-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
+      document.getElementById('health-status-text').textContent = ok ? 'Sistema OK' : 'Error';
+      document.getElementById('ov-health').textContent = ok ? '✓ Online' : '✗ Error';
+      document.getElementById('ov-health').style.color = ok ? 'var(--green)' : 'var(--red)';
+    } catch (_) {
+      document.getElementById('health-dot').style.background = 'var(--yellow)';
+      document.getElementById('health-status-text').textContent = 'Sin conexión';
+    }
+  }
+
+  function startHealthPoll() {
+    checkHealthDot();
+    setInterval(checkHealthDot, 30000);
+  }
+
+  // ========== INIT ==========
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('tab-login').style.display !== 'none') doLogin();
+      else doRegister();
+    }
+  });
+
+  // Auto-login si hay token guardado
+  if (accessToken) {
+    apiFetch('/api/auth/me').then(({ res, data }) => {
+      if (res.ok) {
+        enterDashboard(data);
+      } else {
+        localStorage.removeItem('access_token');
+        accessToken = null;
+      }
+    }).catch(() => {
+      localStorage.removeItem('access_token');
+      accessToken = null;
+    });
+  }
+</script>
+</body>
+</html>

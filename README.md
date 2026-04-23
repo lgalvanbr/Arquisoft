@@ -1,4 +1,249 @@
-# Arquitectura de Microservicios BITE.CO - FinOps Platform
+# FinOps Platform · BITE.CO
+
+Plataforma de gestión y optimización de costos cloud (AWS/GCP) con Load Balancer, autenticación JWT y frontend web.
+
+---
+
+## Arquitectura en AWS
+
+```
+Internet → ALB puerto 80 → EC2 app-a / app-b puerto 8080 → EC2 DB PostgreSQL
+```
+
+| Recurso | Tipo | Detalle |
+|---|---|---|
+| `report-db` | EC2 t3.micro | PostgreSQL 16 · `monitoring_db` |
+| `report-app-lb-a` | EC2 t2.nano | Django + Gunicorn |
+| `report-app-lb-b` | EC2 t2.nano | Django + Gunicorn |
+| `report-alb` | Application LB | Round-robin · health `/api/reportes/health` |
+
+---
+
+## Prerrequisitos
+
+- Cuenta de AWS con permisos EC2, ELB, VPC
+- AWS CLI configurado (`aws configure`)
+- Terraform instalado — [descargar](https://developer.hashicorp.com/terraform/downloads)
+- Git
+- JMeter (solo para pruebas de carga)
+
+---
+
+## Despliegue paso a paso
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/lgalvanbr/Arquisoft.git
+cd Arquisoft/terraform
+```
+
+### 2. Inicializar Terraform
+
+```bash
+terraform init
+```
+
+### 3. Revisar qué va a crear (opcional)
+
+```bash
+terraform plan
+```
+
+### 4. Desplegar la infraestructura
+
+```bash
+terraform apply
+```
+
+Escribe `yes` cuando lo pida. Tarda ~3 minutos en crear todos los recursos.
+
+Al finalizar verás los outputs:
+
+```
+access_url           = "http://report-alb-XXXXXXXXX.us-east-1.elb.amazonaws.com"
+alb_dns_name         = "report-alb-XXXXXXXXX.us-east-1.elb.amazonaws.com"
+database_public_ip   = "X.X.X.X"
+app_instances_public_ips = { "a" = "X.X.X.X", "b" = "X.X.X.X" }
+```
+
+### 5. Esperar que las instancias arranquen
+
+Las instancias app tardan ~5 minutos en:
+1. Instalar dependencias (pip, Django, Gunicorn)
+2. Correr migraciones (solo app-a, espera a que DB esté lista)
+3. Arrancar Gunicorn en puerto 8080 automáticamente
+
+### 6. Verificar que funciona
+
+```bash
+# Reemplaza con tu ALB DNS del output de Terraform
+ALB=report-alb-XXXXXXXXX.us-east-1.elb.amazonaws.com
+
+curl http://$ALB/api/reportes/health
+# Esperado: {"status": "healthy", "service": "reportes"}
+
+curl http://$ALB/api/auth/health
+# Esperado: {"status": "healthy"}
+```
+
+Si el health check falla, espera 2 minutos más y reintenta.
+
+### 7. Abrir el frontend
+
+Abre en tu navegador:
+
+```
+http://<alb_dns_name>
+```
+
+Desde ahí puedes registrar usuarios, hacer login y explorar todos los endpoints de la API.
+
+---
+
+## Reiniciar Gunicorn manualmente (si es necesario)
+
+Si una instancia reinicia o Gunicorn se cae, conéctate vía EC2 Instance Connect:
+
+1. AWS Console → EC2 → selecciona la instancia → **Connect** → **EC2 Instance Connect**
+2. Corre:
+
+```bash
+sudo fuser -k 8080/tcp 2>/dev/null || true
+cd /apps/Arquisoft
+source /etc/environment
+sudo /usr/local/bin/gunicorn finops_platform.wsgi:application \
+  --bind 0.0.0.0:8080 \
+  --workers 4 \
+  --daemon \
+  --log-file /var/log/gunicorn.log
+curl http://localhost:8080/api/reportes/health
+```
+
+---
+
+## Pruebas de carga con JMeter
+
+### Configurar el DNS del ALB en el .jmx
+
+```bash
+# En tu máquina local — reemplaza con tu ALB DNS real
+ALB=report-alb-XXXXXXXXX.us-east-1.elb.amazonaws.com
+
+sed -i "s|report-alb-[0-9]*.us-east-1.elb.amazonaws.com|$ALB|g" jmeter/load-test-asr.jmx
+```
+
+En Windows PowerShell:
+```powershell
+$ALB = "report-alb-XXXXXXXXX.us-east-1.elb.amazonaws.com"
+(Get-Content jmeter\load-test-asr.jmx) -replace 'report-alb-\d+\.us-east-1\.elb\.amazonaws\.com', $ALB | Set-Content jmeter\load-test-asr.jmx
+```
+
+### Ejecutar el test
+
+```bash
+# Headless (recomendado)
+mkdir -p jmeter/results
+jmeter -n -t jmeter/load-test-asr.jmx -l jmeter/results/results.jtl -j jmeter/results/test.log
+
+# Ver resultados
+tail -f jmeter/results/test.log
+```
+
+O abre el `.jmx` directamente en JMeter GUI para verlo en tiempo real.
+
+### Plan del test
+
+| Fase | Usuarios | Ramp-up | Duración |
+|---|---|---|---|
+| Phase 1 | 5,000 | 5 min | 10 min |
+| Phase 2 | +7,000 (total 12,000) | 10 min | 10 min |
+
+Endpoint bajo prueba: `GET /api/reportes/consumo`
+
+### ASR objetivo
+
+| Métrica | Objetivo |
+|---|---|
+| Disponibilidad | ≥ 95% |
+| Tasa de error | < 5% |
+| Throughput | ~100-200 req/seg |
+
+---
+
+## Destruir la infraestructura
+
+```bash
+cd terraform
+terraform destroy
+```
+
+Escribe `yes`. Esto elimina **todas** las instancias EC2, el ALB y los security groups. No genera costos después de esto.
+
+---
+
+## Volver a desplegar desde cero
+
+```bash
+cd terraform
+terraform apply
+```
+
+Eso es todo. Terraform crea todo de nuevo y las instancias se autoconfiguraн automáticamente.
+
+---
+
+## Endpoints de la API
+
+### Autenticación
+
+```bash
+BASE=http://<alb_dns_name>
+
+# Registrar usuario
+curl -X POST $BASE/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","email":"admin@bite.co","password":"Admin1234!"}'
+
+# Login
+curl -X POST $BASE/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin1234!"}'
+
+# Con el token del login:
+TOKEN=<access_token_del_login>
+
+# Info del usuario
+curl $BASE/api/auth/me -H "Authorization: Bearer $TOKEN"
+
+# Historial de accesos
+curl $BASE/api/auth/audit/historial -H "Authorization: Bearer $TOKEN"
+```
+
+### Reportes
+
+```bash
+curl $BASE/api/reportes/mensual     -H "Authorization: Bearer $TOKEN"
+curl $BASE/api/reportes/consumo     -H "Authorization: Bearer $TOKEN"
+curl $BASE/api/reportes/gastos      -H "Authorization: Bearer $TOKEN"
+curl $BASE/api/reportes/proyecto    -H "Authorization: Bearer $TOKEN"
+curl $BASE/api/reportes/analisis    -H "Authorization: Bearer $TOKEN"
+curl $BASE/api/reportes/tendencias  -H "Authorization: Bearer $TOKEN"
+curl $BASE/api/reportes/historial   -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Stack tecnológico
+
+- **Backend**: Django 4.2 + Django REST Framework
+- **Auth**: JWT (djangorestframework-simplejwt)
+- **DB**: PostgreSQL 16
+- **Servidor**: Gunicorn 21 (4 workers)
+- **Infra**: AWS EC2 + Application Load Balancer
+- **IaC**: Terraform ~5.x
+- **Load testing**: Apache JMeter 5.6+
+
 
 ## 📋 Descripción General
 

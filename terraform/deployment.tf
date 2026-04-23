@@ -246,11 +246,13 @@ resource "aws_instance" "app_instances" {
 
   user_data = <<-EOT
 #!/bin/bash
-export DATABASE_HOST=${aws_instance.database.private_ip}
+set -e
+
 echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
+export DATABASE_HOST=${aws_instance.database.private_ip}
 
 sudo apt-get update -y
-sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev
+sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev netcat-openbsd
 
 sudo mkdir -p /apps
 cd /apps
@@ -264,12 +266,32 @@ sudo git fetch origin ${local.branch}
 sudo git checkout ${local.branch}
 
 sudo pip3 install --upgrade pip --break-system-packages
-sudo pip3 install -r requirements.txt --break-system-packages
+sudo pip3 install -r requirements.txt --break-system-packages --ignore-installed
 
 if [ "${each.key}" = "a" ]; then
-  sudo python3 manage.py makemigrations
-  sudo python3 manage.py migrate
+  # Esperar a que PostgreSQL esté listo (máx 5 minutos)
+  echo "Esperando a que la base de datos esté lista..."
+  for i in $(seq 1 30); do
+    nc -z ${aws_instance.database.private_ip} 5432 && break
+    echo "Intento $i/30 - DB no disponible, esperando 10s..."
+    sleep 10
+  done
+  echo "Base de datos lista. Ejecutando migraciones..."
+  sudo -E python3 manage.py makemigrations
+  sudo -E python3 manage.py migrate
 fi
+
+# Iniciar Gunicorn
+echo "Iniciando Gunicorn en puerto 8080..."
+source /etc/environment
+sudo /usr/local/bin/gunicorn finops_platform.wsgi:application \
+  --bind 0.0.0.0:8080 \
+  --workers 4 \
+  --daemon \
+  --log-file /var/log/gunicorn.log \
+  --access-logfile /var/log/gunicorn-access.log
+
+echo "Despliegue completado."
 EOT
 
   tags = merge(local.common_tags, {

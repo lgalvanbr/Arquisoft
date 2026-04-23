@@ -5,6 +5,7 @@ Main URL router for autenticacion and reportes apps
 """
 from django.contrib import admin
 from django.urls import path
+from django.views.generic import TemplateView
 from autenticacion import views as auth_views
 from reportes import views as report_views
 
@@ -33,4 +34,7 @@ urlpatterns = [
     # ======================== HEALTH CHECK ========================
     path('api/auth/health', auth_views.health_check, name='health_check'),
     path('api/reportes/health', report_views.health_check, name='health_check'),
+
+    # ======================== FRONTEND ========================
+    path('', TemplateView.as_view(template_name='index.html'), name='frontend'),
 ]
