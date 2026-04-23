@@ -246,52 +246,125 @@ resource "aws_instance" "app_instances" {
 
   user_data = <<-EOT
 #!/bin/bash
+# =======================================================
+# CloudyNet FinOps - Auto-setup script for app-${each.key}
+# Runs once at first boot via cloud-init
+# =======================================================
+exec > /var/log/cloudynet-setup.log 2>&1
 set -e
 
-echo "DATABASE_HOST=${aws_instance.database.private_ip}" | sudo tee -a /etc/environment
-export DATABASE_HOST=${aws_instance.database.private_ip}
+INSTANCE_ID="${each.key}"
+DB_HOST="${aws_instance.database.private_ip}"
+REPO="${local.repository}"
+BRANCH="${local.branch}"
+APP_DIR="/apps/Arquisoft"
 
-sudo apt-get update -y
-sudo apt-get install -y python3-pip git build-essential libpq-dev python3-dev netcat-openbsd
+echo "[$(date)] ===== CloudyNet setup iniciado (instancia: app-$INSTANCE_ID) ====="
 
-sudo mkdir -p /apps
-cd /apps
+# ── 1. Variables de entorno persistentes ──────────────────────────────
+cat > /etc/cloudynet.env <<'ENVEOF'
+DATABASE_HOST=${aws_instance.database.private_ip}
+DATABASE_NAME=monitoring_db
+DATABASE_USER=report_user
+DATABASE_PASSWORD=isis2503
+DATABASE_PORT=5432
+DJANGO_SETTINGS_MODULE=finops_platform.settings
+PYTHONUNBUFFERED=1
+ENVEOF
+chmod 644 /etc/cloudynet.env
 
-if [ ! -d Arquisoft ]; then
-  sudo git clone ${local.repository}
+# Cargar en /etc/environment para sesiones SSH también
+grep -v '^$' /etc/cloudynet.env >> /etc/environment
+export $(cat /etc/cloudynet.env | xargs)
+
+echo "[$(date)] Variables de entorno configuradas."
+
+# ── 2. Dependencias del sistema ───────────────────────────────────────
+apt-get update -y -q
+apt-get install -y -q python3-pip git build-essential libpq-dev python3-dev netcat-openbsd
+
+echo "[$(date)] Paquetes del sistema instalados."
+
+# ── 3. Clonar / actualizar repositorio ───────────────────────────────
+mkdir -p /apps
+if [ ! -d "$APP_DIR" ]; then
+  git clone "$REPO" "$APP_DIR"
+else
+  cd "$APP_DIR" && git fetch origin && git checkout "$BRANCH" && git pull origin "$BRANCH"
 fi
 
-cd Arquisoft
-sudo git fetch origin ${local.branch}
-sudo git checkout ${local.branch}
+cd "$APP_DIR"
+git checkout "$BRANCH"
+echo "[$(date)] Repositorio listo en $APP_DIR."
 
-sudo pip3 install --upgrade pip --break-system-packages
-sudo pip3 install -r requirements.txt --break-system-packages --ignore-installed
+# ── 4. Instalar dependencias Python ──────────────────────────────────
+pip3 install --upgrade pip --break-system-packages -q
+pip3 install -r requirements.txt --break-system-packages --ignore-installed -q
+echo "[$(date)] Dependencias Python instaladas."
 
-if [ "${each.key}" = "a" ]; then
-  # Esperar a que PostgreSQL esté listo (máx 5 minutos)
-  echo "Esperando a que la base de datos esté lista..."
-  for i in $(seq 1 30); do
-    nc -z ${aws_instance.database.private_ip} 5432 && break
-    echo "Intento $i/30 - DB no disponible, esperando 10s..."
-    sleep 10
-  done
-  echo "Base de datos lista. Ejecutando migraciones..."
-  sudo -E python3 manage.py makemigrations
-  sudo -E python3 manage.py migrate
+# ── 5. Esperar a que PostgreSQL esté disponible (máx 5 min) ──────────
+echo "[$(date)] Esperando conexión con PostgreSQL en $DB_HOST:5432..."
+for i in $(seq 1 30); do
+  if nc -z "$DB_HOST" 5432 2>/dev/null; then
+    echo "[$(date)] PostgreSQL disponible después de $i intento(s)."
+    break
+  fi
+  echo "[$(date)] Intento $i/30 - DB no disponible, esperando 10s..."
+  sleep 10
+done
+
+# ── 6. Migraciones (solo app-a para evitar race condition; app-b espera) ──
+if [ "$INSTANCE_ID" = "a" ]; then
+  echo "[$(date)] Ejecutando migraciones Django (instancia primaria)..."
+  python3 manage.py migrate --noinput
+  echo "[$(date)] Migraciones completadas."
+else
+  echo "[$(date)] Instancia secundaria: esperando 90s para que app-a complete migraciones..."
+  sleep 90
+  echo "[$(date)] Ejecutando migrate (idempotente)..."
+  python3 manage.py migrate --noinput
+  echo "[$(date)] Migraciones verificadas."
 fi
 
-# Iniciar Gunicorn
-echo "Iniciando Gunicorn en puerto 8080..."
-source /etc/environment
-sudo /usr/local/bin/gunicorn finops_platform.wsgi:application \
-  --bind 0.0.0.0:8080 \
-  --workers 4 \
-  --daemon \
-  --log-file /var/log/gunicorn.log \
-  --access-logfile /var/log/gunicorn-access.log
+# ── 7. Crear servicio systemd (auto-arranque en reboot) ───────────────
+GUNICORN_BIN=$(which gunicorn 2>/dev/null || find /usr /home -name gunicorn 2>/dev/null | head -1)
+echo "[$(date)] Gunicorn encontrado en: $GUNICORN_BIN"
 
-echo "Despliegue completado."
+cat > /etc/systemd/system/cloudynet.service <<SVCEOF
+[Unit]
+Description=CloudyNet FinOps - Gunicorn (app-${each.key})
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=root
+WorkingDirectory=$APP_DIR
+EnvironmentFile=/etc/cloudynet.env
+ExecStart=$GUNICORN_BIN finops_platform.wsgi:application \\
+    --bind 0.0.0.0:8080 \\
+    --workers 4 \\
+    --timeout 120 \\
+    --access-logfile /var/log/gunicorn-access.log \\
+    --error-logfile /var/log/gunicorn-error.log \\
+    --log-level info
+ExecReload=/bin/kill -s HUP \$MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/gunicorn-stdout.log
+StandardError=append:/var/log/gunicorn-error.log
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+# ── 8. Habilitar e iniciar el servicio ───────────────────────────────
+systemctl daemon-reload
+systemctl enable cloudynet.service
+systemctl start cloudynet.service
+
+echo "[$(date)] Servicio cloudynet.service iniciado y habilitado para reboot."
+echo "[$(date)] ===== Setup completado exitosamente para app-$INSTANCE_ID ====="
 EOT
 
   tags = merge(local.common_tags, {
