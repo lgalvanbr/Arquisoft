@@ -49,13 +49,13 @@ def register(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if Usuario.objects.filter(username=username).exists():
+        if Usuario.objects.filter(usuario_django__username=username).exists():
             return Response(
                 {'error': 'El usuario ya existe'},
                 status=status.HTTP_409_CONFLICT
             )
         
-        if Usuario.objects.filter(email=email).exists():
+        if Usuario.objects.filter(usuario_django__email=email).exists():
             return Response(
                 {'error': 'El email ya está registrado'},
                 status=status.HTTP_409_CONFLICT
