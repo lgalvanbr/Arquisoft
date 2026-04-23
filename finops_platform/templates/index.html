@@ -1,1566 +1,631 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CloudyNet · FinOps Platform</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #060b18;
-      --bg2: #0c1628;
-      --surface: rgba(255,255,255,0.04);
-      --surface-solid: #111d35;
-      --surface2: rgba(255,255,255,0.07);
-      --border: rgba(255,255,255,0.08);
-      --border-bright: rgba(99,179,237,0.35);
-      --accent: #63b3ed;
-      --accent2: #9f7aea;
-      --accent3: #68d391;
-      --cyan: #76e4f7;
-      --green: #68d391;
-      --red: #fc8181;
-      --yellow: #f6e05e;
-      --text: #e8f0fe;
-      --text2: #a0aec0;
-      --radius: 16px;
-      --radius-sm: 10px;
-      --shadow: 0 8px 32px rgba(0,0,0,0.5);
-      --glow: 0 0 40px rgba(99,179,237,0.15);
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CloudyNet · FinOps Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode:"class",
+  theme:{extend:{
+    colors:{
+      "primary":"#006591","on-primary":"#ffffff","primary-container":"#0ea5e9",
+      "primary-fixed":"#c9e6ff","primary-fixed-dim":"#89ceff",
+      "on-primary-fixed":"#001e2f","on-primary-fixed-variant":"#004c6e",
+      "secondary":"#50616b","on-secondary":"#ffffff",
+      "secondary-container":"#d3e5f1","on-secondary-container":"#566771",
+      "secondary-fixed":"#d3e5f1","secondary-fixed-dim":"#b7c9d5",
+      "on-secondary-fixed":"#0c1e26","on-secondary-fixed-variant":"#384953",
+      "tertiary":"#635b6e","on-tertiary":"#ffffff",
+      "tertiary-container":"#a198ad","tertiary-fixed":"#e9def5",
+      "on-tertiary-fixed":"#1e1929","on-tertiary-container":"#373042",
+      "error":"#ba1a1a","on-error":"#ffffff",
+      "error-container":"#ffdad6","on-error-container":"#93000a",
+      "background":"#f9f9fa","on-background":"#1a1c1d",
+      "surface":"#f9f9fa","on-surface":"#1a1c1d",
+      "surface-variant":"#e2e2e3","on-surface-variant":"#3e4850",
+      "surface-tint":"#006591",
+      "surface-container-lowest":"#ffffff","surface-container-low":"#f3f3f4",
+      "surface-container":"#eeeeef","surface-container-high":"#e8e8e9",
+      "surface-container-highest":"#e2e2e3",
+      "outline":"#6e7881","outline-variant":"#bec8d2"
+    },
+    fontFamily:{"body-md":["Inter"],"headline-md":["Inter"]},
+    fontSize:{
+      "headline-xl":["36px",{lineHeight:"1.2",fontWeight:"600"}],
+      "headline-lg":["28px",{lineHeight:"1.3",fontWeight:"600"}],
+      "headline-md":["20px",{lineHeight:"1.4",fontWeight:"600"}],
+      "body-lg":["16px",{lineHeight:"1.6"}],
+      "body-md":["14px",{lineHeight:"1.5"}]
     }
-
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* ── Animated background ── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0; z-index: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(99,179,237,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(159,122,234,0.1) 0%, transparent 55%),
-        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(104,211,145,0.04) 0%, transparent 60%);
-      pointer-events: none;
-    }
-
-    /* ── Auth layout ── */
-    #auth-section {
-      position: relative; z-index: 1;
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; padding: 24px;
-    }
-
-    .auth-split {
-      display: flex; width: 100%; max-width: 920px;
-      background: rgba(12,22,40,0.85);
-      border: 1px solid var(--border-bright);
-      border-radius: 24px;
-      box-shadow: var(--shadow), var(--glow);
-      backdrop-filter: blur(20px);
-      overflow: hidden;
-    }
-
-    .auth-left {
-      flex: 1; padding: 56px 48px;
-      background: linear-gradient(135deg, rgba(99,179,237,0.08) 0%, rgba(159,122,234,0.06) 100%);
-      display: flex; flex-direction: column; justify-content: center;
-      border-right: 1px solid var(--border);
-    }
-    .auth-left-logo {
-      display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
-    }
-    .logo-icon {
-      width: 48px; height: 48px; border-radius: 14px;
-      background: linear-gradient(135deg, #63b3ed, #9f7aea);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; box-shadow: 0 4px 24px rgba(99,179,237,0.4);
-    }
-    .logo-text h1 { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.04em; }
-    .logo-text span { font-size: 12px; color: var(--accent); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
-
-    .auth-left h2 { font-size: 28px; font-weight: 700; line-height: 1.3; margin-bottom: 16px; letter-spacing: -0.03em; }
-    .auth-left p { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 32px; }
-
-    .feature-list { display: flex; flex-direction: column; gap: 14px; }
-    .feature-item {
-      display: flex; align-items: center; gap: 12px;
-      font-size: 13px; color: var(--text2);
-    }
-    .feature-dot {
-      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 14px;
-    }
-    .feature-dot.blue  { background: rgba(99,179,237,0.15); }
-    .feature-dot.purple{ background: rgba(159,122,234,0.15); }
-    .feature-dot.green { background: rgba(104,211,145,0.15); }
-    .feature-dot.cyan  { background: rgba(118,228,247,0.15); }
-
-    .auth-right { width: 380px; padding: 48px 40px; display: flex; flex-direction: column; justify-content: center; }
-
-    .tabs {
-      display: flex; gap: 4px; background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 28px;
-    }
-    .tab {
-      flex: 1; padding: 9px; border: none; background: none; color: var(--text2);
-      border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500;
-      transition: all 0.2s; font-family: inherit;
-    }
-    .tab.active {
-      background: linear-gradient(135deg, rgba(99,179,237,0.2), rgba(159,122,234,0.2));
-      color: #fff; font-weight: 600;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.3);
-    }
-
-    .auth-subtitle { font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.02em; }
-    .auth-desc { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
-
-    .form-group { margin-bottom: 14px; }
-    .form-group label {
-      display: block; font-size: 11px; font-weight: 600; color: var(--text2);
-      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em;
-    }
-    .form-group input {
-      width: 100%; padding: 11px 14px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text);
-      font-size: 14px; outline: none; transition: all 0.2s; font-family: inherit;
-    }
-    .form-group input::placeholder { color: rgba(160,174,192,0.5); }
-    .form-group input:focus {
-      border-color: var(--accent);
-      background: rgba(99,179,237,0.05);
-      box-shadow: 0 0 0 3px rgba(99,179,237,0.1);
-    }
-
-    .btn {
-      width: 100%; padding: 12px; border: none; border-radius: var(--radius-sm);
-      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-      font-family: inherit; letter-spacing: 0.01em;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #63b3ed, #9f7aea);
-      color: #fff;
-      box-shadow: 0 4px 20px rgba(99,179,237,0.3);
-    }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(99,179,237,0.4); }
-    .btn-primary:active { transform: translateY(0); }
-
-    .msg { font-size: 13px; padding: 10px 14px; border-radius: var(--radius-sm); margin-top: 14px; display: none; }
-    .msg.error { background: rgba(252,129,129,0.1); border: 1px solid rgba(252,129,129,0.25); color: var(--red); }
-    .msg.success { background: rgba(104,211,145,0.1); border: 1px solid rgba(104,211,145,0.25); color: var(--green); }
-
-    /* ── Dashboard ── */
-    #dashboard { display: none; min-height: 100vh; flex-direction: column; position: relative; z-index: 1; }
-
-    .topbar {
-      background: rgba(10,19,37,0.9);
-      border-bottom: 1px solid var(--border);
-      padding: 0 28px; height: 60px;
-      display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 100;
-      backdrop-filter: blur(20px);
-    }
-    .topbar-brand {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .topbar-logo {
-      width: 32px; height: 32px; border-radius: 9px;
-      background: linear-gradient(135deg, #63b3ed, #9f7aea);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px; box-shadow: 0 2px 12px rgba(99,179,237,0.35);
-    }
-    .topbar-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
-    .topbar-badge {
-      font-size: 10px; font-weight: 600; color: var(--accent);
-      background: rgba(99,179,237,0.12); border: 1px solid rgba(99,179,237,0.25);
-      padding: 2px 7px; border-radius: 20px; letter-spacing: 0.06em; text-transform: uppercase;
-    }
-
-    .topbar-right { display: flex; align-items: center; gap: 16px; }
-    .health-pill {
-      display: flex; align-items: center; gap: 7px;
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-      padding: 5px 12px; border-radius: 20px; font-size: 12px;
-    }
-    .health-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
-
-    .user-chip {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-      padding: 5px 12px 5px 6px; border-radius: 20px;
-    }
-    .user-avatar {
-      width: 26px; height: 26px; border-radius: 50%;
-      background: linear-gradient(135deg, #63b3ed, #9f7aea);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; color: #fff;
-    }
-    .user-name { font-size: 13px; color: var(--text); font-weight: 500; }
-
-    .btn-logout {
-      padding: 7px 14px; font-size: 12px; font-weight: 500;
-      border: 1px solid var(--border); background: none; color: var(--text2);
-      border-radius: 8px; cursor: pointer; transition: all 0.2s; font-family: inherit;
-    }
-    .btn-logout:hover { color: var(--red); border-color: rgba(252,129,129,0.4); background: rgba(252,129,129,0.06); }
-
-    /* ── Layout ── */
-    .layout { display: flex; flex: 1; min-height: calc(100vh - 60px); }
-
-    .sidebar {
-      width: 230px; flex-shrink: 0;
-      background: rgba(10,19,37,0.7);
-      border-right: 1px solid var(--border);
-      padding: 20px 12px;
-      backdrop-filter: blur(20px);
-    }
-
-    .nav-section { margin-bottom: 24px; }
-    .nav-label {
-      font-size: 10px; font-weight: 700; color: rgba(160,174,192,0.5);
-      text-transform: uppercase; letter-spacing: 0.1em; padding: 0 10px; margin-bottom: 6px;
-    }
-    .nav-item {
-      display: flex; align-items: center; gap: 10px; padding: 9px 10px;
-      border-radius: 10px; cursor: pointer; font-size: 13px; color: var(--text2);
-      margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left;
-      transition: all 0.15s; font-family: inherit; font-weight: 500;
-    }
-    .nav-item:hover { background: var(--surface2); color: var(--text); }
-    .nav-item.active {
-      background: linear-gradient(135deg, rgba(99,179,237,0.15), rgba(159,122,234,0.1));
-      color: var(--accent); font-weight: 600;
-      border: 1px solid rgba(99,179,237,0.2);
-    }
-    .nav-icon { font-size: 15px; width: 20px; text-align: center; }
-    .nav-count {
-      margin-left: auto; font-size: 10px; font-weight: 700; color: var(--accent);
-      background: rgba(99,179,237,0.12); padding: 1px 7px; border-radius: 20px;
-    }
-
-    /* ── Main ── */
-    .main { flex: 1; padding: 32px; overflow-y: auto; background: transparent; }
-    .page { display: none; animation: fadeIn 0.2s ease; }
-    .page.active { display: block; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-
-    .page-header { margin-bottom: 28px; }
-    .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
-    .page-sub { font-size: 13px; color: var(--text2); }
-
-    /* ── Stat cards ── */
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .stat-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 22px; position: relative; overflow: hidden; transition: border-color 0.2s;
-    }
-    .stat-card:hover { border-color: rgba(99,179,237,0.3); }
-    .stat-card::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, var(--glow-color, rgba(99,179,237,0.03)), transparent);
-      pointer-events: none;
-    }
-    .stat-card.blue { --glow-color: rgba(99,179,237,0.06); }
-    .stat-card.purple { --glow-color: rgba(159,122,234,0.06); }
-    .stat-card.green { --glow-color: rgba(104,211,145,0.06); }
-    .stat-card.cyan { --glow-color: rgba(118,228,247,0.06); }
-    .stat-icon {
-      width: 38px; height: 38px; border-radius: 10px; display: flex;
-      align-items: center; justify-content: center; font-size: 17px; margin-bottom: 14px;
-    }
-    .icon-blue   { background: rgba(99,179,237,0.12); }
-    .icon-purple { background: rgba(159,122,234,0.12); }
-    .icon-green  { background: rgba(104,211,145,0.12); }
-    .icon-cyan   { background: rgba(118,228,247,0.12); }
-    .stat-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
-    .stat-value { font-size: 28px; font-weight: 800; letter-spacing: -0.04em; }
-    .stat-value.blue   { color: var(--accent); }
-    .stat-value.purple { color: var(--accent2); }
-    .stat-value.green  { color: var(--green); }
-    .stat-value.cyan   { color: var(--cyan); }
-    .stat-value.sm { font-size: 16px; }
-    .stat-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
-
-    /* ── Section box ── */
-    .section-box {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 24px; margin-bottom: 20px;
-    }
-    .section-box-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
-    }
-    .section-box h3 { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
-    .section-tag {
-      font-size: 10px; font-weight: 600; color: var(--accent);
-      background: rgba(99,179,237,0.1); border: 1px solid rgba(99,179,237,0.2);
-      padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.07em;
-    }
-
-    /* ── Terminal / Response box ── */
-    .response-box {
-      background: rgba(0,0,0,0.35); border: 1px solid var(--border);
-      border-radius: 10px; padding: 16px 20px;
-      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-      font-size: 12.5px; color: var(--green);
-      white-space: pre-wrap; min-height: 80px; max-height: 340px; overflow-y: auto;
-      line-height: 1.6;
-    }
-    .response-box::-webkit-scrollbar { width: 4px; }
-    .response-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-    /* ── Buttons ── */
-    .btn-action {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 9px 18px; border: none; border-radius: 9px; font-size: 13px;
-      font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;
-      background: linear-gradient(135deg, #63b3ed, #9f7aea);
-      color: #fff; box-shadow: 0 2px 14px rgba(99,179,237,0.25);
-    }
-    .btn-action:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,179,237,0.4); }
-    .btn-action:active { transform: translateY(0); }
-    .btn-action.secondary {
-      background: rgba(255,255,255,0.05); color: var(--text2);
-      border: 1px solid var(--border); box-shadow: none;
-    }
-    .btn-action.secondary:hover { background: rgba(255,255,255,0.08); color: var(--text); box-shadow: none; }
-    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-
-    /* ── Status badges ── */
-    .status-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
-    }
-    .badge-green { background: rgba(104,211,145,0.1); color: var(--green); border: 1px solid rgba(104,211,145,0.25); }
-    .badge-red   { background: rgba(252,129,129,0.1); color: var(--red);   border: 1px solid rgba(252,129,129,0.25); }
-    .badge-yellow{ background: rgba(246,224,94,0.1);  color: var(--yellow);border: 1px solid rgba(246,224,94,0.25); }
-
-    /* ── Spinner ── */
-    .spinner {
-      display: inline-block; width: 13px; height: 13px;
-      border: 2px solid rgba(255,255,255,0.15); border-top-color: var(--accent);
-      border-radius: 50%; animation: spin 0.65s linear infinite;
-    }
-    @keyframes spin { to{ transform:rotate(360deg); } }
-
-    /* ── Table ── */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th {
-      text-align: left; padding: 10px 14px; color: var(--text2); font-weight: 600;
-      border-bottom: 1px solid var(--border); font-size: 10px;
-      text-transform: uppercase; letter-spacing: 0.07em;
-    }
-    td { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-
-    /* ── API Explorer ── */
-    .endpoint-group { margin-bottom: 10px; }
-    .endpoint-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 12px; border-radius: 8px; background: rgba(255,255,255,0.02);
-      border: 1px solid transparent; margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
-    }
-    .endpoint-row:hover { background: rgba(255,255,255,0.04); border-color: var(--border); }
-    .method-badge {
-      padding: 3px 9px; border-radius: 5px; font-size: 10px; font-weight: 700;
-      font-family: monospace; letter-spacing: 0.03em; flex-shrink: 0;
-    }
-    .method-get    { background: rgba(104,211,145,0.15); color: var(--green); }
-    .method-post   { background: rgba(159,122,234,0.15); color: var(--accent2); }
-    .endpoint-path { font-family: 'Cascadia Code', monospace; font-size: 12.5px; color: var(--text); flex: 1; }
-    .endpoint-desc { font-size: 12px; color: var(--text2); }
-
-    /* ── Health cards ── */
-    .health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-    .health-card {
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 20px;
-    }
-    .health-card-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.07em; }
-    .health-card-value { font-size: 22px; margin-bottom: 8px; }
-
-    /* ── Scrollbar ── */
-    .main::-webkit-scrollbar { width: 4px; }
-    .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius:4px; }
-
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      .auth-split { flex-direction: column; }
-      .auth-left { display: none; }
-      .auth-right { width: 100%; padding: 40px 28px; }
-      .sidebar { display: none; }
-      .main { padding: 20px; }
-      .cards { grid-template-columns: 1fr 1fr; }
-      .health-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 480px) {
-      .cards { grid-template-columns: 1fr; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- ============================= AUTH ============================= -->
-<div id="auth-section">
-  <div class="auth-split">
-
-    <!-- Left panel -->
-    <div class="auth-left">
-      <div class="auth-left-logo">
-        <div class="logo-icon">☁️</div>
-        <div class="logo-text">
-          <h1>CloudyNet</h1>
-          <span>FinOps Platform</span>
-        </div>
-      </div>
-      <h2>Gestión inteligente de<br/>costos en la nube</h2>
-      <p>Centraliza, analiza y optimiza el gasto de tu infraestructura AWS y GCP desde un solo lugar, con visibilidad en tiempo real.</p>
-      <div class="feature-list">
-        <div class="feature-item">
-          <div class="feature-dot blue">📊</div>
-          Reportes mensuals con respuesta &lt;100ms
-        </div>
-        <div class="feature-item">
-          <div class="feature-dot purple">🔐</div>
-          Autenticación JWT segura con auditoría
-        </div>
-        <div class="feature-item">
-          <div class="feature-dot green">⚡</div>
-          Alta disponibilidad con Load Balancer AWS
-        </div>
-        <div class="feature-item">
-          <div class="feature-dot cyan">🔍</div>
-          Detección de anomalías y oportunidades de ahorro
-        </div>
-      </div>
-    </div>
-
-    <!-- Right panel -->
-    <div class="auth-right">
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('login')">Iniciar sesión</button>
-        <button class="tab" onclick="switchTab('register')">Crear cuenta</button>
-      </div>
-
-      <!-- Login -->
-      <div id="tab-login">
-        <div class="auth-subtitle">Bienvenido de vuelta</div>
-        <div class="auth-desc">Ingresa tus credenciales para continuar</div>
-        <div class="form-group">
-          <label>Usuario</label>
-          <input type="text" id="login-username" placeholder="tu_usuario" autocomplete="username" />
-        </div>
-        <div class="form-group">
-          <label>Contraseña</label>
-          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
-        </div>
-        <button class="btn btn-primary" onclick="doLogin()">Ingresar a CloudyNet →</button>
-      </div>
-
-      <!-- Register -->
-      <div id="tab-register" style="display:none">
-        <div class="auth-subtitle">Crea tu cuenta</div>
-        <div class="auth-desc">Empieza a gestionar tus costos cloud hoy</div>
-        <div class="form-group">
-          <label>Usuario</label>
-          <input type="text" id="reg-username" placeholder="nuevo_usuario" autocomplete="username" />
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="reg-email" placeholder="correo@empresa.com" autocomplete="email" />
-        </div>
-        <div class="form-group">
-          <label>Contraseña</label>
-          <input type="password" id="reg-password" placeholder="mínimo 8 caracteres" autocomplete="new-password" />
-        </div>
-        <div class="form-group">
-          <label>Empresa</label>
-          <input type="text" id="reg-empresa" placeholder="BITE.CO" />
-        </div>
-        <button class="btn btn-primary" onclick="doRegister()">Crear cuenta →</button>
-      </div>
-
-      <div class="msg error" id="auth-error"></div>
-      <div class="msg success" id="auth-success"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ============================= DASHBOARD ============================= -->
-<div id="dashboard">
-
-  <!-- Topbar -->
-  <div class="topbar">
-    <div class="topbar-brand">
-      <div class="topbar-logo">☁️</div>
-      <span class="topbar-name">CloudyNet</span>
-      <span class="topbar-badge">FinOps</span>
-    </div>
-    <div class="topbar-right">
-      <div class="health-pill">
-        <span class="health-dot" id="health-dot"></span>
-        <span style="font-size:12px;color:var(--text2)" id="health-status-text">verificando...</span>
-      </div>
-      <div class="user-chip">
-        <div class="user-avatar" id="user-avatar-letter">?</div>
-        <span class="user-name" id="user-display">—</span>
-      </div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-
-  <div class="layout">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="nav-section">
-        <div class="nav-label">Principal</div>
-        <button class="nav-item active" onclick="showPage('overview', this)">
-          <span class="nav-icon">🏠</span> Inicio
-        </button>
-        <button class="nav-item" onclick="showPage('reportes', this)">
-          <span class="nav-icon">📊</span> Reportes
-          <span class="nav-count">7</span>
-        </button>
-        <button class="nav-item" onclick="showPage('consumo', this)">
-          <span class="nav-icon">☁️</span> Consumo
-        </button>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Análisis</div>
-        <button class="nav-item" onclick="showPage('analisis', this)">
-          <span class="nav-icon">🔍</span> Optimización
-        </button>
-        <button class="nav-item" onclick="showPage('tendencias', this)">
-          <span class="nav-icon">📈</span> Tendencias
-        </button>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Sistema</div>
-        <button class="nav-item" onclick="showPage('health', this)">
-          <span class="nav-icon">💚</span> Health
-        </button>
-        <button class="nav-item" onclick="showPage('api', this)">
-          <span class="nav-icon">⚡</span> API Explorer
-        </button>
-      </div>
-    </div>
-
-    <!-- Main content -->
-    <div class="main">
-
-      <!-- OVERVIEW -->
-      <div class="page active" id="page-overview">
-        <div class="page-header">
-          <div class="page-title">Panel de control</div>
-          <div class="page-sub">Resumen en tiempo real de tu infraestructura FinOps</div>
-        </div>
-
-        <div class="cards">
-          <div class="stat-card blue">
-            <div class="stat-icon icon-blue">💚</div>
-            <div class="stat-label">Estado del sistema</div>
-            <div class="stat-value blue sm" id="ov-health">—</div>
-            <div class="stat-sub">reportes · auth</div>
-          </div>
-          <div class="stat-card green">
-            <div class="stat-icon icon-green">⚡</div>
-            <div class="stat-label">Instancias activas</div>
-            <div class="stat-value green">2</div>
-            <div class="stat-sub">app-a · app-b · Load Balanced</div>
-          </div>
-          <div class="stat-card purple">
-            <div class="stat-icon icon-purple">👤</div>
-            <div class="stat-label">Usuario actual</div>
-            <div class="stat-value purple sm" id="ov-user">—</div>
-            <div class="stat-sub" id="ov-rol">—</div>
-          </div>
-          <div class="stat-card cyan">
-            <div class="stat-icon icon-cyan">🔐</div>
-            <div class="stat-label">Token JWT</div>
-            <div class="stat-value cyan sm">Activo</div>
-            <div class="stat-sub">Access + Refresh</div>
-          </div>
-        </div>
-
-        <div class="section-box">
-          <div class="section-box-header">
-            <h3>Tu perfil</h3>
-            <span class="section-tag">GET /api/auth/me</span>
-          </div>
-          <div id="me-data" class="response-box">Cargando...</div>
-        </div>
-      </div>
-
-      <!-- REPORTES -->
-      <div class="page" id="page-reportes">
-        <div class="page-header">
-          <div class="page-title">Reportes mensuales</div>
-          <div class="page-sub">Consolidado de costos AWS y GCP por mes — respuesta &lt;100ms</div>
-        </div>
-        <div class="section-box">
-          <div class="section-box-header"><h3>Consultar reportes</h3><span class="section-tag">Tiempo real</span></div>
-          <div class="btn-group">
-            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/mensual', 'reportes-result')">📊 Reporte mensual</button>
-            <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/proyecto', 'reportes-result')">📁 Por proyecto</button>
-            <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/historial', 'reportes-result')">🕒 Historial</button>
-          </div>
-          <div class="response-box" id="reportes-result">Selecciona un reporte para ver los datos...</div>
-        </div>
-      </div>
-
-      <!-- CONSUMO -->
-      <div class="page" id="page-consumo">
-        <div class="page-header">
-          <div class="page-title">Consumo cloud</div>
-          <div class="page-sub">Recursos AWS y GCP por servicio y proyecto</div>
-        </div>
-        <div class="section-box">
-          <div class="section-box-header"><h3>Datos de consumo</h3><span class="section-tag">Live</span></div>
-          <div class="btn-group">
-            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/consumo', 'consumo-result')">☁️ Ver consumo</button>
-            <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/gastos', 'consumo-result')">💰 Por servicio</button>
-          </div>
-          <div class="response-box" id="consumo-result">Presiona un botón para cargar datos...</div>
-        </div>
-      </div>
-
-      <!-- ANÁLISIS -->
-      <div class="page" id="page-analisis">
-        <div class="page-header">
-          <div class="page-title">Análisis de optimización</div>
-          <div class="page-sub">Oportunidades de ahorro detectadas en tu infraestructura</div>
-        </div>
-        <div class="section-box">
-          <div class="section-box-header"><h3>Motor de análisis</h3><span class="section-tag">IA</span></div>
-          <div class="btn-group">
-            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/analisis', 'analisis-result')">🔍 Ejecutar análisis</button>
-          </div>
-          <div class="response-box" id="analisis-result">Presiona para iniciar el análisis de optimización...</div>
-        </div>
-      </div>
-
-      <!-- TENDENCIAS -->
-      <div class="page" id="page-tendencias">
-        <div class="page-header">
-          <div class="page-title">Tendencias y anomalías</div>
-          <div class="page-sub">Patrones de consumo y detección de comportamientos inusuales</div>
-        </div>
-        <div class="section-box">
-          <div class="section-box-header"><h3>Análisis de tendencias</h3><span class="section-tag">Predictivo</span></div>
-          <div class="btn-group">
-            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/tendencias', 'tendencias-result')">📈 Cargar tendencias</button>
-          </div>
-          <div class="response-box" id="tendencias-result">Presiona para cargar el análisis de tendencias...</div>
-        </div>
-      </div>
-
-      <!-- HEALTH -->
-      <div class="page" id="page-health">
-        <div class="page-header">
-          <div class="page-title">Health Check</div>
-          <div class="page-sub">Estado en tiempo real de todos los servicios desplegados en AWS</div>
-        </div>
-        <div class="health-grid">
-          <div class="health-card">
-            <div class="health-card-title">📊 Servicio Reportes</div>
-            <div id="health-reportes-badge" style="margin-bottom:8px">—</div>
-            <div style="font-size:11px;color:var(--text2);font-family:monospace">GET /api/reportes/health</div>
-          </div>
-          <div class="health-card">
-            <div class="health-card-title">🔐 Servicio Auth</div>
-            <div id="health-auth-badge" style="margin-bottom:8px">—</div>
-            <div style="font-size:11px;color:var(--text2);font-family:monospace">GET /api/auth/health</div>
-          </div>
-        </div>
-        <div class="section-box">
-          <div class="section-box-header"><h3>Verificar ahora</h3><span class="section-tag">Diagnóstico</span></div>
-          <div class="btn-group">
-            <button class="btn-action" onclick="runHealthCheck()">💚 Ejecutar health check</button>
-          </div>
-          <div class="response-box" id="health-result">Presiona para verificar el estado del sistema...</div>
-        </div>
-      </div>
-
-      <!-- API EXPLORER -->
-      <div class="page" id="page-api">
-        <div class="page-header">
-          <div class="page-title">API Explorer</div>
-          <div class="page-sub">Explora y prueba los endpoints disponibles en tiempo real</div>
-        </div>
-
-        <div class="section-box">
-          <div class="section-box-header"><h3>Autenticación</h3><span class="section-tag">auth</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/auth/me','custom-result');showPage('api',null)">
-            <span class="method-badge method-get">GET</span>
-            <span class="endpoint-path">/api/auth/me</span>
-            <span class="endpoint-desc">→ Info del usuario autenticado</span>
-          </div>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/register</span><span class="endpoint-desc">→ Registrar usuario</span></div>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/login</span><span class="endpoint-desc">→ Login y tokens JWT</span></div>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/refresh</span><span class="endpoint-desc">→ Refrescar token</span></div>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/logout</span><span class="endpoint-desc">→ Cerrar sesión</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/auth/audit/historial','custom-result')">
-            <span class="method-badge method-get">GET</span><span class="endpoint-path">/api/auth/audit/historial</span><span class="endpoint-desc">→ Historial de accesos</span>
-          </div>
-        </div>
-
-        <div class="section-box">
-          <div class="section-box-header"><h3>Reportes</h3><span class="section-tag">reportes</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/mensual','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/mensual</span><span class="endpoint-desc">→ Reporte mensual (&lt;100ms)</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/proyecto','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/proyecto</span><span class="endpoint-desc">→ Por proyecto</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/consumo','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/consumo</span><span class="endpoint-desc">→ Consumo cloud</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/gastos','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/gastos</span><span class="endpoint-desc">→ Gastos por servicio</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/analisis','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/analisis</span><span class="endpoint-desc">→ Análisis de optimización</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/tendencias','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/tendencias</span><span class="endpoint-desc">→ Tendencias</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/historial','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/historial</span><span class="endpoint-desc">→ Historial</span></div>
-          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/health','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/health</span><span class="endpoint-desc">→ Health check</span></div>
-        </div>
-
-        <div class="section-box">
-          <div class="section-box-header"><h3>Prueba personalizada</h3><span class="section-tag">Sandbox</span></div>
-          <div class="form-group">
-            <label>Endpoint (relativo)</label>
-            <input type="text" id="custom-endpoint" placeholder="/api/reportes/consumo" style="font-family:monospace" />
-          </div>
-          <div class="btn-group">
-            <button class="btn-action" onclick="fetchEndpoint(document.getElementById('custom-endpoint').value,'custom-result')">⚡ Ejecutar GET</button>
-          </div>
-          <div class="response-box" id="custom-result">La respuesta del endpoint aparecerá aquí...</div>
-        </div>
-      </div>
-
-    </div><!-- /main -->
-  </div><!-- /layout -->
-</div><!-- /dashboard -->
-
-<script>
-  // ========== STATE ==========
-  let accessToken = localStorage.getItem('access_token') || null;
-  let currentUser = null;
-
-  // ========== AUTH TABS ==========
-  function switchTab(tab) {
-    document.getElementById('tab-login').style.display    = tab === 'login'    ? 'block' : 'none';
-    document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
-    document.querySelectorAll('.tab').forEach((t, i) => {
-      t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
-    });
-    hideAuthMsg();
-  }
-
-  function showAuthError(msg) {
-    const el = document.getElementById('auth-error');
-    el.textContent = msg; el.style.display = 'block';
-    document.getElementById('auth-success').style.display = 'none';
-  }
-  function showAuthSuccess(msg) {
-    const el = document.getElementById('auth-success');
-    el.textContent = msg; el.style.display = 'block';
-    document.getElementById('auth-error').style.display = 'none';
-  }
-  function hideAuthMsg() {
-    document.getElementById('auth-error').style.display   = 'none';
-    document.getElementById('auth-success').style.display = 'none';
-  }
-
-  // ========== LOGIN ==========
-  async function doLogin() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
-    if (!username || !password) { showAuthError('Completa todos los campos'); return; }
-    try {
-      const res  = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
-      const data = await res.json();
-      if (!res.ok) { showAuthError(data.error || data.detail || 'Credenciales incorrectas'); return; }
-      accessToken = data.access_token || data.tokens?.access || data.access;
-      localStorage.setItem('access_token', accessToken);
-      if (data.refresh_token || data.tokens?.refresh) localStorage.setItem('refresh_token', data.refresh_token || data.tokens?.refresh);
-      enterDashboard(data.user || data.usuario || { username });
-    } catch (e) { showAuthError('No se pudo conectar al servidor'); }
-  }
-
-  // ========== REGISTER ==========
-  async function doRegister() {
-    const username = document.getElementById('reg-username').value.trim();
-    const email    = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const empresa  = document.getElementById('reg-empresa').value.trim();
-    if (!username || !email || !password) { showAuthError('Completa los campos requeridos'); return; }
-    try {
-      const res  = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, email, password, empresa }) });
-      const data = await res.json();
-      if (!res.ok) { showAuthError(data.error || data.detail || 'Error al registrar'); return; }
-      showAuthSuccess('¡Cuenta creada! Ahora inicia sesión.');
-      switchTab('login');
-      document.getElementById('login-username').value = username;
-    } catch (e) { showAuthError('No se pudo conectar al servidor'); }
-  }
-
-  // ========== LOGOUT ==========
-  async function doLogout() {
-    try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' } }); } catch (_) {}
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    accessToken = null;
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('auth-section').style.display = 'flex';
-  }
-
-  // ========== DASHBOARD ==========
-  function enterDashboard(user) {
-    currentUser = user;
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('dashboard').style.display    = 'flex';
-    const name = user.username || user;
-    document.getElementById('user-display').textContent       = name;
-    document.getElementById('user-avatar-letter').textContent = (String(name)[0] || '?').toUpperCase();
-    document.getElementById('ov-user').textContent = name;
-    document.getElementById('ov-rol').textContent  = 'Rol: ' + (user.rol || 'usuario');
-    loadOverview();
-    startHealthPoll();
-  }
-
-  function showPage(name, btn) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-    if (btn) {
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      btn.classList.add('active');
-    }
-  }
-
-  // ========== API CALLS ==========
-  async function apiFetch(path) {
-    const res = await fetch(path, { headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' } });
-    return { res, data: await res.json() };
-  }
-
-  async function fetchEndpoint(path, targetId) {
-    if (!path || !path.startsWith('/')) { document.getElementById(targetId).textContent = 'Ingresa un endpoint válido (ej: /api/reportes/consumo)'; return; }
-    const box = document.getElementById(targetId);
-    box.style.color = 'var(--text2)';
-    box.innerHTML   = '<span class="spinner"></span>  Cargando...';
-    try {
-      const { res, data } = await apiFetch(path);
-      box.style.color = res.ok ? 'var(--green)' : 'var(--red)';
-      box.textContent = JSON.stringify(data, null, 2);
-    } catch (e) {
-      box.style.color = 'var(--red)';
-      box.textContent = '✗ Error de conexión: ' + e.message;
-    }
-  }
-
-  async function loadOverview() {
-    try {
-      const { data } = await apiFetch('/api/auth/me');
-      document.getElementById('me-data').textContent = JSON.stringify(data, null, 2);
-      if (data.username) { document.getElementById('ov-user').textContent = data.username; document.getElementById('user-display').textContent = data.username; document.getElementById('user-avatar-letter').textContent = data.username[0].toUpperCase(); }
-      if (data.rol)      document.getElementById('ov-rol').textContent = 'Rol: ' + data.rol;
-    } catch (_) { document.getElementById('me-data').textContent = 'No disponible'; }
-  }
-
-  async function runHealthCheck() {
-    const box = document.getElementById('health-result');
-    box.style.color = 'var(--text2)';
-    box.innerHTML   = '<span class="spinner"></span>  Verificando servicios...';
-    const results = {};
-    for (const [key, path] of [['reportes', '/api/reportes/health'], ['auth', '/api/auth/health']]) {
-      try {
-        const { res, data } = await apiFetch(path);
-        results[path] = { status: res.status, data };
-        document.getElementById('health-' + key + '-badge').innerHTML =
-          res.ok ? '<span class="status-badge badge-green">● Saludable</span>'
-                 : '<span class="status-badge badge-red">● Error ' + res.status + '</span>';
-      } catch (e) {
-        results[path] = { error: e.message };
-        document.getElementById('health-' + key + '-badge').innerHTML = '<span class="status-badge badge-red">● Sin conexión</span>';
-      }
-    }
-    box.style.color = 'var(--green)';
-    box.textContent = JSON.stringify(results, null, 2);
-  }
-
-  // ========== HEALTH POLL ==========
-  async function checkHealthDot() {
-    try {
-      const res = await fetch('/api/reportes/health');
-      const ok  = res.ok;
-      document.getElementById('health-dot').style.background      = ok ? 'var(--green)' : 'var(--red)';
-      document.getElementById('health-status-text').textContent   = ok ? 'Sistema OK'   : 'Error';
-      document.getElementById('ov-health').textContent            = ok ? '✓ Online'     : '✗ Error';
-      document.getElementById('ov-health').style.color            = ok ? 'var(--green)' : 'var(--red)';
-    } catch (_) {
-      document.getElementById('health-dot').style.background    = 'var(--yellow)';
-      document.getElementById('health-status-text').textContent = 'Sin respuesta';
-    }
-  }
-  function startHealthPoll() { checkHealthDot(); setInterval(checkHealthDot, 30000); }
-
-  // ========== KEYBOARD ==========
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      if (document.getElementById('tab-login').style.display !== 'none') doLogin();
-      else doRegister();
-    }
-  });
-
-  // ========== AUTO-LOGIN ==========
-  if (accessToken) {
-    apiFetch('/api/auth/me').then(({ res, data }) => {
-      if (res.ok) enterDashboard(data);
-      else { localStorage.removeItem('access_token'); accessToken = null; }
-    }).catch(() => { localStorage.removeItem('access_token'); accessToken = null; });
-  }
+  }}
+}
 </script>
-</body>
-</html>
-
-    :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface2: #273449;
-      --border: #334155;
-      --accent: #38bdf8;
-      --accent2: #818cf8;
-      --green: #34d399;
-      --red: #f87171;
-      --yellow: #fbbf24;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --radius: 10px;
-    }
-
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-    /* ===== AUTH ===== */
-    #auth-section {
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; padding: 24px;
-    }
-    .auth-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); width: 100%; max-width: 420px;
-      padding: 36px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-    .auth-logo { text-align: center; margin-bottom: 28px; }
-    .auth-logo h1 { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.03em; }
-    .auth-logo p { font-size: 13px; color: var(--muted); margin-top: 4px; }
-
-    .tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 8px; padding: 4px; margin-bottom: 24px; }
-    .tab {
-      flex: 1; padding: 8px; border: none; background: none; color: var(--muted);
-      border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;
-    }
-    .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .form-group input {
-      width: 100%; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.2s;
-    }
-    .form-group input:focus { border-color: var(--accent); }
-
-    .btn {
-      width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 14px;
-      font-weight: 600; cursor: pointer; transition: opacity 0.2s;
-    }
-    .btn:hover { opacity: 0.85; }
-    .btn-primary { background: var(--accent); color: #0f172a; }
-    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-
-    .msg { font-size: 13px; padding: 10px 14px; border-radius: 8px; margin-top: 16px; display: none; }
-    .msg.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
-    .msg.success { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: var(--green); }
-
-    /* ===== DASHBOARD ===== */
-    #dashboard { display: none; min-height: 100vh; flex-direction: column; }
-
-    .topbar {
-      background: var(--surface); border-bottom: 1px solid var(--border);
-      padding: 0 24px; height: 58px; display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 100;
-    }
-    .topbar-brand { font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
-    .topbar-right { display: flex; align-items: center; gap: 12px; }
-    .user-badge { font-size: 13px; color: var(--muted); }
-    .health-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .btn-logout { padding: 6px 14px; font-size: 13px; border: 1px solid var(--border); background: none; color: var(--muted); border-radius: 6px; cursor: pointer; }
-    .btn-logout:hover { color: var(--red); border-color: var(--red); }
-
-    .layout { display: flex; flex: 1; }
-
-    .sidebar {
-      width: 220px; background: var(--surface); border-right: 1px solid var(--border);
-      padding: 20px 12px; flex-shrink: 0;
-    }
-    .nav-item {
-      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
-      border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted);
-      margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left;
-      transition: all 0.15s;
-    }
-    .nav-item:hover { background: var(--surface2); color: var(--text); }
-    .nav-item.active { background: rgba(56,189,248,0.1); color: var(--accent); font-weight: 600; }
-    .nav-icon { font-size: 16px; }
-    .nav-label { color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; padding: 14px 12px 6px; }
-
-    .main { flex: 1; padding: 28px; overflow-y: auto; }
-    .page { display: none; }
-    .page.active { display: block; }
-
-    .page-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
-    .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
-
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .card {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 20px;
-    }
-    .card-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-    .card-value { font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -0.03em; }
-    .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-    .section-box {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 24px; margin-bottom: 20px;
-    }
-    .section-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
-
-    .response-box {
-      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 16px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px;
-      color: var(--green); white-space: pre-wrap; min-height: 80px; max-height: 320px; overflow-y: auto;
-    }
-
-    .status-badge {
-      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
-      border-radius: 20px; font-size: 12px; font-weight: 600;
-    }
-    .badge-green { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
-    .badge-red { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
-    .badge-yellow { background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
-
-    .btn-action {
-      padding: 9px 18px; border: none; border-radius: 8px; font-size: 13px;
-      font-weight: 600; cursor: pointer; background: var(--accent); color: #0f172a;
-      transition: opacity 0.2s; margin-top: 12px;
-    }
-    .btn-action:hover { opacity: 0.85; }
-    .btn-action.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; padding: 10px 14px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 10px 14px; border-bottom: 1px solid rgba(51,65,85,0.5); }
-    tr:last-child td { border-bottom: none; }
-
-    .endpoint-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-    .method-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: monospace; }
-    .method-get { background: rgba(52,211,153,0.15); color: var(--green); }
-    .method-post { background: rgba(129,140,248,0.15); color: var(--accent2); }
-    .endpoint-path { font-family: monospace; font-size: 13px; color: var(--text); }
-
-    @media (max-width: 640px) {
-      .sidebar { display: none; }
-      .cards { grid-template-columns: 1fr 1fr; }
-    }
-  </style>
+<style>
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+.fill-icon{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
+.terminal-scroll::-webkit-scrollbar{width:5px;height:5px}
+.terminal-scroll::-webkit-scrollbar-track{background:transparent}
+.terminal-scroll::-webkit-scrollbar-thumb{background:#bec8d2;border-radius:4px}
+.soft-glow{box-shadow:0 8px 30px rgba(14,165,233,0.06)}
+.btn-glass-edge{box-shadow:inset 0 1px 0 rgba(255,255,255,0.2)}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.45}}
+.pulse-dot{animation:pulse-dot 2s infinite}
+</style>
 </head>
-<body>
+<body class="bg-background min-h-screen font-body-md text-on-background antialiased">
 
-<!-- ============================= AUTH ============================= -->
-<div id="auth-section">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <h1>⚡ FinOps Platform</h1>
-      <p>BITE.CO · Gestión de costos cloud</p>
+<!-- AUTH -->
+<div id="auth-section" class="min-h-screen flex">
+  <!-- Left branding panel -->
+  <div class="hidden lg:flex lg:w-[45%] relative flex-col justify-between overflow-hidden bg-surface-container-low border-r border-outline-variant">
+    <div class="absolute inset-0 z-0 overflow-hidden">
+      <div class="absolute -top-32 -left-32 w-[500px] h-[500px] bg-primary/8 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-secondary-container/40 rounded-full blur-3xl"></div>
+      <svg class="absolute inset-0 w-full h-full opacity-[0.07]" viewBox="0 0 600 700" fill="none">
+        <ellipse cx="150" cy="180" rx="120" ry="80" fill="#006591"/>
+        <ellipse cx="380" cy="120" rx="90" ry="60" fill="#0ea5e9"/>
+        <ellipse cx="500" cy="320" rx="110" ry="75" fill="#50616b"/>
+        <ellipse cx="80" cy="450" rx="70" ry="50" fill="#006591"/>
+        <ellipse cx="450" cy="520" rx="90" ry="60" fill="#0ea5e9"/>
+      </svg>
     </div>
-
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('login')">Iniciar sesión</button>
-      <button class="tab" onclick="switchTab('register')">Registrarse</button>
+    <div class="relative z-10 p-10 flex-1 flex flex-col">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-white shadow-[0_4px_16px_rgba(14,165,233,0.4)]">
+          <span class="material-symbols-outlined fill-icon text-[22px]">cloud</span>
+        </div>
+        <div>
+          <span class="text-xl font-bold text-on-background tracking-tight">CloudyNet</span>
+          <p class="text-[11px] text-on-surface-variant font-medium">FinOps Management</p>
+        </div>
+      </div>
+      <div class="mt-auto mb-12">
+        <h1 class="text-4xl font-bold text-on-background mb-4 leading-tight tracking-tight">FinOps<br/>Command Center</h1>
+        <p class="text-base text-on-surface-variant max-w-sm leading-relaxed">Transforma datos financieros complejos en un entorno claro e inteligente. Visibilidad total de tu gasto cloud con precision y escala.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-10">
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">analytics</span>
+          <div><p class="text-sm font-semibold text-on-surface">Reportes &lt;100ms</p><p class="text-[11px] text-on-surface-variant">Tiempo real</p></div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">security</span>
+          <div><p class="text-sm font-semibold text-on-surface">JWT Seguro</p><p class="text-[11px] text-on-surface-variant">Auditoria completa</p></div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">balance</span>
+          <div><p class="text-sm font-semibold text-on-surface">Load Balancer</p><p class="text-[11px] text-on-surface-variant">Alta disponibilidad</p></div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">query_stats</span>
+          <div><p class="text-sm font-semibold text-on-surface">Anomalias</p><p class="text-[11px] text-on-surface-variant">Deteccion automatica</p></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 pt-6 border-t border-outline-variant/40">
+        <div class="flex -space-x-2">
+          <div class="w-8 h-8 rounded-full bg-secondary-container border-2 border-white flex items-center justify-center"><span class="material-symbols-outlined text-[15px]">person</span></div>
+          <div class="w-8 h-8 rounded-full bg-tertiary-container border-2 border-white flex items-center justify-center"><span class="material-symbols-outlined text-[15px]">person</span></div>
+          <div class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-white flex items-center justify-center text-[10px] font-bold">+9k</div>
+        </div>
+        <span class="text-xs text-on-surface-variant font-medium">Trusted by leading FinOps teams globally</span>
+      </div>
     </div>
-
-    <!-- Login -->
-    <div id="tab-login">
-      <div class="form-group">
-        <label>Usuario</label>
-        <input type="text" id="login-username" placeholder="tu_usuario" />
-      </div>
-      <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="login-password" placeholder="••••••••" />
-      </div>
-      <button class="btn btn-primary" onclick="doLogin()">Ingresar</button>
+  </div>
+  <!-- Right form panel -->
+  <div class="flex-1 flex flex-col justify-center items-center px-8 py-12 bg-surface-container-lowest relative">
+    <div class="absolute top-6 left-6 lg:hidden flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-white"><span class="material-symbols-outlined fill-icon text-[17px]">cloud</span></div>
+      <span class="font-bold text-on-background">CloudyNet</span>
     </div>
-
-    <!-- Register -->
-    <div id="tab-register" style="display:none">
-      <div class="form-group">
-        <label>Usuario</label>
-        <input type="text" id="reg-username" placeholder="nuevo_usuario" />
+    <div class="w-full max-w-[400px]">
+      <!-- Tabs -->
+      <div class="flex gap-1 bg-surface-container rounded-xl p-1 mb-8 border border-outline-variant">
+        <button id="tab-btn-login" onclick="switchTab('login')" class="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all bg-surface-container-lowest text-on-surface shadow-sm">Iniciar sesion</button>
+        <button id="tab-btn-register" onclick="switchTab('register')" class="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all text-on-surface-variant hover:text-on-surface">Crear cuenta</button>
       </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="reg-email" placeholder="correo@empresa.com" />
+      <!-- LOGIN -->
+      <div id="tab-login">
+        <div class="mb-7">
+          <h2 class="text-2xl font-bold text-on-background mb-1.5 tracking-tight">Bienvenido de vuelta</h2>
+          <p class="text-sm text-on-surface-variant">Ingresa tus credenciales para acceder.</p>
+        </div>
+        <div class="space-y-5">
+          <div>
+            <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label>
+            <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">person</span><input id="login-username" type="text" placeholder="tu_usuario" autocomplete="username" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label>
+            <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="login-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
+          </div>
+          <button onclick="doLogin()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Ingresar <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="reg-password" placeholder="mínimo 8 caracteres" />
+      <!-- REGISTER -->
+      <div id="tab-register" style="display:none">
+        <div class="mb-7">
+          <h2 class="text-2xl font-bold text-on-background mb-1.5 tracking-tight">Crea tu cuenta</h2>
+          <p class="text-sm text-on-surface-variant">Empieza a gestionar tus costos cloud hoy.</p>
+        </div>
+        <div class="space-y-4">
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">person</span><input id="reg-username" type="text" placeholder="nuevo_usuario" autocomplete="username" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Email corporativo</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">mail</span><input id="reg-email" type="email" placeholder="correo@empresa.com" autocomplete="email" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="reg-password" type="password" placeholder="minimo 8 caracteres" autocomplete="new-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Empresa</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">business</span><input id="reg-empresa" type="text" placeholder="BITE.CO" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <button onclick="doRegister()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Crear cuenta <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Empresa</label>
-        <input type="text" id="reg-empresa" placeholder="BITE.CO" />
-      </div>
-      <button class="btn btn-primary" onclick="doRegister()">Crear cuenta</button>
+      <div id="auth-error"   class="hidden mt-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20"></div>
+      <div id="auth-success" class="hidden mt-4 px-4 py-3 bg-[#dcfce7] text-[#166534] rounded-xl text-sm font-medium border border-[#bbf7d0]"></div>
     </div>
-
-    <div class="msg error" id="auth-error"></div>
-    <div class="msg success" id="auth-success"></div>
   </div>
 </div>
 
-<!-- ============================= DASHBOARD ============================= -->
-<div id="dashboard">
-  <!-- Topbar -->
-  <div class="topbar">
-    <div class="topbar-brand">⚡ FinOps Platform</div>
-    <div class="topbar-right">
-      <span><span class="health-dot" id="health-dot"></span><span id="health-status-text" style="font-size:12px;color:var(--muted)">verificando...</span></span>
-      <span class="user-badge" id="user-display">—</span>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+  <!-- Sidebar -->
+  <nav class="fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest/95 backdrop-blur-2xl z-40 flex flex-col p-4">
+    <div class="px-3 py-5 mb-2 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-primary-container text-white flex items-center justify-center shadow-[0_4px_14px_rgba(14,165,233,0.35)]"><span class="material-symbols-outlined fill-icon text-[20px]">cloud</span></div>
+      <div><h1 class="text-base font-bold text-on-surface tracking-tight">CloudyNet</h1><p class="text-[10px] text-on-surface-variant font-medium">FinOps Management</p></div>
     </div>
-  </div>
-
-  <div class="layout">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="nav-label">Principal</div>
-      <button class="nav-item active" onclick="showPage('overview')"><span class="nav-icon">🏠</span> Inicio</button>
-      <button class="nav-item" onclick="showPage('reportes')"><span class="nav-icon">📊</span> Reportes</button>
-      <button class="nav-item" onclick="showPage('consumo')"><span class="nav-icon">☁️</span> Consumo</button>
-      <div class="nav-label">Análisis</div>
-      <button class="nav-item" onclick="showPage('analisis')"><span class="nav-icon">🔍</span> Optimización</button>
-      <button class="nav-item" onclick="showPage('tendencias')"><span class="nav-icon">📈</span> Tendencias</button>
-      <div class="nav-label">Sistema</div>
-      <button class="nav-item" onclick="showPage('health')"><span class="nav-icon">💚</span> Health Check</button>
-      <button class="nav-item" onclick="showPage('api')"><span class="nav-icon">🔌</span> API Explorer</button>
+    <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+      <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Principal</p>
+      <button onclick="showPage('overview',this)" data-page="overview" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">home</span>Inicio</button>
+      <button onclick="showPage('reportes',this)" data-page="reportes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">analytics</span>Reportes</button>
+      <button onclick="showPage('consumo',this)" data-page="consumo" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">receipt_long</span>Consumo</button>
+      <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-4 mb-1">Analisis</p>
+      <button onclick="showPage('analisis',this)" data-page="analisis" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">query_stats</span>Optimizacion</button>
+      <button onclick="showPage('tendencias',this)" data-page="tendencias" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">trending_up</span>Tendencias</button>
+      <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-4 mb-1">Sistema</p>
+      <button onclick="showPage('health',this)" data-page="health" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">health_and_safety</span>Health</button>
+      <button onclick="showPage('api',this)" data-page="api" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">api</span>API Explorer</button>
     </div>
-
-    <!-- Main content -->
-    <div class="main">
+    <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
+      <div class="flex items-center gap-3">
+        <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
+        <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
+        <button onclick="doLogout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+      </div>
+    </div>
+  </nav>
+  <!-- Main area -->
+  <div class="ml-64 flex flex-col flex-1 min-h-screen w-full">
+    <!-- Topbar -->
+    <header class="fixed top-0 left-64 right-0 z-30 h-16 border-b border-outline-variant bg-surface-container-lowest/85 backdrop-blur-xl soft-glow flex justify-between items-center px-6">
+      <div class="flex items-center gap-4 flex-1">
+        <div class="relative w-60 hidden sm:block">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
+          <input type="text" placeholder="Buscar recursos..." class="w-full pl-10 pr-4 py-2 bg-surface-container border border-outline-variant rounded-full text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">
+          <div id="health-dot" class="w-2 h-2 rounded-full bg-[#10b981] pulse-dot"></div>
+          <span id="health-status-text" class="text-xs font-medium text-on-surface-variant">verificando...</span>
+        </div>
+        <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">notifications</span></button>
+        <div class="flex items-center gap-2 cursor-pointer">
+          <div id="user-avatar-letter" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm">?</div>
+          <span id="user-display" class="text-sm font-medium text-on-surface hidden md:block">-</span>
+        </div>
+      </div>
+    </header>
+    <!-- Pages -->
+    <main class="pt-16 p-6 lg:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full">
 
       <!-- OVERVIEW -->
       <div class="page active" id="page-overview">
-        <div class="page-title">Panel de control</div>
-        <div class="page-sub">Resumen de tu plataforma FinOps en tiempo real</div>
-
-        <div class="cards">
-          <div class="card">
-            <div class="card-label">Estado del sistema</div>
-            <div class="card-value" id="ov-health">—</div>
-            <div class="card-sub">reportes · auth</div>
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Inicio</h2><p class="text-sm text-on-surface-variant mt-1">Resumen multi-cloud y metricas de optimizacion en tiempo real.</p></div>
+          <button onclick="loadOverview()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Actualizar</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-primary/10 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[19px]">monitor_heart</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Estado Sistema</span></div>
+            <div class="relative z-10"><span id="ov-health" class="text-xl font-bold text-on-surface">-</span><p class="text-xs text-on-surface-variant mt-1">reportes · auth</p></div>
           </div>
-          <div class="card">
-            <div class="card-label">Instancias activas</div>
-            <div class="card-value" style="color:var(--green)">2</div>
-            <div class="card-sub">app-a · app-b (Load Balanced)</div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-secondary-container/30 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-secondary-container/50 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary"><span class="material-symbols-outlined text-[19px]">dns</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Instancias Activas</span></div>
+            <div class="relative z-10"><span class="text-2xl font-bold text-on-surface">2</span><div class="flex items-center gap-1 mt-1 text-[#10b981]"><span class="material-symbols-outlined text-[14px]">check_circle</span><span class="text-xs">app-a · app-b · LB</span></div></div>
           </div>
-          <div class="card">
-            <div class="card-label">Usuario actual</div>
-            <div class="card-value" style="font-size:18px" id="ov-user">—</div>
-            <div class="card-sub" id="ov-rol">—</div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-tertiary-fixed/20 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-tertiary-fixed/40 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary"><span class="material-symbols-outlined text-[19px]">person</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Usuario Actual</span></div>
+            <div class="relative z-10"><span id="ov-user" class="text-xl font-bold text-on-surface">-</span><p id="ov-rol" class="text-xs text-on-surface-variant mt-1">-</p></div>
           </div>
-          <div class="card">
-            <div class="card-label">Token JWT</div>
-            <div class="card-value" style="font-size:14px;color:var(--accent2)">Activo</div>
-            <div class="card-sub">Access + Refresh</div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-primary-fixed/20 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-primary-fixed/40 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[19px]">key</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">JWT Auth Tokens</span></div>
+            <div class="relative z-10"><span class="text-xl font-bold text-on-surface">Activo</span><p class="text-xs text-on-surface-variant mt-1">Access + Refresh</p></div>
           </div>
         </div>
-
-        <div class="section-box">
-          <h3>Información de tu cuenta</h3>
-          <div id="me-data" class="response-box">Cargando...</div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow flex flex-col">
+            <div class="flex justify-between items-center mb-5">
+              <div><h3 class="text-base font-semibold text-on-surface">Trayectoria Multi-Cloud</h3><p class="text-xs text-on-surface-variant">AWS vs GCP · consumo 30 dias</p></div>
+              <div class="flex gap-2"><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant"><div class="w-2 h-2 rounded-full bg-primary"></div><span class="text-[11px] text-on-surface-variant">AWS</span></div><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant"><div class="w-2 h-2 rounded-full bg-secondary"></div><span class="text-[11px] text-on-surface-variant">GCP</span></div></div>
+            </div>
+            <div class="flex-1 min-h-[200px] relative border-l border-b border-surface-variant">
+              <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <defs><linearGradient id="ag" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#006591" stop-opacity=".18"/><stop offset="100%" stop-color="#006591" stop-opacity="0"/></linearGradient><linearGradient id="gg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#50616b" stop-opacity=".12"/><stop offset="100%" stop-color="#50616b" stop-opacity="0"/></linearGradient></defs>
+                <path d="M0,100 L0,80 C20,70 40,85 60,60 C80,35 90,40 100,20 L100,100 Z" fill="url(#ag)"/>
+                <path d="M0,80 C20,70 40,85 60,60 C80,35 90,40 100,20" fill="none" stroke="#006591" stroke-width="2"/>
+                <path d="M0,100 L0,90 C25,85 45,75 70,70 C85,65 95,55 100,50 L100,100 Z" fill="url(#gg)"/>
+                <path d="M0,90 C25,85 45,75 70,70 C85,65 95,55 100,50" fill="none" stroke="#50616b" stroke-width="2" stroke-dasharray="4"/>
+              </svg>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Tu perfil</h3><span class="text-[9px] font-semibold text-primary bg-primary-fixed/40 px-2 py-1 rounded font-mono">GET /api/auth/me</span></div>
+            <pre id="me-data" class="flex-1 text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-3.5 overflow-auto terminal-scroll leading-relaxed min-h-[160px] whitespace-pre-wrap break-words">Cargando...</pre>
+          </div>
         </div>
       </div>
 
       <!-- REPORTES -->
       <div class="page" id="page-reportes">
-        <div class="page-title">Reportes mensuales</div>
-        <div class="page-sub">Consolidado de costos AWS y GCP por mes (&lt;100ms)</div>
-
-        <div class="section-box">
-          <h3>Reporte mensual</h3>
-          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/mensual', 'reportes-result')">
-            Cargar reporte
-          </button>
-          <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/proyecto', 'reportes-result')" style="margin-left:8px">
-            Por proyecto
-          </button>
-          <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/historial', 'reportes-result')" style="margin-left:8px">
-            Historial
-          </button>
-          <div style="margin-top:16px">
-            <div class="response-box" id="reportes-result">Presiona un botón para cargar datos...</div>
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Reportes &amp; Analytics</h2><p class="text-sm text-on-surface-variant mt-1">Resumen de consumo cloud y rendimiento financiero.</p></div>
+          <button onclick="fetchEndpoint('/api/reportes/mensual','reportes-result')" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">download</span>Reporte mensual</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Total YTD Spend</h3><span class="material-symbols-outlined text-primary bg-primary-fixed/40 p-1.5 rounded-lg text-[19px]">payments</span></div>
+            <div class="flex items-baseline gap-2"><span class="text-3xl font-bold text-on-surface">$2.4M</span><span class="text-xs text-error flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">arrow_upward</span>4.2%</span></div>
+            <p class="text-xs text-on-surface-variant mt-2">vs. $2.3M anio anterior</p>
           </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Runway Proyectado</h3><span class="material-symbols-outlined text-secondary bg-secondary-fixed/50 p-1.5 rounded-lg text-[19px]">flight_takeoff</span></div>
+            <span class="text-3xl font-bold text-on-surface">8.5 <span class="text-lg font-medium">meses</span></span>
+            <div class="w-full bg-surface-container-high h-2 rounded-full mt-4 overflow-hidden"><div class="bg-secondary h-full rounded-full" style="width:65%"></div></div>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Ahorros Identificados</h3><span class="material-symbols-outlined text-[#006e1c] bg-[#dcfce7] p-1.5 rounded-lg text-[19px]">savings</span></div>
+            <div class="flex items-baseline gap-2"><span class="text-3xl font-bold text-on-surface">$412K</span><span class="text-xs text-[#006e1c] flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">arrow_downward</span>12.5%</span></div>
+            <div class="flex gap-2 mt-3"><span class="bg-secondary-fixed text-on-secondary-fixed px-2 py-1 rounded text-[10px] font-medium">AWS Reserved</span><span class="bg-secondary-fixed text-on-secondary-fixed px-2 py-1 rounded text-[10px] font-medium">Azure Hybrid</span></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow flex flex-col h-[280px]">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">ROI Trends (12 Meses)</h3><div class="flex gap-4 text-xs text-on-surface-variant"><div class="flex items-center gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-primary"></div>Costo</div><div class="flex items-center gap-1.5"><div class="w-2.5 h-2.5 rounded-full bg-secondary-fixed-dim"></div>Ingresos</div></div></div>
+            <div class="flex-1 relative border-l border-b border-surface-variant">
+              <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#006591" stop-opacity=".15"/><stop offset="100%" stop-color="#006591" stop-opacity="0"/></linearGradient></defs>
+                <path d="M0,80 Q10,75 20,85 T40,70 T60,50 T80,40 T100,45 L100,100 L0,100 Z" fill="url(#cg)"/>
+                <path d="M0,80 Q10,75 20,85 T40,70 T60,50 T80,40 T100,45" fill="none" stroke="#006591" stroke-width="2"/>
+                <path d="M0,90 Q10,88 20,80 T40,65 T60,35 T80,20 T100,10" fill="none" stroke="#b7c9d5" stroke-dasharray="4 2" stroke-width="2"/>
+              </svg>
+              <div class="absolute bottom-0 left-0 w-full flex justify-between text-[9px] text-on-surface-variant px-1"><span>Ene</span><span>Mar</span><span>May</span><span>Jul</span><span>Sep</span><span>Nov</span></div>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow flex flex-col h-[280px]">
+            <h3 class="text-base font-semibold text-on-surface mb-4">Presupuesto vs Real</h3>
+            <div class="flex-1 flex items-end justify-around px-2 relative border-b border-surface-variant pb-6">
+              <div class="absolute left-0 top-0 h-full flex flex-col justify-between text-[9px] text-on-surface-variant pb-6"><span>$500k</span><span>$250k</span><span>$0</span></div>
+              <div class="flex gap-1 h-full items-end pl-6"><div class="w-7 bg-surface-variant rounded-t h-[60%]"></div><div class="w-7 bg-primary rounded-t h-[65%]"></div></div>
+              <div class="flex gap-1 h-full items-end"><div class="w-7 bg-surface-variant rounded-t h-[80%]"></div><div class="w-7 bg-primary rounded-t h-[75%]"></div></div>
+              <div class="flex gap-1 h-full items-end"><div class="w-7 bg-surface-variant rounded-t h-[70%]"></div><div class="w-7 bg-error rounded-t h-[90%]"></div></div>
+              <div class="flex gap-1 h-full items-end"><div class="w-7 bg-surface-variant rounded-t h-[65%]"></div><div class="w-7 bg-primary rounded-t h-[60%]"></div></div>
+              <div class="absolute bottom-0 w-full flex justify-around text-[9px] text-on-surface-variant font-medium pl-6"><span>Q1</span><span>Q2</span><span>Q3</span><span>Q4</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Datos en tiempo real</h3><div class="flex gap-2 flex-wrap"><button onclick="fetchEndpoint('/api/reportes/mensual','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Mensual</button><button onclick="fetchEndpoint('/api/reportes/proyecto','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Por proyecto</button><button onclick="fetchEndpoint('/api/reportes/historial','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Historial</button></div></div>
+          <pre id="reportes-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[100px] overflow-auto terminal-scroll whitespace-pre-wrap">Selecciona un reporte...</pre>
         </div>
       </div>
 
       <!-- CONSUMO -->
       <div class="page" id="page-consumo">
-        <div class="page-title">Consumo cloud</div>
-        <div class="page-sub">Registro de consumo AWS y GCP por servicio y proyecto</div>
-
-        <div class="section-box">
-          <h3>Datos de consumo</h3>
-          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/consumo', 'consumo-result')">
-            Ver consumo
-          </button>
-          <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/gastos', 'consumo-result')" style="margin-left:8px">
-            Gastos por servicio
-          </button>
-          <div style="margin-top:16px">
-            <div class="response-box" id="consumo-result">Presiona un botón para cargar datos...</div>
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Consumo Cloud</h2><p class="text-sm text-on-surface-variant mt-1">Recursos AWS y GCP por servicio y proyecto.</p></div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-5 flex-wrap">
+            <button onclick="fetchEndpoint('/api/reportes/consumo','consumo-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">cloud</span>Ver consumo</button>
+            <button onclick="fetchEndpoint('/api/reportes/gastos','consumo-result')" class="px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">payments</span>Por servicio</button>
           </div>
+          <pre id="consumo-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona un boton para cargar datos...</pre>
         </div>
       </div>
 
-      <!-- ANÁLISIS -->
+      <!-- ANALISIS -->
       <div class="page" id="page-analisis">
-        <div class="page-title">Análisis de optimización</div>
-        <div class="page-sub">Detección de oportunidades de ahorro en tu infraestructura</div>
-
-        <div class="section-box">
-          <h3>Oportunidades detectadas</h3>
-          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/analisis', 'analisis-result')">
-            Ejecutar análisis
-          </button>
-          <div style="margin-top:16px">
-            <div class="response-box" id="analisis-result">Presiona para iniciar el análisis...</div>
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Analisis de Optimizacion</h2><p class="text-sm text-on-surface-variant mt-1">Oportunidades de ahorro detectadas en tu infraestructura.</p></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow cursor-pointer hover:border-outline transition-colors">
+            <div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary text-[19px]">storage</span><span class="text-sm font-semibold text-on-surface">Idle RDS Instances</span></div><span class="text-sm font-bold text-error">-$840/mo</span></div>
+            <p class="text-xs text-on-surface-variant mb-3">3 instancias DB sin conexiones en 14 dias.</p>
+            <div class="flex gap-2"><span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded text-[10px] font-semibold">AWS</span><span class="px-2 py-1 bg-surface-container-high text-on-surface rounded text-[10px]">us-east-1</span></div>
           </div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow cursor-pointer hover:border-outline transition-colors">
+            <div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary text-[19px]">hard_drive</span><span class="text-sm font-semibold text-on-surface">Unattached Volumes</span></div><span class="text-sm font-bold text-error">-$425/mo</span></div>
+            <p class="text-xs text-on-surface-variant mb-3">12 volumenes EBS desconectados.</p>
+            <div class="flex gap-2"><span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded text-[10px] font-semibold">AWS</span><span class="px-2 py-1 bg-surface-container-high text-on-surface rounded text-[10px]">eu-west-1</span></div>
+          </div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow cursor-pointer hover:border-outline transition-colors">
+            <div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary text-[19px]">memory</span><span class="text-sm font-semibold text-on-surface">Overprovisioned VM</span></div><span class="text-sm font-bold text-error">-$315/mo</span></div>
+            <p class="text-xs text-on-surface-variant mb-3">e2-standard-8 con menos 5% CPU.</p>
+            <div class="flex gap-2"><span class="px-2 py-1 bg-primary-fixed text-on-primary-fixed-variant rounded text-[10px] font-semibold">GCP</span><span class="px-2 py-1 bg-surface-container-high text-on-surface rounded text-[10px]">us-central1</span></div>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-4"><button onclick="fetchEndpoint('/api/reportes/analisis','analisis-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">query_stats</span>Ejecutar analisis</button></div>
+          <pre id="analisis-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[120px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para iniciar el analisis...</pre>
         </div>
       </div>
 
       <!-- TENDENCIAS -->
       <div class="page" id="page-tendencias">
-        <div class="page-title">Tendencias y anomalías</div>
-        <div class="page-sub">Patrones de consumo y detección de comportamientos anómalos</div>
-
-        <div class="section-box">
-          <h3>Análisis de tendencias</h3>
-          <button class="btn-action" onclick="fetchEndpoint('/api/reportes/tendencias', 'tendencias-result')">
-            Ver tendencias
-          </button>
-          <div style="margin-top:16px">
-            <div class="response-box" id="tendencias-result">Presiona para cargar tendencias...</div>
-          </div>
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Tendencias &amp; Anomalias</h2><p class="text-sm text-on-surface-variant mt-1">Patrones de consumo y deteccion de comportamientos inusuales.</p></div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-4"><button onclick="fetchEndpoint('/api/reportes/tendencias','tendencias-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">trending_up</span>Cargar tendencias</button></div>
+          <pre id="tendencias-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar el analisis de tendencias...</pre>
         </div>
       </div>
 
       <!-- HEALTH -->
       <div class="page" id="page-health">
-        <div class="page-title">Health Check</div>
-        <div class="page-sub">Estado de los servicios desplegados en AWS</div>
-
-        <div class="cards">
-          <div class="card">
-            <div class="card-label">Servicio Reportes</div>
-            <div id="health-reportes-badge" style="margin-top:8px">—</div>
-            <div class="card-sub" style="margin-top:8px" id="health-reportes-sub">GET /api/reportes/health</div>
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Health Check</h2><p class="text-sm text-on-surface-variant mt-1">Estado en tiempo real de todos los servicios en AWS.</p></div>
+          <button onclick="runHealthCheck()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">health_and_safety</span>Verificar ahora</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow">
+            <p class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">analytics</span>Servicio Reportes</p>
+            <div id="health-reportes-badge" class="mb-3"><span class="text-sm text-on-surface-variant italic">Pendiente verificacion...</span></div>
+            <code class="text-[10px] text-outline font-mono bg-surface-container px-2 py-1 rounded">GET /api/reportes/health</code>
           </div>
-          <div class="card">
-            <div class="card-label">Servicio Auth</div>
-            <div id="health-auth-badge" style="margin-top:8px">—</div>
-            <div class="card-sub" style="margin-top:8px" id="health-auth-sub">GET /api/auth/health</div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow">
+            <p class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">security</span>Servicio Auth</p>
+            <div id="health-auth-badge" class="mb-3"><span class="text-sm text-on-surface-variant italic">Pendiente verificacion...</span></div>
+            <code class="text-[10px] text-outline font-mono bg-surface-container px-2 py-1 rounded">GET /api/auth/health</code>
           </div>
         </div>
-
-        <div class="section-box">
-          <h3>Verificar ahora</h3>
-          <button class="btn-action" onclick="runHealthCheck()">Ejecutar health check</button>
-          <div style="margin-top:16px">
-            <div class="response-box" id="health-result">Presiona para verificar el estado del sistema...</div>
-          </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <pre id="health-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[120px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona "Verificar ahora" para diagnosticar el sistema...</pre>
         </div>
       </div>
 
       <!-- API EXPLORER -->
       <div class="page" id="page-api">
-        <div class="page-title">API Explorer</div>
-        <div class="page-sub">Explora y prueba todos los endpoints disponibles</div>
-
-        <div class="section-box">
-          <h3>Autenticación</h3>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/register</span> — Registrar usuario</div>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/login</span> — Login y obtener tokens JWT</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/auth/me</span> — Info del usuario autenticado</div>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/refresh</span> — Refrescar token</div>
-          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/logout</span> — Cerrar sesión</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/auth/audit/historial</span> — Historial de accesos</div>
-        </div>
-
-        <div class="section-box">
-          <h3>Reportes</h3>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/mensual</span> — Reporte mensual (&lt;100ms)</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/proyecto</span> — Reporte por proyecto</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/consumo</span> — Consumo cloud</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/gastos</span> — Gastos por servicio</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/analisis</span> — Análisis de optimización</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/tendencias</span> — Tendencias y anomalías</div>
-          <div class="endpoint-row"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/historial</span> — Historial de reportes</div>
-        </div>
-
-        <div class="section-box">
-          <h3>Probar endpoint personalizado</h3>
-          <div class="form-group">
-            <label>Endpoint (relativo)</label>
-            <input type="text" id="custom-endpoint" placeholder="/api/reportes/consumo" style="font-family:monospace" />
+        <div class="mb-8"><h1 class="text-2xl font-bold text-on-surface tracking-tight">API Explorer</h1><p class="text-sm text-on-surface-variant mt-1 max-w-2xl">Construye requests, pasa headers de autenticacion y visualiza respuestas JSON en tiempo real.</p></div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 flex flex-col gap-5">
+            <div class="bg-surface rounded-xl border border-outline-variant p-6 soft-glow flex flex-col gap-5">
+              <div class="flex items-center justify-between border-b border-surface-variant pb-4"><h2 class="text-base font-semibold text-on-surface">Request Configuration</h2></div>
+              <div class="flex gap-3">
+                <div class="relative w-28 flex-shrink-0"><select class="w-full appearance-none bg-surface-container-low border border-outline-variant text-primary text-sm font-semibold rounded-xl pl-4 pr-8 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"><option>GET</option><option>POST</option></select><span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span></div>
+                <input id="custom-endpoint" type="text" value="/api/reportes/consumo" placeholder="/api/reportes/consumo" class="flex-1 bg-surface border border-outline-variant text-on-surface text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"/>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2"><span class="text-xs text-on-surface-variant">Auth:</span><span class="bg-secondary-container text-on-secondary-container text-xs font-semibold px-3 py-1.5 rounded-full">Bearer Token (Admin)</span></div>
+                <button onclick="fetchEndpoint(document.getElementById('custom-endpoint').value,'custom-result')" class="bg-gradient-to-b from-primary to-[#005275] text-white px-5 py-2.5 rounded-xl text-xs font-semibold shadow-[0_4px_14px_rgba(0,101,145,0.3)] hover:shadow-[0_6px_20px_rgba(0,101,145,0.4)] hover:-translate-y-0.5 transition-all flex items-center gap-2"><span class="material-symbols-outlined text-[17px]">send</span>Send Request</button>
+              </div>
+            </div>
+            <div class="bg-surface rounded-xl border border-outline-variant soft-glow overflow-hidden">
+              <div class="flex items-center justify-between px-5 py-3.5 border-b border-surface-variant bg-surface-container-low"><h3 class="text-sm font-semibold text-on-surface">Endpoints disponibles</h3><span class="text-[10px] text-on-surface-variant">Click para ejecutar</span></div>
+              <div class="divide-y divide-surface-variant">
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/auth/me')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/auth/me</span><span class="text-xs text-on-surface-variant hidden sm:block">Perfil del usuario</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/auth/audit/historial')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/auth/audit/historial</span><span class="text-xs text-on-surface-variant hidden sm:block">Historial de accesos</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/mensual')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/mensual</span><span class="text-xs text-on-surface-variant hidden sm:block">Reporte mensual</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/consumo')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/consumo</span><span class="text-xs text-on-surface-variant hidden sm:block">Consumo cloud</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/gastos')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/gastos</span><span class="text-xs text-on-surface-variant hidden sm:block">Gastos por servicio</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/analisis')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/analisis</span><span class="text-xs text-on-surface-variant hidden sm:block">Optimizacion</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/tendencias')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/tendencias</span><span class="text-xs text-on-surface-variant hidden sm:block">Tendencias</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/health')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/health</span><span class="text-xs text-on-surface-variant hidden sm:block">Health check</span></div>
+              </div>
+            </div>
           </div>
-          <button class="btn-action" onclick="fetchEndpoint(document.getElementById('custom-endpoint').value, 'custom-result')">
-            Ejecutar GET
-          </button>
-          <div style="margin-top:16px">
-            <div class="response-box" id="custom-result">Respuesta aparecerá aquí...</div>
+          <div class="lg:col-span-5">
+            <div class="bg-surface-container-lowest rounded-xl border border-outline-variant soft-glow flex flex-col overflow-hidden sticky top-20">
+              <div class="flex items-center justify-between border-b border-surface-variant px-4 py-3 bg-surface">
+                <div class="flex gap-5"><span class="text-xs font-semibold text-primary border-b-2 border-primary pb-2">Response Body</span><span class="text-xs text-on-surface-variant pb-2">Headers</span></div>
+                <div class="flex items-center gap-2">
+                  <span id="api-status-badge" class="hidden px-2 py-1 rounded font-mono text-xs font-semibold"></span>
+                  <button onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('custom-result').textContent)" class="text-outline hover:text-primary transition-colors p-1.5 rounded border border-surface-variant hover:bg-surface-container" title="Copiar"><span class="material-symbols-outlined text-[16px]">content_copy</span></button>
+                </div>
+              </div>
+              <pre id="custom-result" class="flex-1 text-[11px] font-mono text-on-surface-variant p-5 overflow-auto terminal-scroll min-h-[420px] whitespace-pre-wrap break-words leading-relaxed">La respuesta aparecera aqui...</pre>
+            </div>
           </div>
         </div>
       </div>
 
-    </div><!-- /main -->
-  </div><!-- /layout -->
-</div><!-- /dashboard -->
+    </main>
+  </div>
+</div>
 
 <script>
-  // ========== STATE ==========
   let accessToken = localStorage.getItem('access_token') || null;
   let currentUser = null;
 
-  // ========== AUTH TABS ==========
   function switchTab(tab) {
-    document.getElementById('tab-login').style.display = tab === 'login' ? 'block' : 'none';
-    document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
-    document.querySelectorAll('.tab').forEach((t, i) => {
-      t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
-    });
+    const isLogin = tab === 'login';
+    document.getElementById('tab-login').style.display    = isLogin ? 'block' : 'none';
+    document.getElementById('tab-register').style.display = isLogin ? 'none'  : 'block';
+    const base = 'flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all ';
+    document.getElementById('tab-btn-login').className    = base + (isLogin  ? 'bg-surface-container-lowest text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface');
+    document.getElementById('tab-btn-register').className = base + (!isLogin ? 'bg-surface-container-lowest text-on-surface shadow-sm' : 'text-on-surface-variant hover:text-on-surface');
     hideAuthMsg();
   }
-
   function showAuthError(msg) {
-    const el = document.getElementById('auth-error');
-    el.textContent = msg; el.style.display = 'block';
-    document.getElementById('auth-success').style.display = 'none';
+    const e=document.getElementById('auth-error'); e.textContent=msg; e.classList.remove('hidden'); e.style.display='block';
+    const s=document.getElementById('auth-success'); s.classList.add('hidden'); s.style.display='none';
   }
   function showAuthSuccess(msg) {
-    const el = document.getElementById('auth-success');
-    el.textContent = msg; el.style.display = 'block';
-    document.getElementById('auth-error').style.display = 'none';
+    const s=document.getElementById('auth-success'); s.textContent=msg; s.classList.remove('hidden'); s.style.display='block';
+    const e=document.getElementById('auth-error'); e.classList.add('hidden'); e.style.display='none';
   }
   function hideAuthMsg() {
-    document.getElementById('auth-error').style.display = 'none';
-    document.getElementById('auth-success').style.display = 'none';
+    ['auth-error','auth-success'].forEach(id=>{const el=document.getElementById(id);el.classList.add('hidden');el.style.display='none';});
   }
 
-  // ========== LOGIN ==========
   async function doLogin() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
-    if (!username || !password) { showAuthError('Completa todos los campos'); return; }
-
+    const username=document.getElementById('login-username').value.trim();
+    const password=document.getElementById('login-password').value;
+    if(!username||!password){showAuthError('Completa todos los campos');return;}
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (!res.ok) { showAuthError(data.error || data.detail || 'Error al iniciar sesión'); return; }
-
-      accessToken = data.access_token || data.tokens?.access || data.access;
-      localStorage.setItem('access_token', accessToken);
-      if (data.refresh_token || data.tokens?.refresh) {
-        localStorage.setItem('refresh_token', data.refresh_token || data.tokens?.refresh);
-      }
-      enterDashboard(data.user || data.usuario || { username });
-    } catch (e) {
-      showAuthError('No se pudo conectar al servidor');
-    }
+      const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+      const data=await res.json();
+      if(!res.ok){showAuthError(data.error||data.detail||'Credenciales incorrectas');return;}
+      accessToken=data.access_token||data.tokens?.access||data.access;
+      localStorage.setItem('access_token',accessToken);
+      if(data.refresh_token||data.tokens?.refresh)localStorage.setItem('refresh_token',data.refresh_token||data.tokens?.refresh);
+      enterDashboard(data.user||data.usuario||{username});
+    } catch(e){showAuthError('No se pudo conectar al servidor');}
   }
 
-  // ========== REGISTER ==========
   async function doRegister() {
-    const username = document.getElementById('reg-username').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const password = document.getElementById('reg-password').value;
-    const empresa = document.getElementById('reg-empresa').value.trim();
-    if (!username || !email || !password) { showAuthError('Completa los campos requeridos'); return; }
-
+    const username=document.getElementById('reg-username').value.trim();
+    const email=document.getElementById('reg-email').value.trim();
+    const password=document.getElementById('reg-password').value;
+    const empresa=document.getElementById('reg-empresa').value.trim();
+    if(!username||!email||!password){showAuthError('Completa los campos requeridos');return;}
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password, empresa })
-      });
-      const data = await res.json();
-      if (!res.ok) { showAuthError(data.error || data.detail || 'Error al registrar'); return; }
-
-      showAuthSuccess('Cuenta creada. Ahora inicia sesión.');
+      const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email,password,empresa})});
+      const data=await res.json();
+      if(!res.ok){showAuthError(data.error||data.detail||'Error al registrar');return;}
+      showAuthSuccess('Cuenta creada exitosamente! Inicia sesion.');
       switchTab('login');
-      document.getElementById('login-username').value = username;
-    } catch (e) {
-      showAuthError('No se pudo conectar al servidor');
-    }
+      document.getElementById('login-username').value=username;
+    } catch(e){showAuthError('No se pudo conectar al servidor');}
   }
 
-  // ========== LOGOUT ==========
   async function doLogout() {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' }
-      });
-    } catch (_) {}
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    accessToken = null;
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('auth-section').style.display = 'flex';
+    try{await fetch('/api/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'}});}catch(_){}
+    localStorage.removeItem('access_token');localStorage.removeItem('refresh_token');
+    accessToken=null;
+    document.getElementById('dashboard').style.display='none';
+    document.getElementById('auth-section').style.display='flex';
   }
 
-  // ========== DASHBOARD ==========
   function enterDashboard(user) {
-    currentUser = user;
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'flex';
-    document.getElementById('user-display').textContent = user.username || user;
-    document.getElementById('ov-user').textContent = user.username || user;
-    document.getElementById('ov-rol').textContent = user.rol || 'usuario';
+    currentUser=user;
+    document.getElementById('auth-section').style.display='none';
+    document.getElementById('dashboard').style.display='flex';
+    const name=user.username||user;
+    const ini=(String(name)[0]||'?').toUpperCase();
+    document.getElementById('user-display').textContent=name;
+    document.getElementById('user-avatar-letter').textContent=ini;
+    document.getElementById('sidebar-username').textContent=name;
+    document.getElementById('sidebar-avatar').textContent=ini;
+    document.getElementById('sidebar-rol').textContent=user.rol||'usuario';
+    document.getElementById('ov-user').textContent=name;
+    document.getElementById('ov-rol').textContent='Rol: '+(user.rol||'usuario');
     loadOverview();
     startHealthPoll();
   }
 
-  function showPage(name) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-    event.currentTarget.classList.add('active');
-  }
-
-  // ========== API CALLS ==========
-  async function apiFetch(path) {
-    const res = await fetch(path, {
-      headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' }
-    });
-    return { res, data: await res.json() };
-  }
-
-  async function fetchEndpoint(path, targetId) {
-    const box = document.getElementById(targetId);
-    box.innerHTML = '<span class="spinner"></span>Cargando...';
-    try {
-      const { res, data } = await apiFetch(path);
-      box.style.color = res.ok ? 'var(--green)' : 'var(--red)';
-      box.textContent = JSON.stringify(data, null, 2);
-    } catch (e) {
-      box.style.color = 'var(--red)';
-      box.textContent = 'Error de conexión: ' + e.message;
+  function showPage(name,btn) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    if(btn){
+      document.querySelectorAll('.nav-item').forEach(n=>{
+        n.classList.remove('bg-secondary-container','text-on-secondary-container','font-semibold');
+        n.classList.add('text-on-surface-variant','font-medium');
+      });
+      btn.classList.remove('text-on-surface-variant','font-medium');
+      btn.classList.add('bg-secondary-container','text-on-secondary-container','font-semibold');
     }
+  }
+
+  async function apiFetch(path) {
+    const res=await fetch(path,{headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'}});
+    return{res,data:await res.json()};
+  }
+
+  async function fetchEndpoint(path,targetId) {
+    if(!path||!path.startsWith('/')){document.getElementById(targetId).textContent='Endpoint invalido - usa formato /api/...';return;}
+    const box=document.getElementById(targetId);
+    box.style.color='';box.textContent='Cargando...';
+    const badge=document.getElementById('api-status-badge');
+    try {
+      const{res,data}=await apiFetch(path);
+      box.textContent=JSON.stringify(data,null,2);
+      box.style.color=res.ok?'#059669':'#ba1a1a';
+      if(badge){
+        badge.textContent=res.status+(res.ok?' OK':' Error');
+        badge.className='px-2 py-1 rounded font-mono text-xs font-semibold '+(res.ok?'bg-[#dcfce7] text-[#166534]':'bg-error-container text-on-error-container');
+        badge.classList.remove('hidden');
+      }
+    } catch(e){box.textContent='Error de conexion: '+e.message;box.style.color='#ba1a1a';}
+  }
+
+  function setEndpoint(path) {
+    document.getElementById('custom-endpoint').value=path;
+    fetchEndpoint(path,'custom-result');
   }
 
   async function loadOverview() {
     try {
-      const { data } = await apiFetch('/api/auth/me');
-      document.getElementById('me-data').textContent = JSON.stringify(data, null, 2);
-      if (data.username) document.getElementById('ov-user').textContent = data.username;
-      if (data.rol) document.getElementById('ov-rol').textContent = 'Rol: ' + data.rol;
-    } catch (_) {
-      document.getElementById('me-data').textContent = 'No disponible';
-    }
+      const{data}=await apiFetch('/api/auth/me');
+      document.getElementById('me-data').textContent=JSON.stringify(data,null,2);
+      if(data.username){
+        const ini=data.username[0].toUpperCase();
+        document.getElementById('user-display').textContent=data.username;
+        document.getElementById('ov-user').textContent=data.username;
+        document.getElementById('sidebar-username').textContent=data.username;
+        document.getElementById('user-avatar-letter').textContent=ini;
+        document.getElementById('sidebar-avatar').textContent=ini;
+      }
+      if(data.rol){document.getElementById('ov-rol').textContent='Rol: '+data.rol;document.getElementById('sidebar-rol').textContent=data.rol;}
+    } catch(_){document.getElementById('me-data').textContent='No disponible';}
   }
 
   async function runHealthCheck() {
-    const box = document.getElementById('health-result');
-    box.innerHTML = '<span class="spinner"></span>Verificando...';
-    const results = {};
-
-    for (const [key, path] of [['reportes', '/api/reportes/health'], ['auth', '/api/auth/health']]) {
-      try {
-        const { res, data } = await apiFetch(path);
-        results[path] = { status: res.status, data };
-        const badge = document.getElementById('health-' + key + '-badge');
-        if (res.ok) {
-          badge.innerHTML = '<span class="status-badge badge-green">● Saludable</span>';
-        } else {
-          badge.innerHTML = '<span class="status-badge badge-red">● Error ' + res.status + '</span>';
-        }
-      } catch (e) {
-        results[path] = { error: e.message };
-        document.getElementById('health-' + key + '-badge').innerHTML = '<span class="status-badge badge-red">● Sin conexión</span>';
+    const box=document.getElementById('health-result');
+    box.style.color='';box.textContent='Verificando servicios...';
+    const results={};
+    for(const[key,path]of[['reportes','/api/reportes/health'],['auth','/api/auth/health']]){
+      try{
+        const{res,data}=await apiFetch(path);
+        results[path]={status:res.status,data};
+        document.getElementById('health-'+key+'-badge').innerHTML=res.ok
+          ?'<span class="inline-flex items-center gap-2 bg-[#dcfce7] text-[#166534] px-3 py-1.5 rounded-full text-xs font-semibold"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block"></span>Saludable</span>'
+          :'<span class="inline-flex items-center gap-2 bg-[#ffdad6] text-[#93000a] px-3 py-1.5 rounded-full text-xs font-semibold">Error '+res.status+'</span>';
+      }catch(e){
+        results[path]={error:e.message};
+        document.getElementById('health-'+key+'-badge').innerHTML='<span class="inline-flex items-center gap-2 bg-[#ffdad6] text-[#93000a] px-3 py-1.5 rounded-full text-xs font-semibold">Sin conexion</span>';
       }
     }
-
-    box.style.color = 'var(--green)';
-    box.textContent = JSON.stringify(results, null, 2);
+    box.textContent=JSON.stringify(results,null,2);box.style.color='#059669';
   }
 
-  // ========== HEALTH POLL ==========
   async function checkHealthDot() {
-    try {
-      const res = await fetch('/api/reportes/health');
-      const ok = res.ok;
-      document.getElementById('health-dot').style.background = ok ? 'var(--green)' : 'var(--red)';
-      document.getElementById('health-status-text').textContent = ok ? 'Sistema OK' : 'Error';
-      document.getElementById('ov-health').textContent = ok ? '✓ Online' : '✗ Error';
-      document.getElementById('ov-health').style.color = ok ? 'var(--green)' : 'var(--red)';
-    } catch (_) {
-      document.getElementById('health-dot').style.background = 'var(--yellow)';
-      document.getElementById('health-status-text').textContent = 'Sin conexión';
+    try{
+      const res=await fetch('/api/reportes/health');
+      const ok=res.ok;
+      document.getElementById('health-dot').style.background=ok?'#10b981':'#ba1a1a';
+      document.getElementById('health-status-text').textContent=ok?'Sistema OK':'Error detectado';
+      document.getElementById('ov-health').textContent=ok?'Online':'Error';
+      document.getElementById('ov-health').style.color=ok?'#059669':'#ba1a1a';
+    }catch(_){
+      document.getElementById('health-dot').style.background='#d97706';
+      document.getElementById('health-status-text').textContent='Sin respuesta';
     }
   }
+  function startHealthPoll(){checkHealthDot();setInterval(checkHealthDot,30000);}
 
-  function startHealthPoll() {
-    checkHealthDot();
-    setInterval(checkHealthDot, 30000);
-  }
-
-  // ========== INIT ==========
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      if (document.getElementById('tab-login').style.display !== 'none') doLogin();
-      else doRegister();
-    }
+  window.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&document.getElementById('auth-section').style.display!=='none')
+      document.getElementById('tab-login').style.display!=='none'?doLogin():doRegister();
   });
 
-  // Auto-login si hay token guardado
-  if (accessToken) {
-    apiFetch('/api/auth/me').then(({ res, data }) => {
-      if (res.ok) {
-        enterDashboard(data);
-      } else {
-        localStorage.removeItem('access_token');
-        accessToken = null;
-      }
-    }).catch(() => {
-      localStorage.removeItem('access_token');
-      accessToken = null;
-    });
+  if(accessToken){
+    apiFetch('/api/auth/me').then(({res,data})=>{
+      if(res.ok)enterDashboard(data);
+      else{localStorage.removeItem('access_token');accessToken=null;}
+    }).catch(()=>{localStorage.removeItem('access_token');accessToken=null;});
   }
 </script>
 </body>
