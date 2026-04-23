@@ -213,20 +213,49 @@ resource "aws_instance" "database" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.traffic_db.id, aws_security_group.traffic_ssh.id]
 
-  user_data_base64 = base64encode(<<-EOT
-               #!/bin/bash
+  user_data = <<-EOT
+#!/bin/bash
+exec > /var/log/cloudynet-db-setup.log 2>&1
+echo "[$(date)] Iniciando setup PostgreSQL..."
 
-               sudo apt-get update -y
-               sudo apt-get install -y postgresql postgresql-contrib
+apt-get update -y -q
+apt-get install -y -q postgresql postgresql-contrib
 
-               sudo -u postgres psql -c "CREATE USER report_user WITH PASSWORD 'isis2503';"
-               sudo -u postgres createdb -O report_user monitoring_db
-               echo "host all all 0.0.0.0/0 trust" | sudo tee -a /etc/postgresql/16/main/pg_hba.conf
-               echo "listen_addresses='*'" | sudo tee -a /etc/postgresql/16/main/postgresql.conf
-               echo "max_connections=2000" | sudo tee -a /etc/postgresql/16/main/postgresql.conf
-               sudo service postgresql restart
-               EOT
-  )
+# Esperar a que postgres arranque
+sleep 5
+
+# Crear usuario y base de datos (idempotente)
+sudo -u postgres psql <<SQLEOF
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'report_user') THEN
+    CREATE USER report_user WITH PASSWORD 'isis2503';
+  END IF;
+END
+\$\$;
+SQLEOF
+
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'monitoring_db'" | grep -q 1 || \
+  sudo -u postgres createdb -O report_user monitoring_db
+
+# Permitir conexiones remotas
+PG_HBA="/etc/postgresql/16/main/pg_hba.conf"
+PG_CONF="/etc/postgresql/16/main/postgresql.conf"
+
+grep -q "^host all all 0.0.0.0/0" "$PG_HBA" || \
+  echo "host all all 0.0.0.0/0 trust" >> "$PG_HBA"
+
+sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONF" || \
+  grep -q "^listen_addresses" "$PG_CONF" || \
+  echo "listen_addresses='*'" >> "$PG_CONF"
+
+echo "max_connections=500" >> "$PG_CONF"
+
+systemctl enable postgresql
+systemctl restart postgresql
+
+echo "[$(date)] PostgreSQL listo. Usuario: report_user / DB: monitoring_db"
+EOT
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-db"
@@ -247,93 +276,89 @@ resource "aws_instance" "app_instances" {
   user_data = <<-EOT
 #!/bin/bash
 # =======================================================
-# CloudyNet FinOps - Auto-setup script for app-${each.key}
+# CloudyNet FinOps - Auto-setup completo para app-${each.key}
+# Ejecutado una sola vez en el primer arranque via cloud-init
+# =======================================================
 # Runs once at first boot via cloud-init
 # =======================================================
 exec > /var/log/cloudynet-setup.log 2>&1
-set -e
 
 INSTANCE_ID="${each.key}"
 DB_HOST="${aws_instance.database.private_ip}"
 REPO="${local.repository}"
 BRANCH="${local.branch}"
 APP_DIR="/apps/Arquisoft"
+VENV_DIR="/apps/venv"
 
 echo "[$(date)] ===== CloudyNet setup iniciado (instancia: app-$INSTANCE_ID) ====="
 
-# ── 1. Variables de entorno persistentes ──────────────────────────────
-cat > /etc/cloudynet.env <<'ENVEOF'
-DATABASE_HOST=${aws_instance.database.private_ip}
-DATABASE_NAME=monitoring_db
-DATABASE_USER=report_user
-DATABASE_PASSWORD=isis2503
-DATABASE_PORT=5432
+# ── 1. Dependencias del sistema ───────────────────────────────────────
+apt-get update -y -q
+apt-get install -y -q python3 python3-pip python3-venv git build-essential libpq-dev python3-dev netcat-openbsd curl
+echo "[$(date)] Paquetes del sistema instalados."
+
+# ── 2. Clonar repositorio ─────────────────────────────────────────────
+mkdir -p /apps
+if [ ! -d "$APP_DIR/.git" ]; then
+  git clone "$REPO" "$APP_DIR"
+else
+  cd "$APP_DIR" && git fetch origin && git reset --hard origin/$BRANCH
+fi
+cd "$APP_DIR"
+echo "[$(date)] Repositorio listo en $APP_DIR."
+
+# ── 3. Entorno virtual Python ─────────────────────────────────────────
+python3 -m venv "$VENV_DIR"
+"$VENV_DIR/bin/pip" install --upgrade pip -q
+"$VENV_DIR/bin/pip" install -r "$APP_DIR/requirements.txt" -q
+echo "[$(date)] Virtualenv y dependencias instaladas en $VENV_DIR."
+
+# ── 4. Variables de entorno (nombres que usa settings.py) ─────────────
+cat > /etc/cloudynet.env <<ENVEOF
+DATABASE_HOST=$DB_HOST
+DB_NAME=monitoring_db
+DB_USER=report_user
+DB_PASSWORD=isis2503
+DB_PORT=5432
 DJANGO_SETTINGS_MODULE=finops_platform.settings
 PYTHONUNBUFFERED=1
 ENVEOF
 chmod 644 /etc/cloudynet.env
 
-# Cargar en /etc/environment para sesiones SSH también
-grep -v '^$' /etc/cloudynet.env >> /etc/environment
-export $(cat /etc/cloudynet.env | xargs)
-
+# Exportar para los comandos que siguen
+set -a; source /etc/cloudynet.env; set +a
 echo "[$(date)] Variables de entorno configuradas."
 
-# ── 2. Dependencias del sistema ───────────────────────────────────────
-apt-get update -y -q
-apt-get install -y -q python3-pip git build-essential libpq-dev python3-dev netcat-openbsd
-
-echo "[$(date)] Paquetes del sistema instalados."
-
-# ── 3. Clonar / actualizar repositorio ───────────────────────────────
-mkdir -p /apps
-if [ ! -d "$APP_DIR" ]; then
-  git clone "$REPO" "$APP_DIR"
-else
-  cd "$APP_DIR" && git fetch origin && git checkout "$BRANCH" && git pull origin "$BRANCH"
-fi
-
-cd "$APP_DIR"
-git checkout "$BRANCH"
-echo "[$(date)] Repositorio listo en $APP_DIR."
-
-# ── 4. Instalar dependencias Python ──────────────────────────────────
-pip3 install --upgrade pip --break-system-packages -q
-pip3 install -r requirements.txt --break-system-packages --ignore-installed -q
-echo "[$(date)] Dependencias Python instaladas."
-
-# ── 5. Esperar a que PostgreSQL esté disponible (máx 5 min) ──────────
-echo "[$(date)] Esperando conexión con PostgreSQL en $DB_HOST:5432..."
+# ── 5. Esperar PostgreSQL (máx 5 min) ─────────────────────────────────
+echo "[$(date)] Esperando PostgreSQL en $DB_HOST:5432..."
 for i in $(seq 1 30); do
   if nc -z "$DB_HOST" 5432 2>/dev/null; then
-    echo "[$(date)] PostgreSQL disponible después de $i intento(s)."
+    echo "[$(date)] PostgreSQL disponible en el intento $i."
     break
   fi
-  echo "[$(date)] Intento $i/30 - DB no disponible, esperando 10s..."
+  echo "[$(date)] Intento $i/30 — esperando 10 s..."
   sleep 10
 done
 
-# ── 6. Migraciones (solo app-a para evitar race condition; app-b espera) ──
+# ── 6. Migraciones ────────────────────────────────────────────────────
 if [ "$INSTANCE_ID" = "a" ]; then
-  echo "[$(date)] Ejecutando migraciones Django (instancia primaria)..."
-  python3 manage.py migrate --noinput
+  echo "[$(date)] app-a: ejecutando migraciones..."
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
   echo "[$(date)] Migraciones completadas."
 else
-  echo "[$(date)] Instancia secundaria: esperando 90s para que app-a complete migraciones..."
+  echo "[$(date)] app-b: esperando 90 s a que app-a migre..."
   sleep 90
-  echo "[$(date)] Ejecutando migrate (idempotente)..."
-  python3 manage.py migrate --noinput
-  echo "[$(date)] Migraciones verificadas."
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
+  echo "[$(date)] Migraciones verificadas en app-b."
 fi
 
-# ── 7. Crear servicio systemd (auto-arranque en reboot) ───────────────
-GUNICORN_BIN=$(which gunicorn 2>/dev/null || find /usr /home -name gunicorn 2>/dev/null | head -1)
-echo "[$(date)] Gunicorn encontrado en: $GUNICORN_BIN"
+# ── 7. Servicio systemd ───────────────────────────────────────────────
+GUNICORN_BIN="$VENV_DIR/bin/gunicorn"
 
 cat > /etc/systemd/system/cloudynet.service <<SVCEOF
 [Unit]
-Description=CloudyNet FinOps - Gunicorn (app-${each.key})
-After=network.target
+Description=CloudyNet FinOps Gunicorn (app-${each.key})
+After=network-online.target
 Wants=network-online.target
 
 [Service]
@@ -341,13 +366,7 @@ Type=exec
 User=root
 WorkingDirectory=$APP_DIR
 EnvironmentFile=/etc/cloudynet.env
-ExecStart=$GUNICORN_BIN finops_platform.wsgi:application \\
-    --bind 0.0.0.0:8080 \\
-    --workers 4 \\
-    --timeout 120 \\
-    --access-logfile /var/log/gunicorn-access.log \\
-    --error-logfile /var/log/gunicorn-error.log \\
-    --log-level info
+ExecStart=$GUNICORN_BIN finops_platform.wsgi:application --bind 0.0.0.0:8080 --workers 4 --timeout 120 --access-logfile /var/log/gunicorn-access.log --error-logfile /var/log/gunicorn-error.log
 ExecReload=/bin/kill -s HUP \$MAINPID
 Restart=always
 RestartSec=5
@@ -358,13 +377,29 @@ StandardError=append:/var/log/gunicorn-error.log
 WantedBy=multi-user.target
 SVCEOF
 
-# ── 8. Habilitar e iniciar el servicio ───────────────────────────────
+# ── 8. Script de actualización rápida (git pull + restart) ───────────
+cat > /usr/local/bin/cloudynet-update <<UPDEOF
+#!/bin/bash
+cd $APP_DIR
+git fetch origin
+git reset --hard origin/$BRANCH
+$VENV_DIR/bin/pip install -r requirements.txt -q
+set -a; source /etc/cloudynet.env; set +a
+$VENV_DIR/bin/python manage.py migrate --noinput
+systemctl restart cloudynet.service
+systemctl is-active cloudynet.service
+echo "Actualización completada."
+UPDEOF
+chmod +x /usr/local/bin/cloudynet-update
+
+# ── 9. Habilitar e iniciar ────────────────────────────────────────────
 systemctl daemon-reload
 systemctl enable cloudynet.service
 systemctl start cloudynet.service
 
-echo "[$(date)] Servicio cloudynet.service iniciado y habilitado para reboot."
-echo "[$(date)] ===== Setup completado exitosamente para app-$INSTANCE_ID ====="
+echo "[$(date)] Servicio cloudynet.service activo y habilitado en reboot."
+echo "[$(date)] ===== Setup completado app-$INSTANCE_ID ====="
+echo "[$(date)] Para futuras actualizaciones: sudo cloudynet-update"
 EOT
 
   tags = merge(local.common_tags, {
