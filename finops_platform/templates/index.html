@@ -3,9 +3,931 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FinOps Platform · BITE.CO</title>
+  <title>CloudyNet · FinOps Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060b18;
+      --bg2: #0c1628;
+      --surface: rgba(255,255,255,0.04);
+      --surface-solid: #111d35;
+      --surface2: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-bright: rgba(99,179,237,0.35);
+      --accent: #63b3ed;
+      --accent2: #9f7aea;
+      --accent3: #68d391;
+      --cyan: #76e4f7;
+      --green: #68d391;
+      --red: #fc8181;
+      --yellow: #f6e05e;
+      --text: #e8f0fe;
+      --text2: #a0aec0;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.5);
+      --glow: 0 0 40px rgba(99,179,237,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(99,179,237,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(159,122,234,0.1) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(104,211,145,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ── Auth layout ── */
+    #auth-section {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+
+    .auth-split {
+      display: flex; width: 100%; max-width: 920px;
+      background: rgba(12,22,40,0.85);
+      border: 1px solid var(--border-bright);
+      border-radius: 24px;
+      box-shadow: var(--shadow), var(--glow);
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+    }
+
+    .auth-left {
+      flex: 1; padding: 56px 48px;
+      background: linear-gradient(135deg, rgba(99,179,237,0.08) 0%, rgba(159,122,234,0.06) 100%);
+      display: flex; flex-direction: column; justify-content: center;
+      border-right: 1px solid var(--border);
+    }
+    .auth-left-logo {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, #63b3ed, #9f7aea);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; box-shadow: 0 4px 24px rgba(99,179,237,0.4);
+    }
+    .logo-text h1 { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.04em; }
+    .logo-text span { font-size: 12px; color: var(--accent); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    .auth-left h2 { font-size: 28px; font-weight: 700; line-height: 1.3; margin-bottom: 16px; letter-spacing: -0.03em; }
+    .auth-left p { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 32px; }
+
+    .feature-list { display: flex; flex-direction: column; gap: 14px; }
+    .feature-item {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; color: var(--text2);
+    }
+    .feature-dot {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .feature-dot.blue  { background: rgba(99,179,237,0.15); }
+    .feature-dot.purple{ background: rgba(159,122,234,0.15); }
+    .feature-dot.green { background: rgba(104,211,145,0.15); }
+    .feature-dot.cyan  { background: rgba(118,228,247,0.15); }
+
+    .auth-right { width: 380px; padding: 48px 40px; display: flex; flex-direction: column; justify-content: center; }
+
+    .tabs {
+      display: flex; gap: 4px; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 28px;
+    }
+    .tab {
+      flex: 1; padding: 9px; border: none; background: none; color: var(--text2);
+      border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500;
+      transition: all 0.2s; font-family: inherit;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, rgba(99,179,237,0.2), rgba(159,122,234,0.2));
+      color: #fff; font-weight: 600;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.3);
+    }
+
+    .auth-subtitle { font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.02em; }
+    .auth-desc { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--text2);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .form-group input {
+      width: 100%; padding: 11px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: 14px; outline: none; transition: all 0.2s; font-family: inherit;
+    }
+    .form-group input::placeholder { color: rgba(160,174,192,0.5); }
+    .form-group input:focus {
+      border-color: var(--accent);
+      background: rgba(99,179,237,0.05);
+      box-shadow: 0 0 0 3px rgba(99,179,237,0.1);
+    }
+
+    .btn {
+      width: 100%; padding: 12px; border: none; border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      font-family: inherit; letter-spacing: 0.01em;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #63b3ed, #9f7aea);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(99,179,237,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(99,179,237,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .msg { font-size: 13px; padding: 10px 14px; border-radius: var(--radius-sm); margin-top: 14px; display: none; }
+    .msg.error { background: rgba(252,129,129,0.1); border: 1px solid rgba(252,129,129,0.25); color: var(--red); }
+    .msg.success { background: rgba(104,211,145,0.1); border: 1px solid rgba(104,211,145,0.25); color: var(--green); }
+
+    /* ── Dashboard ── */
+    #dashboard { display: none; min-height: 100vh; flex-direction: column; position: relative; z-index: 1; }
+
+    .topbar {
+      background: rgba(10,19,37,0.9);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .topbar-logo {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: linear-gradient(135deg, #63b3ed, #9f7aea);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; box-shadow: 0 2px 12px rgba(99,179,237,0.35);
+    }
+    .topbar-name { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+    .topbar-badge {
+      font-size: 10px; font-weight: 600; color: var(--accent);
+      background: rgba(99,179,237,0.12); border: 1px solid rgba(99,179,237,0.25);
+      padding: 2px 7px; border-radius: 20px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .health-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      padding: 5px 12px; border-radius: 20px; font-size: 12px;
+    }
+    .health-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
+
+    .user-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      padding: 5px 12px 5px 6px; border-radius: 20px;
+    }
+    .user-avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, #63b3ed, #9f7aea);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff;
+    }
+    .user-name { font-size: 13px; color: var(--text); font-weight: 500; }
+
+    .btn-logout {
+      padding: 7px 14px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border); background: none; color: var(--text2);
+      border-radius: 8px; cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .btn-logout:hover { color: var(--red); border-color: rgba(252,129,129,0.4); background: rgba(252,129,129,0.06); }
+
+    /* ── Layout ── */
+    .layout { display: flex; flex: 1; min-height: calc(100vh - 60px); }
+
+    .sidebar {
+      width: 230px; flex-shrink: 0;
+      background: rgba(10,19,37,0.7);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px;
+      backdrop-filter: blur(20px);
+    }
+
+    .nav-section { margin-bottom: 24px; }
+    .nav-label {
+      font-size: 10px; font-weight: 700; color: rgba(160,174,192,0.5);
+      text-transform: uppercase; letter-spacing: 0.1em; padding: 0 10px; margin-bottom: 6px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+      border-radius: 10px; cursor: pointer; font-size: 13px; color: var(--text2);
+      margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left;
+      transition: all 0.15s; font-family: inherit; font-weight: 500;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(99,179,237,0.15), rgba(159,122,234,0.1));
+      color: var(--accent); font-weight: 600;
+      border: 1px solid rgba(99,179,237,0.2);
+    }
+    .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+    .nav-count {
+      margin-left: auto; font-size: 10px; font-weight: 700; color: var(--accent);
+      background: rgba(99,179,237,0.12); padding: 1px 7px; border-radius: 20px;
+    }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 32px; overflow-y: auto; background: transparent; }
+    .page { display: none; animation: fadeIn 0.2s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: var(--text2); }
+
+    /* ── Stat cards ── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px; position: relative; overflow: hidden; transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: rgba(99,179,237,0.3); }
+    .stat-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--glow-color, rgba(99,179,237,0.03)), transparent);
+      pointer-events: none;
+    }
+    .stat-card.blue { --glow-color: rgba(99,179,237,0.06); }
+    .stat-card.purple { --glow-color: rgba(159,122,234,0.06); }
+    .stat-card.green { --glow-color: rgba(104,211,145,0.06); }
+    .stat-card.cyan { --glow-color: rgba(118,228,247,0.06); }
+    .stat-icon {
+      width: 38px; height: 38px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 17px; margin-bottom: 14px;
+    }
+    .icon-blue   { background: rgba(99,179,237,0.12); }
+    .icon-purple { background: rgba(159,122,234,0.12); }
+    .icon-green  { background: rgba(104,211,145,0.12); }
+    .icon-cyan   { background: rgba(118,228,247,0.12); }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+    .stat-value { font-size: 28px; font-weight: 800; letter-spacing: -0.04em; }
+    .stat-value.blue   { color: var(--accent); }
+    .stat-value.purple { color: var(--accent2); }
+    .stat-value.green  { color: var(--green); }
+    .stat-value.cyan   { color: var(--cyan); }
+    .stat-value.sm { font-size: 16px; }
+    .stat-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+    /* ── Section box ── */
+    .section-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px; margin-bottom: 20px;
+    }
+    .section-box-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
+    }
+    .section-box h3 { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+    .section-tag {
+      font-size: 10px; font-weight: 600; color: var(--accent);
+      background: rgba(99,179,237,0.1); border: 1px solid rgba(99,179,237,0.2);
+      padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.07em;
+    }
+
+    /* ── Terminal / Response box ── */
+    .response-box {
+      background: rgba(0,0,0,0.35); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 20px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12.5px; color: var(--green);
+      white-space: pre-wrap; min-height: 80px; max-height: 340px; overflow-y: auto;
+      line-height: 1.6;
+    }
+    .response-box::-webkit-scrollbar { width: 4px; }
+    .response-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    /* ── Buttons ── */
+    .btn-action {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 18px; border: none; border-radius: 9px; font-size: 13px;
+      font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;
+      background: linear-gradient(135deg, #63b3ed, #9f7aea);
+      color: #fff; box-shadow: 0 2px 14px rgba(99,179,237,0.25);
+    }
+    .btn-action:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,179,237,0.4); }
+    .btn-action:active { transform: translateY(0); }
+    .btn-action.secondary {
+      background: rgba(255,255,255,0.05); color: var(--text2);
+      border: 1px solid var(--border); box-shadow: none;
+    }
+    .btn-action.secondary:hover { background: rgba(255,255,255,0.08); color: var(--text); box-shadow: none; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+    /* ── Status badges ── */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+    .badge-green { background: rgba(104,211,145,0.1); color: var(--green); border: 1px solid rgba(104,211,145,0.25); }
+    .badge-red   { background: rgba(252,129,129,0.1); color: var(--red);   border: 1px solid rgba(252,129,129,0.25); }
+    .badge-yellow{ background: rgba(246,224,94,0.1);  color: var(--yellow);border: 1px solid rgba(246,224,94,0.25); }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.15); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to{ transform:rotate(360deg); } }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left; padding: 10px 14px; color: var(--text2); font-weight: 600;
+      border-bottom: 1px solid var(--border); font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    td { padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ── API Explorer ── */
+    .endpoint-group { margin-bottom: 10px; }
+    .endpoint-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 8px; background: rgba(255,255,255,0.02);
+      border: 1px solid transparent; margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .endpoint-row:hover { background: rgba(255,255,255,0.04); border-color: var(--border); }
+    .method-badge {
+      padding: 3px 9px; border-radius: 5px; font-size: 10px; font-weight: 700;
+      font-family: monospace; letter-spacing: 0.03em; flex-shrink: 0;
+    }
+    .method-get    { background: rgba(104,211,145,0.15); color: var(--green); }
+    .method-post   { background: rgba(159,122,234,0.15); color: var(--accent2); }
+    .endpoint-path { font-family: 'Cascadia Code', monospace; font-size: 12.5px; color: var(--text); flex: 1; }
+    .endpoint-desc { font-size: 12px; color: var(--text2); }
+
+    /* ── Health cards ── */
+    .health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .health-card {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .health-card-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.07em; }
+    .health-card-value { font-size: 22px; margin-bottom: 8px; }
+
+    /* ── Scrollbar ── */
+    .main::-webkit-scrollbar { width: 4px; }
+    .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius:4px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .auth-split { flex-direction: column; }
+      .auth-left { display: none; }
+      .auth-right { width: 100%; padding: 40px 28px; }
+      .sidebar { display: none; }
+      .main { padding: 20px; }
+      .cards { grid-template-columns: 1fr 1fr; }
+      .health-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================= AUTH ============================= -->
+<div id="auth-section">
+  <div class="auth-split">
+
+    <!-- Left panel -->
+    <div class="auth-left">
+      <div class="auth-left-logo">
+        <div class="logo-icon">☁️</div>
+        <div class="logo-text">
+          <h1>CloudyNet</h1>
+          <span>FinOps Platform</span>
+        </div>
+      </div>
+      <h2>Gestión inteligente de<br/>costos en la nube</h2>
+      <p>Centraliza, analiza y optimiza el gasto de tu infraestructura AWS y GCP desde un solo lugar, con visibilidad en tiempo real.</p>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-dot blue">📊</div>
+          Reportes mensuals con respuesta &lt;100ms
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot purple">🔐</div>
+          Autenticación JWT segura con auditoría
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot green">⚡</div>
+          Alta disponibilidad con Load Balancer AWS
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot cyan">🔍</div>
+          Detección de anomalías y oportunidades de ahorro
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="auth-right">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('login')">Iniciar sesión</button>
+        <button class="tab" onclick="switchTab('register')">Crear cuenta</button>
+      </div>
+
+      <!-- Login -->
+      <div id="tab-login">
+        <div class="auth-subtitle">Bienvenido de vuelta</div>
+        <div class="auth-desc">Ingresa tus credenciales para continuar</div>
+        <div class="form-group">
+          <label>Usuario</label>
+          <input type="text" id="login-username" placeholder="tu_usuario" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-primary" onclick="doLogin()">Ingresar a CloudyNet →</button>
+      </div>
+
+      <!-- Register -->
+      <div id="tab-register" style="display:none">
+        <div class="auth-subtitle">Crea tu cuenta</div>
+        <div class="auth-desc">Empieza a gestionar tus costos cloud hoy</div>
+        <div class="form-group">
+          <label>Usuario</label>
+          <input type="text" id="reg-username" placeholder="nuevo_usuario" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="correo@empresa.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="reg-password" placeholder="mínimo 8 caracteres" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label>Empresa</label>
+          <input type="text" id="reg-empresa" placeholder="BITE.CO" />
+        </div>
+        <button class="btn btn-primary" onclick="doRegister()">Crear cuenta →</button>
+      </div>
+
+      <div class="msg error" id="auth-error"></div>
+      <div class="msg success" id="auth-success"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= DASHBOARD ============================= -->
+<div id="dashboard">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">☁️</div>
+      <span class="topbar-name">CloudyNet</span>
+      <span class="topbar-badge">FinOps</span>
+    </div>
+    <div class="topbar-right">
+      <div class="health-pill">
+        <span class="health-dot" id="health-dot"></span>
+        <span style="font-size:12px;color:var(--text2)" id="health-status-text">verificando...</span>
+      </div>
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar-letter">?</div>
+        <span class="user-name" id="user-display">—</span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="nav-section">
+        <div class="nav-label">Principal</div>
+        <button class="nav-item active" onclick="showPage('overview', this)">
+          <span class="nav-icon">🏠</span> Inicio
+        </button>
+        <button class="nav-item" onclick="showPage('reportes', this)">
+          <span class="nav-icon">📊</span> Reportes
+          <span class="nav-count">7</span>
+        </button>
+        <button class="nav-item" onclick="showPage('consumo', this)">
+          <span class="nav-icon">☁️</span> Consumo
+        </button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Análisis</div>
+        <button class="nav-item" onclick="showPage('analisis', this)">
+          <span class="nav-icon">🔍</span> Optimización
+        </button>
+        <button class="nav-item" onclick="showPage('tendencias', this)">
+          <span class="nav-icon">📈</span> Tendencias
+        </button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Sistema</div>
+        <button class="nav-item" onclick="showPage('health', this)">
+          <span class="nav-icon">💚</span> Health
+        </button>
+        <button class="nav-item" onclick="showPage('api', this)">
+          <span class="nav-icon">⚡</span> API Explorer
+        </button>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+
+      <!-- OVERVIEW -->
+      <div class="page active" id="page-overview">
+        <div class="page-header">
+          <div class="page-title">Panel de control</div>
+          <div class="page-sub">Resumen en tiempo real de tu infraestructura FinOps</div>
+        </div>
+
+        <div class="cards">
+          <div class="stat-card blue">
+            <div class="stat-icon icon-blue">💚</div>
+            <div class="stat-label">Estado del sistema</div>
+            <div class="stat-value blue sm" id="ov-health">—</div>
+            <div class="stat-sub">reportes · auth</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-icon icon-green">⚡</div>
+            <div class="stat-label">Instancias activas</div>
+            <div class="stat-value green">2</div>
+            <div class="stat-sub">app-a · app-b · Load Balanced</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-icon icon-purple">👤</div>
+            <div class="stat-label">Usuario actual</div>
+            <div class="stat-value purple sm" id="ov-user">—</div>
+            <div class="stat-sub" id="ov-rol">—</div>
+          </div>
+          <div class="stat-card cyan">
+            <div class="stat-icon icon-cyan">🔐</div>
+            <div class="stat-label">Token JWT</div>
+            <div class="stat-value cyan sm">Activo</div>
+            <div class="stat-sub">Access + Refresh</div>
+          </div>
+        </div>
+
+        <div class="section-box">
+          <div class="section-box-header">
+            <h3>Tu perfil</h3>
+            <span class="section-tag">GET /api/auth/me</span>
+          </div>
+          <div id="me-data" class="response-box">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- REPORTES -->
+      <div class="page" id="page-reportes">
+        <div class="page-header">
+          <div class="page-title">Reportes mensuales</div>
+          <div class="page-sub">Consolidado de costos AWS y GCP por mes — respuesta &lt;100ms</div>
+        </div>
+        <div class="section-box">
+          <div class="section-box-header"><h3>Consultar reportes</h3><span class="section-tag">Tiempo real</span></div>
+          <div class="btn-group">
+            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/mensual', 'reportes-result')">📊 Reporte mensual</button>
+            <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/proyecto', 'reportes-result')">📁 Por proyecto</button>
+            <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/historial', 'reportes-result')">🕒 Historial</button>
+          </div>
+          <div class="response-box" id="reportes-result">Selecciona un reporte para ver los datos...</div>
+        </div>
+      </div>
+
+      <!-- CONSUMO -->
+      <div class="page" id="page-consumo">
+        <div class="page-header">
+          <div class="page-title">Consumo cloud</div>
+          <div class="page-sub">Recursos AWS y GCP por servicio y proyecto</div>
+        </div>
+        <div class="section-box">
+          <div class="section-box-header"><h3>Datos de consumo</h3><span class="section-tag">Live</span></div>
+          <div class="btn-group">
+            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/consumo', 'consumo-result')">☁️ Ver consumo</button>
+            <button class="btn-action secondary" onclick="fetchEndpoint('/api/reportes/gastos', 'consumo-result')">💰 Por servicio</button>
+          </div>
+          <div class="response-box" id="consumo-result">Presiona un botón para cargar datos...</div>
+        </div>
+      </div>
+
+      <!-- ANÁLISIS -->
+      <div class="page" id="page-analisis">
+        <div class="page-header">
+          <div class="page-title">Análisis de optimización</div>
+          <div class="page-sub">Oportunidades de ahorro detectadas en tu infraestructura</div>
+        </div>
+        <div class="section-box">
+          <div class="section-box-header"><h3>Motor de análisis</h3><span class="section-tag">IA</span></div>
+          <div class="btn-group">
+            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/analisis', 'analisis-result')">🔍 Ejecutar análisis</button>
+          </div>
+          <div class="response-box" id="analisis-result">Presiona para iniciar el análisis de optimización...</div>
+        </div>
+      </div>
+
+      <!-- TENDENCIAS -->
+      <div class="page" id="page-tendencias">
+        <div class="page-header">
+          <div class="page-title">Tendencias y anomalías</div>
+          <div class="page-sub">Patrones de consumo y detección de comportamientos inusuales</div>
+        </div>
+        <div class="section-box">
+          <div class="section-box-header"><h3>Análisis de tendencias</h3><span class="section-tag">Predictivo</span></div>
+          <div class="btn-group">
+            <button class="btn-action" onclick="fetchEndpoint('/api/reportes/tendencias', 'tendencias-result')">📈 Cargar tendencias</button>
+          </div>
+          <div class="response-box" id="tendencias-result">Presiona para cargar el análisis de tendencias...</div>
+        </div>
+      </div>
+
+      <!-- HEALTH -->
+      <div class="page" id="page-health">
+        <div class="page-header">
+          <div class="page-title">Health Check</div>
+          <div class="page-sub">Estado en tiempo real de todos los servicios desplegados en AWS</div>
+        </div>
+        <div class="health-grid">
+          <div class="health-card">
+            <div class="health-card-title">📊 Servicio Reportes</div>
+            <div id="health-reportes-badge" style="margin-bottom:8px">—</div>
+            <div style="font-size:11px;color:var(--text2);font-family:monospace">GET /api/reportes/health</div>
+          </div>
+          <div class="health-card">
+            <div class="health-card-title">🔐 Servicio Auth</div>
+            <div id="health-auth-badge" style="margin-bottom:8px">—</div>
+            <div style="font-size:11px;color:var(--text2);font-family:monospace">GET /api/auth/health</div>
+          </div>
+        </div>
+        <div class="section-box">
+          <div class="section-box-header"><h3>Verificar ahora</h3><span class="section-tag">Diagnóstico</span></div>
+          <div class="btn-group">
+            <button class="btn-action" onclick="runHealthCheck()">💚 Ejecutar health check</button>
+          </div>
+          <div class="response-box" id="health-result">Presiona para verificar el estado del sistema...</div>
+        </div>
+      </div>
+
+      <!-- API EXPLORER -->
+      <div class="page" id="page-api">
+        <div class="page-header">
+          <div class="page-title">API Explorer</div>
+          <div class="page-sub">Explora y prueba los endpoints disponibles en tiempo real</div>
+        </div>
+
+        <div class="section-box">
+          <div class="section-box-header"><h3>Autenticación</h3><span class="section-tag">auth</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/auth/me','custom-result');showPage('api',null)">
+            <span class="method-badge method-get">GET</span>
+            <span class="endpoint-path">/api/auth/me</span>
+            <span class="endpoint-desc">→ Info del usuario autenticado</span>
+          </div>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/register</span><span class="endpoint-desc">→ Registrar usuario</span></div>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/login</span><span class="endpoint-desc">→ Login y tokens JWT</span></div>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/refresh</span><span class="endpoint-desc">→ Refrescar token</span></div>
+          <div class="endpoint-row"><span class="method-badge method-post">POST</span><span class="endpoint-path">/api/auth/logout</span><span class="endpoint-desc">→ Cerrar sesión</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/auth/audit/historial','custom-result')">
+            <span class="method-badge method-get">GET</span><span class="endpoint-path">/api/auth/audit/historial</span><span class="endpoint-desc">→ Historial de accesos</span>
+          </div>
+        </div>
+
+        <div class="section-box">
+          <div class="section-box-header"><h3>Reportes</h3><span class="section-tag">reportes</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/mensual','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/mensual</span><span class="endpoint-desc">→ Reporte mensual (&lt;100ms)</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/proyecto','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/proyecto</span><span class="endpoint-desc">→ Por proyecto</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/consumo','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/consumo</span><span class="endpoint-desc">→ Consumo cloud</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/gastos','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/gastos</span><span class="endpoint-desc">→ Gastos por servicio</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/analisis','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/analisis</span><span class="endpoint-desc">→ Análisis de optimización</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/tendencias','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/tendencias</span><span class="endpoint-desc">→ Tendencias</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/historial','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/historial</span><span class="endpoint-desc">→ Historial</span></div>
+          <div class="endpoint-row" onclick="fetchEndpoint('/api/reportes/health','custom-result')"><span class="method-badge method-get">GET</span><span class="endpoint-path">/api/reportes/health</span><span class="endpoint-desc">→ Health check</span></div>
+        </div>
+
+        <div class="section-box">
+          <div class="section-box-header"><h3>Prueba personalizada</h3><span class="section-tag">Sandbox</span></div>
+          <div class="form-group">
+            <label>Endpoint (relativo)</label>
+            <input type="text" id="custom-endpoint" placeholder="/api/reportes/consumo" style="font-family:monospace" />
+          </div>
+          <div class="btn-group">
+            <button class="btn-action" onclick="fetchEndpoint(document.getElementById('custom-endpoint').value,'custom-result')">⚡ Ejecutar GET</button>
+          </div>
+          <div class="response-box" id="custom-result">La respuesta del endpoint aparecerá aquí...</div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /layout -->
+</div><!-- /dashboard -->
+
+<script>
+  // ========== STATE ==========
+  let accessToken = localStorage.getItem('access_token') || null;
+  let currentUser = null;
+
+  // ========== AUTH TABS ==========
+  function switchTab(tab) {
+    document.getElementById('tab-login').style.display    = tab === 'login'    ? 'block' : 'none';
+    document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+    });
+    hideAuthMsg();
+  }
+
+  function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg; el.style.display = 'block';
+    document.getElementById('auth-success').style.display = 'none';
+  }
+  function showAuthSuccess(msg) {
+    const el = document.getElementById('auth-success');
+    el.textContent = msg; el.style.display = 'block';
+    document.getElementById('auth-error').style.display = 'none';
+  }
+  function hideAuthMsg() {
+    document.getElementById('auth-error').style.display   = 'none';
+    document.getElementById('auth-success').style.display = 'none';
+  }
+
+  // ========== LOGIN ==========
+  async function doLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!username || !password) { showAuthError('Completa todos los campos'); return; }
+    try {
+      const res  = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      const data = await res.json();
+      if (!res.ok) { showAuthError(data.error || data.detail || 'Credenciales incorrectas'); return; }
+      accessToken = data.access_token || data.tokens?.access || data.access;
+      localStorage.setItem('access_token', accessToken);
+      if (data.refresh_token || data.tokens?.refresh) localStorage.setItem('refresh_token', data.refresh_token || data.tokens?.refresh);
+      enterDashboard(data.user || data.usuario || { username });
+    } catch (e) { showAuthError('No se pudo conectar al servidor'); }
+  }
+
+  // ========== REGISTER ==========
+  async function doRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const empresa  = document.getElementById('reg-empresa').value.trim();
+    if (!username || !email || !password) { showAuthError('Completa los campos requeridos'); return; }
+    try {
+      const res  = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, email, password, empresa }) });
+      const data = await res.json();
+      if (!res.ok) { showAuthError(data.error || data.detail || 'Error al registrar'); return; }
+      showAuthSuccess('¡Cuenta creada! Ahora inicia sesión.');
+      switchTab('login');
+      document.getElementById('login-username').value = username;
+    } catch (e) { showAuthError('No se pudo conectar al servidor'); }
+  }
+
+  // ========== LOGOUT ==========
+  async function doLogout() {
+    try { await fetch('/api/auth/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' } }); } catch (_) {}
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    accessToken = null;
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('auth-section').style.display = 'flex';
+  }
+
+  // ========== DASHBOARD ==========
+  function enterDashboard(user) {
+    currentUser = user;
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('dashboard').style.display    = 'flex';
+    const name = user.username || user;
+    document.getElementById('user-display').textContent       = name;
+    document.getElementById('user-avatar-letter').textContent = (String(name)[0] || '?').toUpperCase();
+    document.getElementById('ov-user').textContent = name;
+    document.getElementById('ov-rol').textContent  = 'Rol: ' + (user.rol || 'usuario');
+    loadOverview();
+    startHealthPoll();
+  }
+
+  function showPage(name, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    if (btn) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  }
+
+  // ========== API CALLS ==========
+  async function apiFetch(path) {
+    const res = await fetch(path, { headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' } });
+    return { res, data: await res.json() };
+  }
+
+  async function fetchEndpoint(path, targetId) {
+    if (!path || !path.startsWith('/')) { document.getElementById(targetId).textContent = 'Ingresa un endpoint válido (ej: /api/reportes/consumo)'; return; }
+    const box = document.getElementById(targetId);
+    box.style.color = 'var(--text2)';
+    box.innerHTML   = '<span class="spinner"></span>  Cargando...';
+    try {
+      const { res, data } = await apiFetch(path);
+      box.style.color = res.ok ? 'var(--green)' : 'var(--red)';
+      box.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      box.style.color = 'var(--red)';
+      box.textContent = '✗ Error de conexión: ' + e.message;
+    }
+  }
+
+  async function loadOverview() {
+    try {
+      const { data } = await apiFetch('/api/auth/me');
+      document.getElementById('me-data').textContent = JSON.stringify(data, null, 2);
+      if (data.username) { document.getElementById('ov-user').textContent = data.username; document.getElementById('user-display').textContent = data.username; document.getElementById('user-avatar-letter').textContent = data.username[0].toUpperCase(); }
+      if (data.rol)      document.getElementById('ov-rol').textContent = 'Rol: ' + data.rol;
+    } catch (_) { document.getElementById('me-data').textContent = 'No disponible'; }
+  }
+
+  async function runHealthCheck() {
+    const box = document.getElementById('health-result');
+    box.style.color = 'var(--text2)';
+    box.innerHTML   = '<span class="spinner"></span>  Verificando servicios...';
+    const results = {};
+    for (const [key, path] of [['reportes', '/api/reportes/health'], ['auth', '/api/auth/health']]) {
+      try {
+        const { res, data } = await apiFetch(path);
+        results[path] = { status: res.status, data };
+        document.getElementById('health-' + key + '-badge').innerHTML =
+          res.ok ? '<span class="status-badge badge-green">● Saludable</span>'
+                 : '<span class="status-badge badge-red">● Error ' + res.status + '</span>';
+      } catch (e) {
+        results[path] = { error: e.message };
+        document.getElementById('health-' + key + '-badge').innerHTML = '<span class="status-badge badge-red">● Sin conexión</span>';
+      }
+    }
+    box.style.color = 'var(--green)';
+    box.textContent = JSON.stringify(results, null, 2);
+  }
+
+  // ========== HEALTH POLL ==========
+  async function checkHealthDot() {
+    try {
+      const res = await fetch('/api/reportes/health');
+      const ok  = res.ok;
+      document.getElementById('health-dot').style.background      = ok ? 'var(--green)' : 'var(--red)';
+      document.getElementById('health-status-text').textContent   = ok ? 'Sistema OK'   : 'Error';
+      document.getElementById('ov-health').textContent            = ok ? '✓ Online'     : '✗ Error';
+      document.getElementById('ov-health').style.color            = ok ? 'var(--green)' : 'var(--red)';
+    } catch (_) {
+      document.getElementById('health-dot').style.background    = 'var(--yellow)';
+      document.getElementById('health-status-text').textContent = 'Sin respuesta';
+    }
+  }
+  function startHealthPoll() { checkHealthDot(); setInterval(checkHealthDot, 30000); }
+
+  // ========== KEYBOARD ==========
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('tab-login').style.display !== 'none') doLogin();
+      else doRegister();
+    }
+  });
+
+  // ========== AUTO-LOGIN ==========
+  if (accessToken) {
+    apiFetch('/api/auth/me').then(({ res, data }) => {
+      if (res.ok) enterDashboard(data);
+      else { localStorage.removeItem('access_token'); accessToken = null; }
+    }).catch(() => { localStorage.removeItem('access_token'); accessToken = null; });
+  }
+</script>
+</body>
+</html>
 
     :root {
       --bg: #0f172a;
