@@ -32,6 +32,41 @@ class Usuario(models.Model):
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
 
+    # ── Propiedades que proxyan al User de Django ──────────────────────
+    @property
+    def username(self):
+        return self.usuario_django.username
+
+    @property
+    def email(self):
+        return self.usuario_django.email
+
+    @property
+    def first_name(self):
+        return self.usuario_django.first_name
+
+    @property
+    def last_name(self):
+        return self.usuario_django.last_name
+
+    # ── Factory method ─────────────────────────────────────────────────
+    @classmethod
+    def create_user(cls, username, email, password, first_name='', last_name='', empresa='', rol='usuario'):
+        from django.contrib.auth.models import User as DjangoUser
+        django_user = DjangoUser.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+        )
+        usuario = cls.objects.create(
+            usuario_django=django_user,
+            empresa=empresa,
+            rol=rol,
+        )
+        return usuario
+
     def __str__(self):
         return f"{self.usuario_django.username} ({self.usuario_django.email})"
 

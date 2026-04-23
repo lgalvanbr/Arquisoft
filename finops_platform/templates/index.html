@@ -471,12 +471,12 @@
       const data = await res.json();
       if (!res.ok) { showAuthError(data.error || data.detail || 'Error al iniciar sesión'); return; }
 
-      accessToken = data.access_token || data.access;
+      accessToken = data.access_token || data.tokens?.access || data.access;
       localStorage.setItem('access_token', accessToken);
-      if (data.refresh_token || data.refresh) {
-        localStorage.setItem('refresh_token', data.refresh_token || data.refresh);
+      if (data.refresh_token || data.tokens?.refresh) {
+        localStorage.setItem('refresh_token', data.refresh_token || data.tokens?.refresh);
       }
-      enterDashboard(data.user || { username });
+      enterDashboard(data.user || data.usuario || { username });
     } catch (e) {
       showAuthError('No se pudo conectar al servidor');
     }

@@ -62,20 +62,20 @@ def register(request):
             )
         
         with transaction.atomic():
-            usuario = Usuario.objects.create_user(
+            usuario = Usuario.create_user(
                 username=username,
                 email=email,
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
                 empresa=empresa,
-                rol='usuario'
+                rol='usuario',
             )
-            
+
             ip_cliente = obtener_ip_cliente(request)
             user_agent = obtener_user_agent(request)
             AuditoriaManager.registrar_registro_exitoso(usuario, ip_cliente, user_agent)
-        
+
         return Response(
             {
                 'mensaje': 'Usuario registrado exitosamente',
@@ -125,10 +125,11 @@ def login(request):
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
         
-        usuario = authenticate(request, username=username, password=password)
-        
-        if usuario is None:
-            _, mensaje = DetectorAnomalias.registrar_intento_fallido(
+        # authenticate() devuelve Django User, no Usuario
+        django_user = authenticate(request, username=username, password=password)
+
+        if django_user is None:
+            DetectorAnomalias.registrar_intento_fallido(
                 username, ip_cliente, user_agent, 'Credenciales inválidas'
             )
             logger.warning(f"Intento fallido de login: {username} desde {ip_cliente}")
@@ -136,34 +137,43 @@ def login(request):
                 {'error': 'Credenciales inválidas'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
+
+        # Obtener el perfil extendido Usuario
+        try:
+            usuario = django_user.perfil_autenticacion
+        except Exception:
+            return Response(
+                {'error': 'Perfil de usuario no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         if not usuario.activo:
             AuditoriaManager.registrar_acceso_denegado(
-                username, ip_cliente,
-                'Usuario inactivo',
-                user_agent
+                username, ip_cliente, 'Usuario inactivo', user_agent
             )
             return Response(
                 {'error': 'Usuario inactivo'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         with transaction.atomic():
             token_access = JWTManager.generar_token_access(usuario)
             token_refresh = JWTManager.generar_token_refresh(usuario)
             JWTManager.guardar_tokens(usuario, token_access, token_refresh)
             DetectorAnomalias.registrar_intento_exitoso(usuario, ip_cliente, user_agent)
-        
+
         logger.info(f"Login exitoso: {username}")
-        
+
         return Response(
             {
                 'mensaje': 'Login exitoso',
+                'access_token': token_access,
+                'refresh_token': token_refresh,
                 'tokens': {
                     'access': token_access,
                     'refresh': token_refresh,
                 },
-                'usuario': {
+                'user': {
                     'id': str(usuario.id),
                     'username': usuario.username,
                     'email': usuario.email,
@@ -188,10 +198,10 @@ def obtener_usuario_actual(request):
     """Endpoint para obtener información del usuario autenticado"""
     try:
         usuario = request.user
-        
+
         permisos = RolPermiso.objects.filter(rol=usuario.rol).select_related('permiso')
         permisos_list = [p.permiso.codigo for p in permisos]
-        
+
         return Response(
             {
                 'usuario': {
