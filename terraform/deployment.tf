@@ -51,7 +51,7 @@ variable "instance_type_app" {
 
 locals {
   project_name = "${var.project_prefix}-arquisoft"
-  repository   = "https://github.com/AriadnaVargas/Arquisoft.git"
+  repository   = "https://github.com/lgalvanbr/Arquisoft.git"
   branch       = "main"
 
   common_tags = {
