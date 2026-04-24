@@ -57,6 +57,8 @@ tailwind.config = {
 @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.45}}
 .pulse-dot{animation:pulse-dot 2s infinite}
+#sidebar{transition:transform .25s ease;}
+@media(max-width:1023px){#sidebar{transform:translateX(-100%)}#sidebar.open{transform:translateX(0)}}
 </style>
 </head>
 <body class="bg-background min-h-screen font-body-md text-on-background antialiased">
@@ -170,8 +172,10 @@ tailwind.config = {
 
 <!-- DASHBOARD -->
 <div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
   <!-- Sidebar -->
-  <nav class="fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest/95 backdrop-blur-2xl z-40 flex flex-col p-4">
+  <nav id="sidebar" class="fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest/95 backdrop-blur-2xl z-40 flex flex-col p-4">
     <div class="px-3 py-5 mb-2 flex items-center gap-3">
       <div class="w-9 h-9 rounded-xl bg-primary-container text-white flex items-center justify-center shadow-[0_4px_14px_rgba(14,165,233,0.35)]"><span class="material-symbols-outlined fill-icon text-[20px]">cloud</span></div>
       <div><h1 class="text-base font-bold text-on-surface tracking-tight">CloudyNet</h1><p class="text-[10px] text-on-surface-variant font-medium">FinOps Management</p></div>
@@ -197,11 +201,13 @@ tailwind.config = {
     </div>
   </nav>
   <!-- Main area -->
-  <div class="ml-64 flex flex-col flex-1 min-h-screen w-full">
+  <div class="lg:ml-64 flex flex-col flex-1 min-h-screen w-full">
     <!-- Topbar -->
-    <header class="fixed top-0 left-64 right-0 z-30 h-16 border-b border-outline-variant bg-surface-container-lowest/85 backdrop-blur-xl soft-glow flex justify-between items-center px-6">
-      <div class="flex items-center gap-4 flex-1">
-        <div class="relative w-60 hidden sm:block">
+    <header class="fixed top-0 lg:left-64 left-0 right-0 z-30 h-16 border-b border-outline-variant bg-surface-container-lowest/85 backdrop-blur-xl soft-glow flex justify-between items-center px-4 lg:px-6">
+      <div class="flex items-center gap-3 flex-1">
+        <!-- Hamburger (mobile only) -->
+        <button onclick="toggleSidebar()" class="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant flex-shrink-0"><span class="material-symbols-outlined text-[22px]">menu</span></button>
+        <div class="relative w-52 hidden sm:block">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
           <input type="text" placeholder="Buscar recursos..." class="w-full pl-10 pr-4 py-2 bg-surface-container border border-outline-variant rounded-full text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
         </div>
@@ -449,6 +455,17 @@ tailwind.config = {
   let accessToken = localStorage.getItem('access_token') || null;
   let currentUser = null;
 
+  function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    const open = sb.classList.toggle('open');
+    ov.classList.toggle('hidden', !open);
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.add('hidden');
+  }
+
   function switchTab(tab) {
     const isLogin = tab === 'login';
     document.getElementById('tab-login').style.display    = isLogin ? 'block' : 'none';
@@ -537,6 +554,7 @@ tailwind.config = {
       btn.classList.remove('text-on-surface-variant','font-medium');
       btn.classList.add('bg-secondary-container','text-on-secondary-container','font-semibold');
     }
+    closeSidebar();
   }
 
   async function apiFetch(path) {
