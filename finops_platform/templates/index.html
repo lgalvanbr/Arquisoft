@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="color-scheme" content="light"/>
 <title>CloudyNet · FinOps Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://cdn.tailwindcss.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box}body{background:#f9f9fa;color:#1a1c1d;font-family:Inter,system-ui,sans-serif}#auth-section{display:flex;min-height:100vh}#dashboard{display:none}</style>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script id="tailwind-config">
 tailwind.config = {
@@ -61,7 +66,7 @@ tailwind.config = {
 @media(max-width:1023px){#sidebar{transform:translateX(-100%)}#sidebar.open{transform:translateX(0)}}
 </style>
 </head>
-<body class="bg-background min-h-screen font-body-md text-on-background antialiased">
+<body class="bg-background min-h-screen font-body-md text-on-background antialiased" style="background:#f9f9fa;color:#1a1c1d">
 
 <!-- AUTH -->
 <div id="auth-section" class="min-h-screen flex">
