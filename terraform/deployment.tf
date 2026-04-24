@@ -345,9 +345,10 @@ if [ "$INSTANCE_ID" = "a" ]; then
   echo "[$(date)] app-a: ejecutando migraciones..."
   cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
   echo "[$(date)] Migraciones completadas."
-  echo "[$(date)] app-a: creando usuario admin por defecto..."
+  echo "[$(date)] app-a: creando usuarios por defecto..."
   cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username admin --email admin@bite.co --password Admin1234! --empresa BITE.CO --rol admin
-  echo "[$(date)] Seed usuario completado."
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username usuario1 --email usuario1@bite.co --password Usuario1234! --empresa BITE.CO --rol usuario
+  echo "[$(date)] Seed usuarios completado."
 else
   echo "[$(date)] app-b: esperando 90 s a que app-a migre..."
   sleep 90
