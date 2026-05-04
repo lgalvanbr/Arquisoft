@@ -67,6 +67,8 @@ class Usuario(models.Model):
     @classmethod
     def create_user(cls, username, email, password, first_name='', last_name='', empresa='', rol='usuario'):
         from django.contrib.auth.models import User as DjangoUser
+        
+        # Crear User de Django
         django_user = DjangoUser.objects.create_user(
             username=username,
             email=email,
@@ -74,6 +76,19 @@ class Usuario(models.Model):
             first_name=first_name,
             last_name=last_name,
         )
+        
+        # Si empresa es string, obtener o crear la instancia de Empresa
+        if isinstance(empresa, str) and empresa:
+            empresa_obj, created = Empresa.objects.get_or_create(
+                id=empresa,
+                defaults={'nombre': empresa}
+            )
+            empresa = empresa_obj
+        elif isinstance(empresa, str):
+            # Si empresa es string vacío, asignar None
+            empresa = None
+        
+        # Crear Usuario con la instancia de Empresa
         usuario = cls.objects.create(
             usuario_django=django_user,
             empresa=empresa,

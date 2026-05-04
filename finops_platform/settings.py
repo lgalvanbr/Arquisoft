@@ -125,7 +125,7 @@ LOGIN_REDIRECT_URL = "/"
 # 4. Git commit y push (o SSH a instancia y editar manualmente)
 #
 # Placeholder para desarrollo local:
-LOGOUT_REDIRECT_URL = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=httpp%3A%2F%2Fip_publica_instancia:8080'
+LOGOUT_REDIRECT_URL = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=http%3A%2F%2Fip_publica_instancia:8080'
 
 SOCIAL_AUTH_TRAILING_SLASH = False
 
