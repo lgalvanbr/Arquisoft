@@ -153,6 +153,11 @@ SOCIAL_AUTH_AUTH0_SCOPE = [
     'role',
 ]
 
+SOCIAL_AUTH_AUTH0_AUTH_EXTRA_ARGUMENTS = {
+    'audience': 'https://finops-api',
+    'prompt': 'login'  # ← fuerza pantalla de login siempre
+}
+
 
 # Usar pipeline por defecto de social_django (no personalizado)
 # El logout después de auth0 login se maneja con el parámetro ?just_logged_out=true en la URL
