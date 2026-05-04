@@ -633,67 +633,69 @@ tailwind.config = {
   }
 
   async function doLogout() {
-    try {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + accessToken,
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'include'  // Incluir cookies de sesión
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        
-        // Limpiar localStorage completamente
-        localStorage.clear();
-        
-        // Limpiar sessionStorage también
-        sessionStorage.clear();
-        
-        // Limpiar todas las variables globales de auth
-        accessToken = null;
-        currentUser = null;
-        
-        // Limpiar cookies de sesión manualmente (si es posible)
-        document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        
-        // Esperar y redirigir a Auth0 logout
-        if (data.auth0_logout_url) {
-          setTimeout(() => {
-            window.location.href = data.auth0_logout_url;
-          }, 100);
-        } else {
-          // Fallback: redirigir al inicio
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 100);
-        }
-      } else {
-        // Si hay error, limpiar de todas formas
-        localStorage.clear();
-        sessionStorage.clear();
-        accessToken = null;
-        currentUser = null;
-        document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        window.location.href = '/';
-      }
-    } catch (e) {
-      console.error('Error en logout:', e);
-      // Limpiar de todas formas aunque haya error
-      localStorage.clear();
-      sessionStorage.clear();
-      accessToken = null;
-      currentUser = null;
-      document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      window.location.href = '/';
-    }
-  }
+     try {
+       const res = await fetch('/api/auth/logout', {
+         method: 'POST',
+         headers: {
+           'Authorization': 'Bearer ' + accessToken,
+           'Content-Type': 'application/json',
+           'X-Requested-With': 'XMLHttpRequest'
+         },
+         credentials: 'include'  // Incluir cookies de sesión
+       });
+       
+       if (res.ok) {
+         const data = await res.json();
+         
+         // Limpiar localStorage completamente
+         localStorage.clear();
+         
+         // Limpiar sessionStorage también
+         sessionStorage.clear();
+         
+         // Limpiar todas las variables globales de auth
+         accessToken = null;
+         currentUser = null;
+         
+         // Limpiar cookies de sesión manualmente (si es posible)
+         document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+         document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+         document.cookie = 'connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+         document.cookie = 'auth0=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+         
+         // Esperar y redirigir a Auth0 logout (que luego nos redirige a / con parámetro just_logged_out=true)
+         if (data.auth0_logout_url) {
+           setTimeout(() => {
+             window.location.href = data.auth0_logout_url;
+           }, 100);
+         } else {
+           // Fallback: redirigir al inicio
+           setTimeout(() => {
+             window.location.href = '/?just_logged_out=true';
+           }, 100);
+         }
+       } else {
+         // Si hay error, limpiar de todas formas
+         localStorage.clear();
+         sessionStorage.clear();
+         accessToken = null;
+         currentUser = null;
+         document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+         document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+         window.location.href = '/?just_logged_out=true';
+       }
+     } catch (e) {
+       console.error('Error en logout:', e);
+       // Limpiar de todas formas aunque haya error
+       localStorage.clear();
+       sessionStorage.clear();
+       accessToken = null;
+       currentUser = null;
+       document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+       document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+       window.location.href = '/?just_logged_out=true';
+     }
+   }
 
   function enterDashboard(user) {
     currentUser=user;
@@ -971,8 +973,17 @@ tailwind.config = {
     subtree: true
   });
 
-  // Intentar cargar sesión existente
-  if(accessToken){
+  // Verificar si acabamos de hacer logout (via parámetro URL)
+  const urlParams = new URLSearchParams(window.location.search);
+  const justLoggedOut = urlParams.has('just_logged_out');
+  
+  if (justLoggedOut) {
+    // Hemos hecho logout, NO intentar restaurar sesión
+    // Limpiar el parámetro URL para dejar limpio el historio
+    window.history.replaceState({}, document.title, '/');
+    console.log('Logout completado, mostrando formulario de login');
+  } else if(accessToken){
+    // Intentar restaurar sesión con JWT existente
     apiFetch('/api/auth/me').then(({res,data})=>{
       if(res.ok)enterDashboard(data);
       else{
@@ -987,7 +998,7 @@ tailwind.config = {
     });
   } else {
     // Si no hay JWT, intentar verificar sesión de Auth0 vía Django
-    // Pero solo si la sesión no está expirada
+    // Pero solo si NO acabamos de hacer logout
     checkAuth0Session();
   }
 </script>

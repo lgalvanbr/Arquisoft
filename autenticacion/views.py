@@ -318,10 +318,12 @@ def logout(request):
         client_id = settings.SOCIAL_AUTH_AUTH0_KEY
         
         # Obtener la URL de retorno (puede ser pasada como parámetro o usar el host actual)
-        return_to = request.GET.get('return_to') or request.build_absolute_uri('/')
+        # Agregar un parámetro 'just_logged_out=true' para que el frontend sepa que no debe restaurar sesión
+        return_to = request.GET.get('return_to') or request.build_absolute_uri('/?just_logged_out=true')
         
-        # Construir la URL de logout de Auth0
+        # Construir URL de logout de Auth0
         # Formato: https://YOUR_DOMAIN/v2/logout?client_id=YOUR_CLIENT_ID&returnTo=RETURN_URL
+        # El parámetro 'federated' hace logout de todos los proveedores conectados
         auth0_logout_url = f"https://{domain}/v2/logout?client_id={client_id}&returnTo={return_to}"
         
         logger.info(f"Logout: {usuario.username if usuario.is_authenticated else 'anonymous'}")
@@ -686,16 +688,56 @@ def auth0_login(request):
 
 
 @api_view(['GET'])
-def auth0_me(request):
-    """Retorna info del usuario autenticado via Auth0/sesión Django
+def auth0_callback_handler(request):
+    """Callback handler para Auth0 que genera JWT en lugar de mantener sesión
     
-    Este endpoint usa la sesión de Django en lugar de hacer llamadas a Auth0.
-    Es más eficiente y evita problemas de CORS.
+    Este endpoint es llamado por social_django después de la autenticación.
+    En lugar de mantener la sesión Django, generamos un JWT y redirigimos
+    al frontend con el token.
     """
     try:
         user = request.user
         
-        # Si el usuario no está autenticado
+        if not user.is_authenticated:
+            return redirect('/login/auth0?error=auth_failed')
+        
+        # Generar JWT para este usuario
+        from .utilities import JWTManager
+        tokens = JWTManager.generar_tokens(user)
+        
+        # Limpiar sesión Django inmediatamente (NO mantener sesión)
+        from django.contrib.auth import logout as django_logout
+        django_logout(request)
+        
+        # Redirigir al frontend con el JWT en la URL
+        # El frontend extraerá el token y lo guardará en localStorage
+        access_token = tokens.get('access')
+        return redirect(f'/?auth_token={access_token}')
+        
+    except Exception as e:
+        logger.error(f"Error en auth0_callback_handler: {str(e)}", exc_info=True)
+        return redirect('/?error=callback_failed')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def auth0_me(request):
+    """Retorna info del usuario autenticado vía JWT (NO sesión Django)
+    
+    Este endpoint SOLO funciona con JWT en el header Authorization.
+    No usa sesión Django para usuarios de Auth0.
+    """
+    try:
+        user = request.user
+        
+        # Solo permitir si viene con Authorization header válido
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return Response(
+                {'error': 'Se requiere Bearer token'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         if not user.is_authenticated:
             return Response(
                 {'error': 'Usuario no autenticado'},
@@ -720,21 +762,19 @@ def auth0_me(request):
                 'activo': usuario.activo,
             })
         except Exception:
-            # Si no existe el perfil extendido, usar valores por defecto
             response_data.update({
                 'empresa': 'Unknown',
                 'rol': 'usuario',
                 'activo': True,
             })
         
-        # Obtener rol de social_auth si existe (Auth0)
+        # Obtener rol de social_auth si existe
         try:
             social_user = user.social_user.get(provider='auth0')
             extra_data = social_user.extra_data
             response_data['rol'] = extra_data.get('https://finops-api/rol', response_data.get('rol', 'usuario'))
             response_data['empresa'] = extra_data.get('https://finops-api/empresa', response_data.get('empresa', 'Unknown'))
         except Exception:
-            # No hay social_auth, usar los valores que ya tenemos
             pass
         
         return Response(response_data, status=status.HTTP_200_OK)
