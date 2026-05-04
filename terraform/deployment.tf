@@ -354,17 +354,47 @@ done
 # ── 6. Migraciones ────────────────────────────────────────────────────
 if [ "$INSTANCE_ID" = "a" ]; then
   echo "[$(date)] app-a: ejecutando migraciones..."
-  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
-  echo "[$(date)] Migraciones completadas."
+  
+  # Reintentar hasta 5 veces (cada 15s) por si PostgreSQL aún no está listo
+  MIGRATE_OK=0
+  for attempt in $(seq 1 5); do
+    if cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput 2>&1; then
+      echo "[$(date)] ✓ Migraciones completadas en intento $attempt."
+      MIGRATE_OK=1
+      break
+    else
+      echo "[$(date)] ✗ Intento $attempt/5 falló. Reintentando en 15s..."
+      sleep 15
+    fi
+  done
+  
+  if [ "$MIGRATE_OK" -ne 1 ]; then
+    echo "[$(date)] [FATAL] Migraciones fallaron 5 veces. Abortando."
+    systemctl stop cloudynet.service
+    exit 1
+  fi
+  
   echo "[$(date)] app-a: creando usuarios por defecto..."
-  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username admin --email admin@bite.co --password Admin1234! --empresa BITE.CO --rol admin
-  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username usuario1 --email usuario1@bite.co --password Usuario1234! --empresa BITE.CO --rol usuario
-  echo "[$(date)] Seed usuarios completado."
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user \
+    --username admin --email admin@bite.co --password Admin1234! \
+    --empresa BITE.CO --rol admin
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user \
+    --username usuario1 --email usuario1@bite.co --password Usuario1234! \
+    --empresa BITE.CO --rol usuario
+  
+  echo "[$(date)] Seed completado."
+
 else
-  echo "[$(date)] app-b: esperando 90 s a que app-a migre..."
+  # app-b: esperar a que app-a termine, luego correr migraciones locales
+  echo "[$(date)] app-b: esperando 90 segundos a que app-a complete migraciones..."
   sleep 90
+  
+  echo "[$(date)] app-b: ejecutando migraciones..."
   cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
-  echo "[$(date)] Migraciones verificadas en app-b."
+  
+  if [ $? -ne 0 ]; then
+    echo "[$(date)] [WARN] Migraciones fallaron en app-b, pero continuando..."
+  fi
 fi
 
 # ── 7. Servicio systemd ───────────────────────────────────────────────
