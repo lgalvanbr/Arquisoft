@@ -342,6 +342,7 @@ def logout(request):
             f"https://{domain}/v2/logout"
             f"?client_id={client_id}"
             f"&returnTo={return_to_encoded}"
+            f"&federated"
         )
 
         # Limpiar sesión Django DESPUÉS de construir la URL
@@ -377,6 +378,7 @@ def logout(request):
             f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/v2/logout"
             f"?client_id={settings.SOCIAL_AUTH_AUTH0_KEY}"
             f"&returnTo={return_to}"
+            f"&federated"
         )
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
