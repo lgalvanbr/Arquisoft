@@ -652,7 +652,6 @@ tailwind.config = {
         'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'  // ← agregar esto
-        'X-CSRFToken': csrfToken || '',
         },
          credentials: 'include'  // Incluir cookies de sesión (importante para Auth0)
        });
