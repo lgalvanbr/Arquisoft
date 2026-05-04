@@ -13,7 +13,7 @@
 #
 # 2. Instancias EC2:
 #    - report-db (PostgreSQL instalado y configurado)
-#    - report-app-lb-a/b (2 × t2.nano con Gunicorn + systemd)
+#    - report-app-lb-a/b/c (3 × t3.small)
 #
 # 3. Load Balancer:
 #    - Application Load Balancer (report-alb)
@@ -54,7 +54,7 @@ variable "git_branch" {
   
   validation {
     condition     = can(regex("^[a-zA-Z0-9._-]+$", var.git_branch))
-    error_message = "git_branch must be a valid Git branch name (alphanumeric, dots, hyphens, underscores)."
+    error_message = "git_branch must be a valid Git branch name (alphanumeric, dots, hyphens, underscores only)"
   }
 }
 
@@ -63,12 +63,11 @@ variable "git_branch" {
 locals {
   project_name = "${var.project_prefix}-arquisoft"
   repository   = "https://github.com/lgalvanbr/Arquisoft.git"
-  branch       = var.git_branch  # Usar variable, no hardcodeada
+  branch       = var.git_branch
 
   common_tags = {
     Project   = local.project_name
     ManagedBy = "Terraform"
-    Branch    = local.branch
   }
 }
 
@@ -309,40 +308,15 @@ apt-get update -y -q
 apt-get install -y -q python3 python3-pip python3-venv git build-essential libpq-dev python3-dev netcat-openbsd curl
 echo "[$(date)] Paquetes del sistema instalados."
 
-# ── 2. Clonar/Sincronizar repositorio (estado limpio garantizado) ─────
+# ── 2. Clonar repositorio ─────────────────────────────────────────────
 mkdir -p /apps
-
-# 2a. Si el directorio ya existe, eliminar para estado limpio
-if [ -d "$APP_DIR" ]; then
-  echo "[$(date)] Eliminando directorio anterior para estado limpio..."
-  rm -rf "$APP_DIR"
-fi
-
-# 2b. Clonar repositorio
-echo "[$(date)] Clonando repositorio desde rama: $BRANCH"
-git clone --branch "$BRANCH" "$REPO" "$APP_DIR"
-
-if [ $? -ne 0 ]; then
-  echo "[$(date)] ✗ Error clonando rama $BRANCH"
-  echo "[$(date)] Intentando clonar rama main como fallback..."
-  git clone "$REPO" "$APP_DIR"
-  cd "$APP_DIR"
-  git checkout main 2>/dev/null || git checkout master 2>/dev/null
+if [ ! -d "$APP_DIR/.git" ]; then
+  git clone --branch "$BRANCH" "$REPO" "$APP_DIR"
 else
-  cd "$APP_DIR"
-  echo "[$(date)] ✓ Rama $BRANCH clonada exitosamente"
+  cd "$APP_DIR" && git fetch origin && git checkout "$BRANCH"
 fi
-
-# 2c. Verificar rama actual
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo "[$(date)] Rama actual: $CURRENT_BRANCH"
-
-# 2d. Forzar sincronización (por si hay cambios locales no deseados)
-echo "[$(date)] Sincronizando con origen..."
-git fetch origin "$BRANCH"
-git reset --hard origin/"$BRANCH"
-
-echo "[$(date)] ✓ Repositorio en estado limpio, rama: $BRANCH"
+cd "$APP_DIR"
+echo "[$(date)] Repositorio listo en $APP_DIR."
 
 # ── 3. Entorno virtual Python ─────────────────────────────────────────
 python3 -m venv "$VENV_DIR"
@@ -393,7 +367,7 @@ else
   echo "[$(date)] Migraciones verificadas en app-b."
 fi
 
-# ── 7. Servicio systemd para Gunicorn ────────────────────────────────────
+# ── 7. Servicio systemd ───────────────────────────────────────────────
 GUNICORN_BIN="$VENV_DIR/bin/gunicorn"
 
 cat > /etc/systemd/system/cloudynet.service <<SVCEOF
@@ -418,7 +392,7 @@ StandardError=append:/var/log/gunicorn-error.log
 WantedBy=multi-user.target
 SVCEOF
 
-# ── 8. Script de actualización rápida (git pull + restart) ───────────────
+# ── 8. Script de actualización rápida (git pull + restart) ───────────
 cat > /usr/local/bin/cloudynet-update <<UPDEOF
 #!/bin/bash
 cd $APP_DIR
@@ -433,14 +407,14 @@ echo "Actualización completada."
 UPDEOF
 chmod +x /usr/local/bin/cloudynet-update
 
-# ── 9. Habilitar e iniciar servicio ─────────────────────────────────────
+# ── 9. Habilitar e iniciar ────────────────────────────────────────────
 systemctl daemon-reload
 systemctl enable cloudynet.service
 systemctl start cloudynet.service
 
 echo "[$(date)] Servicio cloudynet.service activo y habilitado en reboot."
-echo "[$(date)] Para futuras actualizaciones: sudo cloudynet-update"
 echo "[$(date)] ===== Setup completado app-$INSTANCE_ID ====="
+echo "[$(date)] Para futuras actualizaciones: sudo cloudynet-update"
 EOT
 
   tags = merge(local.common_tags, {
