@@ -598,50 +598,50 @@ def estadisticas_asr(request):
             status=status.HTTP_200_OK
         )
     
-     except Exception as e:
-         logger.error(f"Error generando estadísticas ASR: {str(e)}")
-         return Response(
-             {'error': 'Error al generar estadísticas'},
-             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-         )
+    except Exception as e:
+        logger.error(f"Error generando estadísticas ASR: {str(e)}")
+        return Response(
+            {'error': 'Error al generar estadísticas'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 # ======================== AUTH0 VIEWS ========================
 
 from django.shortcuts import redirect
-from django.http import HttpResponse
-from social_django.utils import psa
-import urllib.parse
+from django.http import HttpResponseRedirect
+from urllib.parse import urlencode
+from django.conf import settings
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def auth0_login(request):
     """Inicia el flujo de login con Auth0"""
     try:
-        # Redirige al endpoint de Auth0 a través de social_django
-        return redirect('social:begin', backend='auth0')
+        # Usar la URL de social_django para iniciar el flujo de Auth0
+        # social_django proporciona: /complete/auth0/?code=...&state=...
+        domain = settings.SOCIAL_AUTH_AUTH0_DOMAIN
+        client_id = settings.SOCIAL_AUTH_AUTH0_KEY
+        
+        # Construir la URL de autorización de Auth0
+        auth0_authorize_url = f"https://{domain}/authorize"
+        
+        # El callback debe apuntar a /complete/auth0/ (manejado por social_django)
+        callback_url = request.build_absolute_uri('/complete/auth0/')
+        
+        params = {
+            'client_id': client_id,
+            'redirect_uri': callback_url,
+            'response_type': 'code',
+            'scope': 'openid profile email',
+        }
+        
+        redirect_url = f"{auth0_authorize_url}?{urlencode(params)}"
+        return redirect(redirect_url)
+        
     except Exception as e:
         logger.error(f"Error en auth0_login: {str(e)}")
         return Response(
             {'error': 'Error al iniciar sesión con Auth0'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def auth0_callback(request):
-    """Callback desde Auth0 después de la autenticación"""
-    try:
-        # Social_django maneja automáticamente el callback si está bien configurado
-        # Esta vista es un fallback en caso de que sea necesaria
-        return Response(
-            {'error': 'Callback sin procesar'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    except Exception as e:
-        logger.error(f"Error en auth0_callback: {str(e)}")
-        return Response(
-            {'error': 'Error en callback de Auth0'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
