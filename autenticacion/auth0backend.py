@@ -46,7 +46,7 @@ class Auth0(BaseOAuth2):
         Usamos el id_token para extraer los custom claims de Auth0.
         """
         try:
-            NAMESPACE = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com'
+            NAMESPACE = 'dev-vy27mzsmkwosyqhr.us.auth0.com'
             
             # id_token es JWT decodificable, contiene los custom claims
             id_token = response.get('id_token')
