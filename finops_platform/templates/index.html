@@ -648,7 +648,11 @@ tailwind.config = {
        
        const res = await fetch('/api/auth/logout', {
          method: 'POST',
-         headers: headers,
+         headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'  // ← agregar esto
+        },
          credentials: 'include'  // Incluir cookies de sesión (importante para Auth0)
        });
        
