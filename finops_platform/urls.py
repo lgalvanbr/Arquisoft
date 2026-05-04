@@ -39,6 +39,10 @@ urlpatterns = [
     path('api/auth/health', auth_views.health_check, name='health_check'),
     path('api/reportes/health', report_views.health_check, name='health_check'),
 
+    # ======================== AUTH0 LOGIN ========================
+    path('login/auth0', auth_views.auth0_login, name='auth0_login'),
+    path('complete/auth0/', auth_views.auth0_callback, name='auth0_callback'),
+    
     # ======================== FRONTEND ========================
     path('', TemplateView.as_view(template_name='index.html'), name='frontend'),
 ]

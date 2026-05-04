@@ -69,6 +69,9 @@ tailwind.config = {
 </head>
 <body class="bg-background min-h-screen font-body-md text-on-background antialiased" style="background:#f9f9fa;color:#1a1c1d">
 
+<!-- CSRF TOKEN -->
+{% csrf_token %}
+
 <!-- AUTH -->
 <div id="auth-section" class="min-h-screen flex">
   <!-- Left branding panel -->
@@ -465,6 +468,24 @@ tailwind.config = {
   let accessToken = localStorage.getItem('access_token') || null;
   let currentUser = null;
 
+  // ========== CSRF TOKEN UTILITY ==========
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  
+  const csrftoken = getCookie('csrftoken');
+  
   // ========== LOGIN FUNCTIONS ==========
 
 
@@ -501,19 +522,21 @@ tailwind.config = {
   }
 
   async function doLogin() {
-    const username=document.getElementById('login-username').value.trim();
-    const password=document.getElementById('login-password').value;
-    if(!username||!password){showAuthError('Completa todos los campos');return;}
-    try {
-      const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
-      const data=await res.json();
-      if(!res.ok){showAuthError(data.error||data.detail||'Credenciales incorrectas');return;}
-      accessToken=data.access_token||data.tokens?.access||data.access;
-      localStorage.setItem('access_token',accessToken);
-      if(data.refresh_token||data.tokens?.refresh)localStorage.setItem('refresh_token',data.refresh_token||data.tokens?.refresh);
-      enterDashboard(data.user||data.usuario||{username});
-    } catch(e){showAuthError('No se pudo conectar al servidor');}
-  }
+     const username=document.getElementById('login-username').value.trim();
+     const password=document.getElementById('login-password').value;
+     if(!username||!password){showAuthError('Completa todos los campos');return;}
+     try {
+       const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken||''},body:JSON.stringify({username,password})});
+       const data=await res.json();
+       if(!res.ok){showAuthError(data.error||data.detail||'Credenciales incorrectas');return;}
+       accessToken=data.access_token||data.tokens?.access||data.access;
+       localStorage.setItem('access_token',accessToken);
+       if(data.refresh_token||data.tokens?.refresh)localStorage.setItem('refresh_token',data.refresh_token||data.tokens?.refresh);
+       enterDashboard(data.user||data.usuario||{username});
+     } catch(e){showAuthError('No se pudo conectar al servidor');}
+
+     
+   }
 
   async function doRegister() {
     const username=document.getElementById('reg-username').value.trim();
