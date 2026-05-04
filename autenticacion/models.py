@@ -4,13 +4,27 @@ from django.utils import timezone
 import uuid
 from datetime import timedelta
 
+class Empresa(models.Model):
+    """Modelo para representar empresas en el sistema"""
+    id = models.CharField(max_length=100, primary_key=True, editable=False)  # '1', 'a', 'b'
+    nombre = models.CharField(max_length=255, default='')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'empresas'
+        verbose_name = 'Empresa'
+        verbose_name_plural = 'Empresas'
+    
+    def __str__(self):
+        return f"{self.nombre} ({self.id})"
+
 class Usuario(models.Model):
     """
     Modelo de extensión para Usuario que complementa el User nativo de Django
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     usuario_django = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_autenticacion')
-    empresa = models.CharField(max_length=255, null=True, blank=True)
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT, related_name='usuarios', null=True, blank=True)
     rol = models.CharField(
         max_length=50,
         choices=[
@@ -219,3 +233,55 @@ class RolPermiso(models.Model):
 
     def __str__(self):
         return f"{self.rol} - {self.permiso.codigo}"
+
+
+class RechazoIntegridad(models.Model):
+    """
+    ASR Integridad: Registra mensajes adulterados rechazados
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    direccion_ip = models.GenericIPAddressField(db_index=True)
+    endpoint = models.CharField(max_length=255)
+    motivo_rechazo = models.CharField(max_length=500)
+    payload_recibido = models.JSONField(default=dict)
+    fecha_rechazo = models.DateTimeField(auto_now_add=True, db_index=True)
+    user_agent = models.TextField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'rechazos_integridad'
+        verbose_name = 'Rechazo Integridad'
+        verbose_name_plural = 'Rechazos Integridad'
+        indexes = [
+            models.Index(fields=['direccion_ip', 'fecha_rechazo']),
+            models.Index(fields=['endpoint', 'fecha_rechazo']),
+        ]
+    
+    def __str__(self):
+        return f"Rechazo {self.endpoint} - {self.fecha_rechazo}"
+
+
+class IntentoAccesoNoAutorizado(models.Model):
+    """
+    ASR Confidencialidad: Registra intentos de acceso a empresa ajena
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='accesos_denegados')
+    empresa_solicitada_id = models.CharField(max_length=100)
+    empresa_autorizada_id = models.CharField(max_length=100)
+    endpoint = models.CharField(max_length=255)
+    direccion_ip = models.GenericIPAddressField(db_index=True)
+    token_identifier = models.CharField(max_length=255)
+    fecha_intento = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        db_table = 'intentos_acceso_no_autorizado'
+        verbose_name = 'Intento No Autorizado'
+        verbose_name_plural = 'Intentos No Autorizados'
+        indexes = [
+            models.Index(fields=['usuario', 'fecha_intento']),
+            models.Index(fields=['direccion_ip', 'fecha_intento']),
+            models.Index(fields=['token_identifier', 'fecha_intento']),
+        ]
+    
+    def __str__(self):
+        return f"Intento {self.usuario} - {self.empresa_solicitada_id} - {self.fecha_intento}"

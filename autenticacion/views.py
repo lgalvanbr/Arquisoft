@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import transaction
 
-from .models import Usuario, Permiso, RolPermiso
+from .models import Usuario, Permiso, RolPermiso, RechazoIntegridad, IntentoAccesoNoAutorizado
 from .utilities import JWTManager, DetectorAnomalias, AuditoriaManager
 
 logger = logging.getLogger(__name__)
@@ -366,5 +366,241 @@ def health_check(request):
         logger.error(f"Health check failed: {str(e)}")
         return Response(
             {'status': 'unhealthy'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# ========== ASR LOG ENDPOINTS ==========
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_rechazos_integridad(request):
+    """
+    ASR Integridad: Listar todos los rechazos por integridad.
+    
+    Parámetros query:
+    - dias: Número de días atrás a consultar (default: 7)
+    - empresa_id: Filtrar por empresa (admin solo)
+    - endpoint: Filtrar por endpoint
+    
+    Solo admin puede ver rechazos de otras empresas.
+    """
+    try:
+        from .models import RechazoIntegridad
+        
+        usuario = request.user
+        dias = int(request.query_params.get('dias', 7))
+        
+        # Calcular fecha desde hace N días
+        desde = timezone.now() - timezone.timedelta(days=dias)
+        
+        # Base query
+        query = RechazoIntegridad.objects.filter(
+            fecha_rechazo__gte=desde
+        ).order_by('-fecha_rechazo')
+        
+        # Filtros opcionales
+        endpoint = request.query_params.get('endpoint')
+        if endpoint:
+            query = query.filter(endpoint__icontains=endpoint)
+        
+        ip_cliente = request.query_params.get('direccion_ip')
+        if ip_cliente:
+            query = query.filter(direccion_ip=ip_cliente)
+        
+        # Paginación
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 50))
+        
+        total = query.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        
+        rechazos = query[start:end]
+        
+        datos = [
+            {
+                'id': str(r.id),
+                'direccion_ip': r.direccion_ip,
+                'endpoint': r.endpoint,
+                'motivo_rechazo': r.motivo_rechazo,
+                'fecha_rechazo': r.fecha_rechazo.isoformat(),
+                'user_agent': r.user_agent,
+            }
+            for r in rechazos
+        ]
+        
+        return Response(
+            {
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'rechazos': datos,
+            },
+            status=status.HTTP_200_OK
+        )
+    
+    except Exception as e:
+        logger.error(f"Error listando rechazos de integridad: {str(e)}")
+        return Response(
+            {'error': 'Error al listar rechazos'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_intentos_acceso_no_autorizado(request):
+    """
+    ASR Confidencialidad: Listar intentos de acceso no autorizado.
+    
+    Parámetros query:
+    - dias: Número de días atrás a consultar (default: 7)
+    - usuario_id: Filtrar por usuario
+    - empresa_id: Filtrar por empresa solicitada
+    
+    Solo admin puede ver intentos de otras empresas.
+    Los usuarios normales solo ven sus propios intentos.
+    """
+    try:
+        usuario = request.user
+        dias = int(request.query_params.get('dias', 7))
+        
+        # Calcular fecha desde hace N días
+        desde = timezone.now() - timezone.timedelta(days=dias)
+        
+        # Base query
+        query = IntentoAccesoNoAutorizado.objects.filter(
+            fecha_intento__gte=desde
+        ).order_by('-fecha_intento')
+        
+        # Si no es admin, solo ver sus propios intentos
+        es_admin = getattr(usuario, 'auth0_rol', '') == 'admin'
+        if not es_admin:
+            query = query.filter(usuario=usuario)
+        
+        # Filtros opcionales
+        usuario_id = request.query_params.get('usuario_id')
+        if usuario_id and es_admin:
+            query = query.filter(usuario_id=usuario_id)
+        
+        empresa_solicitada = request.query_params.get('empresa_solicitada_id')
+        if empresa_solicitada:
+            query = query.filter(empresa_solicitada_id=empresa_solicitada)
+        
+        # Paginación
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 50))
+        
+        total = query.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        
+        intentos = query[start:end]
+        
+        datos = [
+            {
+                'id': str(i.id),
+                'usuario': i.usuario.usuario_django.email if i.usuario else 'unknown',
+                'empresa_solicitada_id': i.empresa_solicitada_id,
+                'empresa_autorizada_id': i.empresa_autorizada_id,
+                'endpoint': i.endpoint,
+                'direccion_ip': i.direccion_ip,
+                'token_identifier': i.token_identifier,
+                'fecha_intento': i.fecha_intento.isoformat(),
+            }
+            for i in intentos
+        ]
+        
+        return Response(
+            {
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'intentos': datos,
+            },
+            status=status.HTTP_200_OK
+        )
+    
+    except Exception as e:
+        logger.error(f"Error listando intentos de acceso: {str(e)}")
+        return Response(
+            {'error': 'Error al listar intentos'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def estadisticas_asr(request):
+    """
+    Endpoint que retorna estadísticas consolidadas de ASR.
+    
+    - Rechazos de integridad por endpoint
+    - Intentos de acceso no autorizado por empresa
+    - Top IPs sospechosas
+    """
+    try:
+        from .models import RechazoIntegridad
+        from django.db.models import Count
+        
+        dias = int(request.query_params.get('dias', 30))
+        desde = timezone.now() - timezone.timedelta(days=dias)
+        
+        # Rechazos por endpoint
+        rechazos_por_endpoint = RechazoIntegridad.objects.filter(
+            fecha_rechazo__gte=desde
+        ).values('endpoint').annotate(count=Count('id')).order_by('-count')[:10]
+        
+        # Rechazos por IP
+        rechazos_por_ip = RechazoIntegridad.objects.filter(
+            fecha_rechazo__gte=desde
+        ).values('direccion_ip').annotate(count=Count('id')).order_by('-count')[:10]
+        
+        # Motivos de rechazo más comunes
+        motivos_comunes = RechazoIntegridad.objects.filter(
+            fecha_rechazo__gte=desde
+        ).values('motivo_rechazo').annotate(count=Count('id')).order_by('-count')[:5]
+        
+        # Intentos no autorizados por empresa
+        intentos_por_empresa = IntentoAccesoNoAutorizado.objects.filter(
+            fecha_intento__gte=desde
+        ).values('empresa_solicitada_id').annotate(count=Count('id')).order_by('-count')[:10]
+        
+        return Response(
+            {
+                'periodo_dias': dias,
+                'desde': desde.isoformat(),
+                'hasta': timezone.now().isoformat(),
+                'rechazos_por_endpoint': [
+                    {'endpoint': r['endpoint'], 'count': r['count']}
+                    for r in rechazos_por_endpoint
+                ],
+                'rechazos_por_ip': [
+                    {'ip': r['direccion_ip'], 'count': r['count']}
+                    for r in rechazos_por_ip
+                ],
+                'motivos_comunes': [
+                    {'motivo': m['motivo_rechazo'], 'count': m['count']}
+                    for m in motivos_comunes
+                ],
+                'intentos_por_empresa': [
+                    {'empresa_id': i['empresa_solicitada_id'], 'count': i['count']}
+                    for i in intentos_por_empresa
+                ],
+                'total_rechazos': RechazoIntegridad.objects.filter(
+                    fecha_rechazo__gte=desde
+                ).count(),
+                'total_intentos_no_autorizados': IntentoAccesoNoAutorizado.objects.filter(
+                    fecha_intento__gte=desde
+                ).count(),
+            },
+            status=status.HTTP_200_OK
+        )
+    
+    except Exception as e:
+        logger.error(f"Error generando estadísticas ASR: {str(e)}")
+        return Response(
+            {'error': 'Error al generar estadísticas'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

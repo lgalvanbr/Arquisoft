@@ -22,8 +22,18 @@ urlpatterns = [
     # ======================== ENDPOINTS DE AUDITORÍA ========================
     path('api/auth/audit/historial', auth_views.historial_acceso, name='historial_acceso'),
     
-    # ======================== ENDPOINTS DE REPORTES ========================
-    path('api/reportes/mensual', report_views.obtener_reporte_mensual, name='obtener_reporte_mensual'),
+    # ======================== ASR ENDPOINTS (INTEGRIDAD Y CONFIDENCIALIDAD) ========================
+    path('api/asr/rechazos-integridad', auth_views.listar_rechazos_integridad, name='listar_rechazos_integridad'),
+    path('api/asr/intentos-no-autorizado', auth_views.listar_intentos_acceso_no_autorizado, name='listar_intentos_acceso_no_autorizado'),
+    path('api/asr/estadisticas', auth_views.estadisticas_asr, name='estadisticas_asr'),
+    
+    # ======================== ENDPOINTS DE REPORTES (PROTEGIDOS) ========================
+    # Reportes de costos con segregación por empresa
+    path('api/reportes/costos/empresa/<str:empresa_id>', report_views.obtener_reporte_costos, name='obtener_reporte_costos'),
+    path('api/reportes/costos/crear/<str:empresa_id>', report_views.crear_reporte_costos, name='crear_reporte_costos'),
+    path('api/reportes/empresa/<str:empresa_id>', report_views.listar_reportes_empresa, name='listar_reportes_empresa'),
+    
+    # Reportes adicionales
     path('api/reportes/proyecto', report_views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),
     path('api/reportes/consumo', report_views.obtener_consumo_nube, name='obtener_consumo_nube'),
     path('api/reportes/gastos', report_views.obtener_gastos_por_servicio, name='obtener_gastos_por_servicio'),

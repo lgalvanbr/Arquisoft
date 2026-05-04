@@ -3,14 +3,18 @@ Django settings for finops_platform project - FinOps Platform for BITE.CO
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings
-SECRET_KEY = 'django-insecure-finops-bite-co-secret-key-2024'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-finops-bite-co-secret-key-2024')
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
 
@@ -37,6 +41,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'autenticacion.middleware.IntegridadPayloadMiddleware',
 ]
 
 ROOT_URLCONF = 'finops_platform.urls'
@@ -121,7 +126,7 @@ SECURITY_SETTINGS = {
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'autenticacion.backends.JWTAuthentication',
+        'autenticacion.auth0_backend.Auth0Authentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
@@ -133,3 +138,9 @@ REST_FRAMEWORK = {
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
+
+# ========== AUTH0 CONFIGURATION ==========
+AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN', '')
+AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_ID', '')
+AUTH0_CLIENT_SECRET = os.getenv('AUTH0_CLIENT_SECRET', '')
+AUTH0_API_IDENTIFIER = os.getenv('AUTH0_API_IDENTIFIER', 'https://finops-api')

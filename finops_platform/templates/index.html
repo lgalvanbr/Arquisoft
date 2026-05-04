@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>*{box-sizing:border-box}body{background:#f9f9fa;color:#1a1c1d;font-family:Inter,system-ui,sans-serif}#auth-section{display:flex;min-height:100vh}#dashboard{display:none}</style>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.auth0.com/js/auth0-spa-js/9.22.1/auth0-spa-js.production.js"></script>
 <script id="tailwind-config">
 tailwind.config = {
   darkMode:"class",
@@ -152,7 +153,7 @@ tailwind.config = {
             <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label>
             <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="login-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
           </div>
-          <button onclick="doLogin()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Ingresar <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+           <button onclick="doAuth0Login()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Ingresar con Auth0 <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
         </div>
       </div>
       <!-- REGISTER -->
@@ -201,7 +202,7 @@ tailwind.config = {
       <div class="flex items-center gap-3">
         <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
         <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
-        <button onclick="doLogout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+         <button onclick="doAuth0Logout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
       </div>
     </div>
   </nav>
@@ -457,8 +458,90 @@ tailwind.config = {
 </div>
 
 <script>
+  // ========== AUTH0 CONFIGURATION ==========
+  const auth0Config = {
+    domain: 'dev-vy27mzsmkwosyqhr.us.auth0.com',
+    clientId: 'hLSCIWW4Wof9DJeDv58kPXBLX07YLZCA',
+    audience: 'https://finops-api',
+    redirectUri: window.location.origin
+  };
+
+  let auth0Client = null;
   let accessToken = localStorage.getItem('access_token') || null;
   let currentUser = null;
+
+  // Initialize Auth0
+  async function initAuth0() {
+    auth0Client = await auth0.createAuth0Client({
+      domain: auth0Config.domain,
+      client_id: auth0Config.clientId,
+      audience: auth0Config.audience,
+      redirect_uri: auth0Config.redirectUri,
+      useRefreshTokens: true,
+      cacheLocation: 'localStorage'
+    });
+
+    // Check if returning from Auth0 callback
+    const query = window.location.search;
+    if (query.includes('code=') && query.includes('state=')) {
+      try {
+        await auth0Client.handleRedirectCallback();
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (err) {
+        console.error('Error handling callback:', err);
+      }
+    }
+  }
+
+  // Login with Auth0 (replaces doLogin)
+  async function doAuth0Login() {
+    try {
+      await auth0Client.loginWithPopup({
+        scope: 'openid profile email',
+        audience: auth0Config.audience
+      });
+      
+      const user = await auth0Client.getUser();
+      const token = await auth0Client.getTokenSilently({ audience: auth0Config.audience });
+      
+      accessToken = token;
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('auth0_user', JSON.stringify(user));
+      
+      enterDashboard(user);
+    } catch (err) {
+      showAuthError('Auth0 login failed: ' + err.message);
+    }
+  }
+
+  // Logout with Auth0
+  async function doAuth0Logout() {
+    try {
+      await auth0Client.logout({
+        returnTo: window.location.origin
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  }
+
+  // Initialize Auth0 on page load
+  document.addEventListener('DOMContentLoaded', async () => {
+    await initAuth0();
+    
+    // Check if already authenticated
+    const isAuthenticated = await auth0Client.isAuthenticated();
+    if (isAuthenticated) {
+      const user = await auth0Client.getUser();
+      const token = await auth0Client.getTokenSilently({ audience: auth0Config.audience });
+      accessToken = token;
+      localStorage.setItem('access_token', token);
+      enterDashboard(user);
+    }
+  });
+
+  // ========== LEGACY LOGIN FUNCTIONS (fallback for local auth) ==========
+
 
   function toggleSidebar() {
     const sb = document.getElementById('sidebar');
