@@ -47,16 +47,28 @@ variable "instance_type_app" {
   default     = "t2.nano"
 }
 
+variable "git_branch" {
+  description = "Git branch to deploy (e.g., main, auth, feature-x)"
+  type        = string
+  default     = "main"
+  
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9._-]+$", var.git_branch))
+    error_message = "git_branch must be a valid Git branch name (alphanumeric, dots, hyphens, underscores)."
+  }
+}
+
 # ========== LOCALS ==========
 
 locals {
   project_name = "${var.project_prefix}-arquisoft"
   repository   = "https://github.com/lgalvanbr/Arquisoft.git"
-  branch       = "main"
+  branch       = var.git_branch  # Usar variable, no hardcodeada
 
   common_tags = {
     Project   = local.project_name
     ManagedBy = "Terraform"
+    Branch    = local.branch
   }
 }
 
@@ -297,15 +309,40 @@ apt-get update -y -q
 apt-get install -y -q python3 python3-pip python3-venv git build-essential libpq-dev python3-dev netcat-openbsd curl
 echo "[$(date)] Paquetes del sistema instalados."
 
-# ── 2. Clonar repositorio ─────────────────────────────────────────────
+# ── 2. Clonar/Sincronizar repositorio (estado limpio garantizado) ─────
 mkdir -p /apps
-if [ ! -d "$APP_DIR/.git" ]; then
-  git clone "$REPO" "$APP_DIR"
-else
-  cd "$APP_DIR" && git fetch origin && git reset --hard origin/$BRANCH
+
+# 2a. Si el directorio ya existe, eliminar para estado limpio
+if [ -d "$APP_DIR" ]; then
+  echo "[$(date)] Eliminando directorio anterior para estado limpio..."
+  rm -rf "$APP_DIR"
 fi
-cd "$APP_DIR"
-echo "[$(date)] Repositorio listo en $APP_DIR."
+
+# 2b. Clonar repositorio
+echo "[$(date)] Clonando repositorio desde rama: $BRANCH"
+git clone --branch "$BRANCH" "$REPO" "$APP_DIR"
+
+if [ $? -ne 0 ]; then
+  echo "[$(date)] ✗ Error clonando rama $BRANCH"
+  echo "[$(date)] Intentando clonar rama main como fallback..."
+  git clone "$REPO" "$APP_DIR"
+  cd "$APP_DIR"
+  git checkout main 2>/dev/null || git checkout master 2>/dev/null
+else
+  cd "$APP_DIR"
+  echo "[$(date)] ✓ Rama $BRANCH clonada exitosamente"
+fi
+
+# 2c. Verificar rama actual
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "[$(date)] Rama actual: $CURRENT_BRANCH"
+
+# 2d. Forzar sincronización (por si hay cambios locales no deseados)
+echo "[$(date)] Sincronizando con origen..."
+git fetch origin "$BRANCH"
+git reset --hard origin/"$BRANCH"
+
+echo "[$(date)] ✓ Repositorio en estado limpio, rama: $BRANCH"
 
 # ── 3. Entorno virtual Python ─────────────────────────────────────────
 python3 -m venv "$VENV_DIR"
