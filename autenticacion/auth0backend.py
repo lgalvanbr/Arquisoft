@@ -15,12 +15,15 @@ class Auth0(BaseOAuth2):
     name = 'auth0'
     SCOPE_SEPARATOR = ' '
     ACCESS_TOKEN_METHOD = 'POST'
+    # Mapear los custom claims de Auth0 a nombres simples para EXTRA_DATA
+    # Auth0 retorna claims con namespace: dev-vy27mzsmkwosyqhr.us.auth0.com/empresa_id
+    # Los mapeamos a nombres simples en extra_data: 'empresa', 'rol'
     EXTRA_DATA = [
         ('picture', 'picture'),
         ('email', 'email'),
         ('sub', 'sub'),
-        ('https://finops-api/empresa', 'empresa'),
-        ('https://finops-api/rol', 'rol'),
+        ('dev-vy27mzsmkwosyqhr.us.auth0.com/empresa_id', 'empresa'),
+        ('dev-vy27mzsmkwosyqhr.us.auth0.com/rol', 'rol'),
     ]
 
     def authorization_url(self):
@@ -36,32 +39,40 @@ class Auth0(BaseOAuth2):
         return details.get('user_id') or response.get('sub')
 
     def get_user_details(self, response):
-        """Obtener detalles del usuario desde Auth0 usando el token JWT"""
+        """Obtener detalles del usuario desde Auth0 usando el id_token JWT
+        
+        El id_token es un JWT que contiene claims del usuario.
+        El access_token es opaco y no se puede decodificar.
+        Usamos el id_token para extraer los custom claims de Auth0.
+        """
         try:
-            # Intentar extraer info del JWT primero (offline, sin HTTP call)
-            access_token = response.get('access_token')
-            userinfo = self._extract_from_jwt(access_token) if access_token else {}
+            NAMESPACE = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com'
             
-            # Si JWT extraction falla, llamar a /userinfo endpoint
-            if not userinfo or 'sub' not in userinfo:
+            # id_token es JWT decodificable, contiene los custom claims
+            id_token = response.get('id_token')
+            claims = self._extract_from_jwt(id_token) if id_token else {}
+            
+            # Si no hay id_token o falla la extracción, llamar a /userinfo endpoint
+            if not claims or 'sub' not in claims:
+                access_token = response.get('access_token')
                 url = 'https://' + self.setting('DOMAIN') + '/userinfo'
                 headers = {'authorization': 'Bearer ' + access_token}
                 resp = requests.get(url, headers=headers, timeout=5)
                 resp.raise_for_status()
-                userinfo = resp.json()
+                claims = resp.json()
             
             # Extraer detalles del usuario
-            username = userinfo.get('nickname') or userinfo.get('email', '').split('@')[0]
-            first_name = userinfo.get('name', '')
+            username = claims.get('nickname') or claims.get('email', '').split('@')[0]
+            first_name = claims.get('name', '')
             
             return {
                 'username': username,
                 'first_name': first_name,
-                'picture': userinfo.get('picture', ''),
-                'user_id': userinfo.get('sub'),
-                'email': userinfo.get('email', ''),
-                'empresa': userinfo.get('https://finops-api/empresa', 'BITE.CO'),
-                'rol': userinfo.get('https://finops-api/rol', 'usuario'),
+                'picture': claims.get('picture', ''),
+                'user_id': claims.get('sub'),
+                'email': claims.get('email', ''),
+                'empresa': claims.get(f'{NAMESPACE}/empresa_id', 'BITE.CO'),
+                'rol': claims.get(f'{NAMESPACE}/rol', 'usuario'),
             }
         except Exception as e:
             import logging
@@ -114,15 +125,11 @@ def getRole(user):
         social_user = user.social_user.get(provider='auth0')
         
         # El rol está en extra_data del social auth
+        # EXTRA_DATA mapea 'dev-vy27mzsmkwosyqhr.us.auth0.com/rol' -> 'rol'
         extra_data = social_user.extra_data
         
-        # Auth0 puede enviar el rol en diferentes formatos
-        # 1. En custom claims del token (namespace/role)
-        rol = extra_data.get('https://finops-api/rol', None)
-        
-        # 2. O en el campo 'role' directo
-        if not rol:
-            rol = extra_data.get('role', 'usuario')
+        # El rol ya está mapeado a 'rol' por EXTRA_DATA
+        rol = extra_data.get('rol', 'usuario')
         
         return rol
     except Exception as e:

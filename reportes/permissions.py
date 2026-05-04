@@ -56,13 +56,15 @@ def check_company_access(view_func):
         # 2. Obtener empresa del usuario autenticado
         user_company = None
         try:
-            # Desde Auth0 custom claims
+            # Desde Auth0 custom claims mapeados por EXTRA_DATA
             if request.user.is_authenticated:
-                # social_user.extra_data contiene el token decode
+                # social_user.extra_data contiene claims mapeados:
+                # 'dev-vy27mzsmkwosyqhr.us.auth0.com/empresa_id' -> 'empresa'
                 try:
                     social_user = request.user.social_user.get(provider='auth0')
                     extra_data = social_user.extra_data
-                    user_company = extra_data.get('https://finops-api/empresa', None)
+                    # Usar 'empresa' que es el alias mapeado por EXTRA_DATA
+                    user_company = extra_data.get('empresa', None)
                 except:
                     user_company = None
         except:
