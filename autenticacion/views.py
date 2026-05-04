@@ -318,7 +318,7 @@ def logout(request):
         is_auth0_user = False
         if usuario.is_authenticated:
             try:
-                social_user = usuario.social_user.get(provider='auth0')
+                social_user = usuario.social_auth.filter(provider='auth0').first()
                 is_auth0_user = True
             except:
                 is_auth0_user = False
@@ -339,10 +339,10 @@ def logout(request):
             # Eliminar social auth associations para forzar re-login
             # Esto es importante para Auth0 users
             try:
-                usuario.social_user.all().delete()
+                usuario.social_auth.filter(provider='auth0').delete()
                 logger.info(f"Social auth associations eliminadas para: {username}")
             except Exception as e:
-                logger.warning(f"Error eliminando social_user: {str(e)}")
+                logger.warning(f"Error eliminando social_auth: {str(e)}")
         
         # Limpiar sesión Django completamente
         from django.contrib.auth import logout as django_logout
@@ -830,8 +830,8 @@ def auth0_me(request):
         
         # Obtener rol de social_auth si existe (Auth0)
         try:
-            social_user = user.social_user.get(provider='auth0')
-            extra_data = social_user.extra_data
+            social_user = user.social_auth.filter(provider='auth0').first()
+            extra_data = social_user.extra_data if social_user else {}
             response_data['rol'] = extra_data.get('https://finops-api/rol', response_data.get('rol', 'usuario'))
             response_data['empresa'] = extra_data.get('https://finops-api/empresa', response_data.get('empresa', 'Unknown'))
         except Exception:
