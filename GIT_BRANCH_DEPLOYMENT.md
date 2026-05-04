@@ -9,6 +9,38 @@ Esto permite:
 - ✅ Desplegar rama `feature-x` para testing
 - ✅ Rollback a `main` en segundos si algo falla
 - ✅ Garantizar estado limpio en cada deployment (determinístico)
+- ✅ **Gunicorn automático**: cada instancia arranca con Gunicorn (no runserver manual)
+
+---
+
+## 🚀 Cambios Principales: Gunicorn en Lugar de runserver
+
+### Antes (runserver manual):
+```bash
+# Después de terraform apply, debías:
+ssh -i key.pem ec2-user@<IP>
+/root/RUN_SERVER.sh  # ← Script manual
+```
+
+### Ahora (Gunicorn systemd):
+```bash
+# Después de terraform apply:
+# ✓ Gunicorn arranca automáticamente
+# ✓ No hay script manual
+# ✓ Reinicia automáticamente si falla
+# ✓ Visible via systemctl status cloudynet.service
+```
+
+### Verificación post-deploy:
+```bash
+ssh -i key.pem ec2-user@<IP>
+systemctl status cloudynet.service
+
+# Salida esperada:
+# ● cloudynet.service - CloudyNet FinOps Gunicorn (app-a)
+#    Loaded: loaded (/etc/systemd/system/cloudynet.service; enabled; preset: enabled)
+#    Active: active (running) since Sun 2025-05-04 12:34:56 UTC; 5min ago
+```
 
 ---
 
@@ -184,6 +216,20 @@ git reset --hard origin/"$BRANCH"  ← Descarta cambios locales
 
 ## 🐛 Troubleshooting
 
+### Problema: Gunicorn no está running
+
+```bash
+# Verificar estado
+ssh -i key.pem ec2-user@<IP>
+systemctl status cloudynet.service
+
+# Ver últimos errores
+journalctl -u cloudynet.service -n 50
+
+# Reiniciar manualmente
+systemctl restart cloudynet.service
+```
+
 ### Problema: "fatal: Remote branch auth not found"
 
 ```bash
@@ -200,7 +246,7 @@ git push origin <rama>  # Push rama
 ```bash
 # Ver logs en instancia:
 ssh -i key.pem ec2-user@<IP>
-tail -100 /var/log/cloudynet-setup.log | grep -i "clone\|branch\|error"
+tail -100 /var/log/cloudynet-setup.log | grep -i "clone\|branch\|gunicorn\|error"
 
 # El script tiene fallback a main, así que:
 # - Si rama especificada no existe → usa main
@@ -215,6 +261,20 @@ tail -100 /var/log/cloudynet-setup.log | grep -i "clone\|branch\|error"
 - Esto garantiza reproducibilidad
 
 **Solución:** Si necesitas persistencia, comitea cambios a rama en origen primero.
+
+### Problema: Actualizar código sin destruir infraestructura
+
+**Usar el script `cloudynet-update` incluido en la instancia:**
+```bash
+ssh -i key.pem ec2-user@<IP>
+sudo cloudynet-update
+
+# Esto hace:
+# 1. git fetch + reset --hard a la rama actual
+# 2. Reinstala requirements.txt
+# 3. Ejecuta migraciones
+# 4. Reinicia Gunicorn automáticamente
+```
 
 ---
 

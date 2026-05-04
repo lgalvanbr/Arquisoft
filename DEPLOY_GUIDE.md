@@ -10,9 +10,10 @@ La configuración de `LOGOUT_REDIRECT_URL` se realiza **manualmente después de 
 - **Framework**: Django 4.2
 - **Auth**: Auth0 + python-social-auth
 - **Backend**: PostgreSQL
+- **Servidor**: Gunicorn (4 workers, puerto 8080, systemd service)
 - **Infraestructura**: AWS (Terraform)
   - Load Balancer en puerto 80
-  - App instances (app-a, app-b) en puerto 8080
+  - App instances (app-a, app-b) en puerto 8080 (Gunicorn)
   - Database (PostgreSQL) en puerto 5432
 
 ## 📁 Estructura de Archivos Relevantes
@@ -103,25 +104,36 @@ nano /apps/Arquisoft/finops_platform/settings.py
 exit
 ```
 
-### Paso 4: SSH a app-a e Iniciar el Servidor
+### Paso 4: SSH a app-a y Verificar que Gunicorn está Activo
 
 ```bash
 # Conectar a la instancia
 ssh -i key.pem ec2-user@54.123.45.67
 
-# Activar virtualenv y ejecutar migraciones
-cd /apps/Arquisoft
-source /apps/venv/bin/activate
-python manage.py migrate
+# Verificar que el servicio cloudynet.service está activo
+systemctl status cloudynet.service
 
-# Iniciar servidor Django en puerto 8080
-/root/RUN_SERVER.sh
+# Salida esperada:
+# ● cloudynet.service - CloudyNet FinOps Gunicorn (app-a)
+#    Loaded: loaded (/etc/systemd/system/cloudynet.service; enabled; preset: enabled)
+#    Active: active (running) since Sun 2025-05-04 12:34:56 UTC; 5min ago
 ```
 
-**Salida esperada:**
-```
-[2025-05-04 12:34:56] Starting development server at http://0.0.0.0:8080/
-[2025-05-04 12:34:56] Quit the server with CONTROL-C.
+**Nota**: Las migraciones se ejecutaron automáticamente durante cloud-init en el despliegue. 
+No necesitas ejecutarlas manualmente a menos que fallasen.
+
+### Verificación de Gunicorn
+
+```bash
+# Ver logs de Gunicorn
+tail -f /var/log/gunicorn-access.log
+tail -f /var/log/gunicorn-error.log
+
+# Ver logs del setup inicial
+tail -f /var/log/cloudynet-setup.log
+
+# Verificar que Gunicorn escucha en puerto 8080
+netstat -tlnp | grep 8080
 ```
 
 ### Paso 5: Acceder a la Aplicación
@@ -191,18 +203,28 @@ http://report-alb-1234567890.us-east-1.elb.amazonaws.com
 
 ## 🔍 Troubleshooting
 
+### Problema: Gunicorn no arranca automáticamente
+
+**Solución**: Verificar logs del systemd service:
+```bash
+ssh -i key.pem ec2-user@<IP>
+systemctl status cloudynet.service
+journalctl -u cloudynet.service -n 50
+```
+
 ### Problema: "LOGOUT_REDIRECT_URL inválida"
 **Solución**: Verificar que la IP y puerto (8080) están correctos en settings.py
 
 ### Problema: Load Balancer devuelve 502
 **Solución**: 
 ```bash
-# Verificar que el servidor está running en puerto 8080
+# Verificar que Gunicorn está running
 ssh -i key.pem ec2-user@<IP>
-ps aux | grep "runserver"
+systemctl status cloudynet.service
 
 # Revisar logs
-tail -f /var/log/cloudynet-setup.log
+tail -f /var/log/gunicorn-error.log
+journalctl -u cloudynet.service -f
 ```
 
 ### Problema: Login loop infinito
@@ -215,6 +237,20 @@ ssh -i key.pem ec2-user@<IP>
 cd /apps/Arquisoft
 source /apps/venv/bin/activate
 python manage.py migrate --noinput
+systemctl restart cloudynet.service
+```
+
+### Problema: Actualizar código desde git
+**Solución**: Usar el script `cloudynet-update` incluido:
+```bash
+ssh -i key.pem ec2-user@<IP>
+sudo cloudynet-update
+
+# Esto hace:
+# 1. git fetch + reset --hard a la rama actual
+# 2. Reinstala requirements.txt
+# 3. Ejecuta migraciones
+# 4. Reinicia Gunicorn
 ```
 
 ## 📝 Archivos Clave
@@ -301,12 +337,12 @@ urlpatterns = [
 - [ ] Obtener IP pública de app-a
 - [ ] Editar LOGOUT_REDIRECT_URL en `settings.py` con IP real
 - [ ] Git commit y push (o SSH y editar manualmente)
-- [ ] SSH a app-a
-- [ ] Ejecutar `python manage.py migrate`
-- [ ] Ejecutar `/root/RUN_SERVER.sh`
+- [ ] SSH a app-a y verificar que `systemctl status cloudynet.service` está activo
+- [ ] (Opcional) Verificar migraciones: `python manage.py migrate --noinput`
 - [ ] Acceder a http://<IP>:8080
 - [ ] Probar login con Auth0
 - [ ] Probar logout
+- [ ] Verificar logs: `tail -f /var/log/gunicorn-access.log`
 
 ## 🔗 Referencias
 
