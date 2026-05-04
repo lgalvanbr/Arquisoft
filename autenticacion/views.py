@@ -645,3 +645,65 @@ def auth0_login(request):
             {'error': 'Error al iniciar sesión con Auth0'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['GET'])
+def auth0_me(request):
+    """Retorna info del usuario autenticado via Auth0/sesión Django
+    
+    Este endpoint usa la sesión de Django en lugar de hacer llamadas a Auth0.
+    Es más eficiente y evita problemas de CORS.
+    """
+    try:
+        user = request.user
+        
+        # Si el usuario no está autenticado
+        if not user.is_authenticated:
+            return Response(
+                {'error': 'Usuario no autenticado'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Obtener información del usuario
+        response_data = {
+            'id': str(user.id),
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
+        
+        # Intentar obtener el perfil extendido Usuario
+        try:
+            usuario = user.perfil_autenticacion
+            response_data.update({
+                'empresa': usuario.empresa,
+                'rol': usuario.rol,
+                'activo': usuario.activo,
+            })
+        except Exception:
+            # Si no existe el perfil extendido, usar valores por defecto
+            response_data.update({
+                'empresa': 'Unknown',
+                'rol': 'usuario',
+                'activo': True,
+            })
+        
+        # Obtener rol de social_auth si existe (Auth0)
+        try:
+            social_user = user.social_user.get(provider='auth0')
+            extra_data = social_user.extra_data
+            response_data['rol'] = extra_data.get('https://finops-api/rol', response_data.get('rol', 'usuario'))
+            response_data['empresa'] = extra_data.get('https://finops-api/empresa', response_data.get('empresa', 'Unknown'))
+        except Exception:
+            # No hay social_auth, usar los valores que ya tenemos
+            pass
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error en auth0_me: {str(e)}", exc_info=True)
+        return Response(
+            {'error': 'Error al obtener información del usuario'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

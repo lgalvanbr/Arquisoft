@@ -670,16 +670,35 @@ tailwind.config = {
   }
   function startHealthPoll(){checkHealthDot();setInterval(checkHealthDot,30000);}
 
+  // Verificar sesión Auth0 vía Django
+  async function checkAuth0Session() {
+    try {
+      const res = await fetch('/api/auth/auth0-me', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        enterDashboard(data);
+        return true;
+      }
+    } catch (e) {
+      console.error('Error checking Auth0 session:', e);
+    }
+    return false;
+  }
+
   window.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&document.getElementById('auth-section').style.display!=='none')
       document.getElementById('tab-login').style.display!=='none'?doLogin():doRegister();
   });
 
+  // Intentar cargar sesión existente
   if(accessToken){
     apiFetch('/api/auth/me').then(({res,data})=>{
       if(res.ok)enterDashboard(data);
       else{localStorage.removeItem('access_token');accessToken=null;}
     }).catch(()=>{localStorage.removeItem('access_token');accessToken=null;});
+  } else {
+    // Si no hay JWT, intentar verificar sesión de Auth0 vía Django
+    checkAuth0Session();
   }
 </script>
 </body>

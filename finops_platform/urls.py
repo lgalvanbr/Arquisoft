@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/auth/register', auth_views.register, name='register'),
     path('api/auth/login', auth_views.login, name='login'),
     path('api/auth/me', auth_views.obtener_usuario_actual, name='obtener_usuario_actual'),
+    path('api/auth/auth0-me', auth_views.auth0_me, name='auth0_me'),
     path('api/auth/refresh', auth_views.refresh_token, name='refresh_token'),
     path('api/auth/logout', auth_views.logout, name='logout'),
     
