@@ -298,95 +298,33 @@ def refresh_token(request):
         )
 
 
-
-@api_view(['POST', 'GET'])
+@api_view(['GET']) 
 @permission_classes([AllowAny])
 def logout(request):
     try:
-        usuario = request.user
-        username = usuario.username if usuario.is_authenticated else 'anonymous'
-        is_auth0_user = False
-
-        if usuario.is_authenticated:
-            # Verificar si es usuario Auth0
-            try:
-                social_user = usuario.social_auth.filter(provider='auth0').first()
-                is_auth0_user = social_user is not None
-            except:
-                pass
-
-            # Revocar tokens JWT
-            try:
-                from .models import Token
-                Token.objects.filter(usuario=usuario, activo=True).update(
-                    activo=False,
-                    fecha_revocacion=timezone.now(),
-                    motivo_revocacion='Logout del usuario'
-                )
-            except Exception as e:
-                logger.warning(f"Error revocando JWT tokens: {str(e)}")
-
-            # ❌ ELIMINAR ESTO - borraba social_auth ANTES del logout Auth0
-            # usuario.social_auth.filter(provider='auth0').delete()
-
-        # Construir URL de Auth0 ANTES de destruir la sesión
+        username = request.user.username if request.user.is_authenticated else 'anonymous'
+        
+        from django.contrib.auth import logout as django_logout
+        django_logout(request)  
+        
+        logger.info(f"Logout exitoso: {username}")
+        
         domain = settings.SOCIAL_AUTH_AUTH0_DOMAIN
         client_id = settings.SOCIAL_AUTH_AUTH0_KEY
-
-        # URL-encode el returnTo correctamente
-        from urllib.parse import quote
-        return_to = request.GET.get('return_to') or request.build_absolute_uri('/?just_logged_out=true')
-        return_to_encoded = quote(return_to, safe='')
-
+        return_to = request.build_absolute_uri('/?just_logged_out=true')
+        
         auth0_logout_url = (
             f"https://{domain}/v2/logout"
             f"?client_id={client_id}"
-            f"&returnTo={return_to_encoded}"
-            f"&federated"
-        )
-
-        # Limpiar sesión Django DESPUÉS de construir la URL
-        from django.contrib.auth import logout as django_logout
-        django_logout(request)
-        request.session.flush()  # ← destruye la sesión completamente
-        logger.info(f"Logout: usuario={username}, is_auth0={is_auth0_user}")
-
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return Response(
-                {
-                    'mensaje': 'Logout exitoso',
-                    'auth0_logout_url': auth0_logout_url,
-                    'is_auth0_user': is_auth0_user
-                },
-                status=status.HTTP_200_OK
-            )
-
-        return redirect(auth0_logout_url)
-
-    except Exception as e:
-        logger.error(f"Error en logout: {str(e)}", exc_info=True)
-        try:
-            from django.contrib.auth import logout as django_logout
-            django_logout(request)
-            request.session.flush()
-        except:
-            pass
-
-        from urllib.parse import quote
-        return_to = quote(request.build_absolute_uri('/?just_logged_out=true'), safe='')
-        fallback_url = (
-            f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/v2/logout"
-            f"?client_id={settings.SOCIAL_AUTH_AUTH0_KEY}"
             f"&returnTo={return_to}"
             f"&federated"
         )
-
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return Response(
-                {'error': 'Error en logout', 'auth0_logout_url': fallback_url},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        return redirect(fallback_url)
+        
+        return redirect(auth0_logout_url)
+        
+    except Exception as e:
+        logger.error(f"Error en logout: {str(e)}")
+        return redirect('/?just_logged_out=true')
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

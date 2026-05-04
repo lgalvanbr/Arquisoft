@@ -632,95 +632,12 @@ tailwind.config = {
     } catch(e){showAuthError('No se pudo conectar al servidor');}
   }
 
-  async function doLogout() {
-     try {
-       // Construir headers - solo agregar Authorization si tenemos JWT válido
-       const headers = {
-         'Content-Type': 'application/json',
-         'X-Requested-With': 'XMLHttpRequest'
-       };
-       
-       // Solo agregar Bearer token si tenemos un JWT válido
-       // (usuarios Auth0 vía sesión Django NO tendrán JWT)
-       if (accessToken && accessToken !== 'null' && accessToken !== null) {
-         headers['Authorization'] = 'Bearer ' + accessToken;
-       }
-       
-       const res = await fetch('/api/auth/logout', {
-         method: 'POST',
-         headers: {
-        'Authorization': 'Bearer ' + accessToken,
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'  // ← agregar esto
-        },
-         credentials: 'include'  // Incluir cookies de sesión (importante para Auth0)
-       });
-       
-       if (res.ok) {
-         const data = await res.json();
-         
-         // Limpiar localStorage completamente
-         localStorage.clear();
-         
-         // Limpiar sessionStorage también
-         sessionStorage.clear();
-         
-         // Limpiar todas las variables globales de auth
-         accessToken = null;
-         currentUser = null;
-         
-         // Limpiar cookies de sesión manualmente (si es posible)
-         document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-         document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-         document.cookie = 'connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-         document.cookie = 'auth0=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-         document.cookie = 'sessionid=; domain=.auth0.com; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-         
-         // Esperar y redirigir a Auth0 logout (que luego nos redirige a / con parámetro just_logged_out=true)
-         if (data.auth0_logout_url) {
-           console.log('Redirigiendo a Auth0 logout:', data.auth0_logout_url);
-           setTimeout(() => {
-             window.location.href = data.auth0_logout_url;
-           }, 100);
-         } else {
-           // Fallback: redirigir al inicio
-           console.log('Fallback: redirigiendo a /?just_logged_out=true');
-           setTimeout(() => {
-             window.location.href = '/?just_logged_out=true';
-           }, 100);
-         }
-       } else {
-         // Si hay error, limpiar de todas formas
-         console.error('Error en logout (status ' + res.status + ')');
-         const errorData = await res.json().catch(() => ({}));
-         console.error('Error details:', errorData);
-         
-         localStorage.clear();
-         sessionStorage.clear();
-         accessToken = null;
-         currentUser = null;
-         document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-         document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-         
-         // Intentar usar la URL del error si existe
-         if (errorData.auth0_logout_url) {
-           window.location.href = errorData.auth0_logout_url;
-         } else {
-           window.location.href = '/?just_logged_out=true';
-         }
-       }
-     } catch (e) {
-       console.error('Error en logout:', e);
-       // Limpiar de todas formas aunque haya error
-       localStorage.clear();
-       sessionStorage.clear();
-       accessToken = null;
-       currentUser = null;
-       document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-       document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-       window.location.href = '/?just_logged_out=true';
-     }
-   }
+  function doLogout() {
+    localStorage.clear();
+    sessionStorage.clear();
+    accessToken = null;
+    window.location.href = '/api/auth/logout';
+  }
 
   function enterDashboard(user) {
     currentUser=user;
