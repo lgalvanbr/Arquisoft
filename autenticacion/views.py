@@ -722,28 +722,37 @@ def auth0_callback_handler(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def auth0_me(request):
-    """Retorna info del usuario autenticado vía JWT (NO sesión Django)
+    """Retorna info del usuario autenticado vía Auth0 (usando sesión Django o JWT)
     
-    Este endpoint SOLO funciona con JWT en el header Authorization.
-    No usa sesión Django para usuarios de Auth0.
+    Este endpoint:
+    1. Primero intenta verificar JWT en Authorization header (para usuarios JWT)
+    2. Si no hay JWT, verifica sesión Django (para usuarios Auth0)
+    3. Si ninguno está presente, retorna 401
     """
     try:
         user = request.user
         
-        # Solo permitir si viene con Authorization header válido
+        # Obtener el token del header si existe
         auth_header = request.headers.get('Authorization', '')
-        if not auth_header.startswith('Bearer '):
-            return Response(
-                {'error': 'Se requiere Bearer token'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        has_bearer_token = auth_header.startswith('Bearer ')
         
-        if not user.is_authenticated:
-            return Response(
-                {'error': 'Usuario no autenticado'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+        # Si viene con Bearer token, requiere autenticación válida
+        if has_bearer_token:
+            if not user.is_authenticated:
+                return Response(
+                    {'error': 'Token inválido o expirado'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        else:
+            # Si no hay Bearer token, verifica sesión Django
+            # Para Auth0 users que vienen de la sesión de Django
+            if not user.is_authenticated:
+                return Response(
+                    {'error': 'No autenticado. Requiere Bearer token o sesión válida'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
         
+        # Si llegamos aquí, el usuario está autenticado (vía JWT o sesión)
         # Obtener información del usuario
         response_data = {
             'id': str(user.id),
@@ -768,7 +777,7 @@ def auth0_me(request):
                 'activo': True,
             })
         
-        # Obtener rol de social_auth si existe
+        # Obtener rol de social_auth si existe (Auth0)
         try:
             social_user = user.social_user.get(provider='auth0')
             extra_data = social_user.extra_data

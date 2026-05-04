@@ -153,16 +153,8 @@ SOCIAL_AUTH_AUTH0_SCOPE = [
     'role',
 ]
 
-# Usar pipeline personalizado para Auth0
-SOCIAL_AUTH_PIPELINE = (
-    'social_core.pipeline.auth.auth_allowed',
-    'social_core.pipeline.auth.get_username',
-    'social_core.pipeline.user.get_username',
-    'social_core.pipeline.user.create_user',
-    'social_core.pipeline.social_auth.associate_user',
-    'social_core.pipeline.social_auth.load_extra_data',
-    'autenticacion.auth0backend.auth0_logout_on_login',  # ⭐ Logout inmediato
-)
+# Usar pipeline por defecto de social_django (no personalizado)
+# El logout después de auth0 login se maneja con el parámetro ?just_logged_out=true en la URL
 
 AUTHENTICATION_BACKENDS = (
     'autenticacion.auth0backend.Auth0',
