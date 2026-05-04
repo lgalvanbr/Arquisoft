@@ -202,13 +202,13 @@ tailwind.config = {
       <button onclick="showPage('api',this)" data-page="api" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">api</span>API Explorer</button>
     </div>
     <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
-      <div class="flex items-center gap-3">
-        <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
-        <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
-         <button onclick="location.href='/accounts/logout/'" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
-      </div>
-    </div>
-  </nav>
+       <div class="flex items-center gap-3">
+         <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
+         <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
+          <button onclick="doLogout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+       </div>
+     </div>
+   </nav>
   <!-- Main area -->
   <div class="lg:ml-64 flex flex-col flex-1 min-h-screen w-full">
     <!-- Topbar -->
@@ -555,11 +555,38 @@ tailwind.config = {
   }
 
   async function doLogout() {
-    try{await fetch('/api/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'}});}catch(_){}
-    localStorage.removeItem('access_token');localStorage.removeItem('refresh_token');
-    accessToken=null;
-    document.getElementById('dashboard').style.display='none';
-    document.getElementById('auth-section').style.display='flex';
+    try {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Si la respuesta incluye URL de logout de Auth0, redirigir allá
+        if (data.auth0_logout_url) {
+          // Esperar 500ms para que se complete la limpieza local
+          setTimeout(() => {
+            window.location.href = data.auth0_logout_url;
+          }, 500);
+        }
+      }
+    } catch (e) {
+      console.error('Error en logout:', e);
+    }
+    
+    // Limpiar estado local
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    accessToken = null;
+    
+    // Mostrar formulario de login
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('auth-section').style.display = 'flex';
   }
 
   function enterDashboard(user) {

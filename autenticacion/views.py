@@ -278,29 +278,60 @@ def refresh_token(request):
         )
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
+
+@api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
 def logout(request):
-    """Endpoint para logout del usuario"""
+    """Endpoint para logout del usuario (maneja tanto JWT como Auth0)
+    
+    - Para usuarios con JWT: revoca el token
+    - Para usuarios con Auth0: redirige a logout de Auth0
+    - Limpia la sesión Django en ambos casos
+    """
     try:
         usuario = request.user
         
-        from .models import Token
-        Token.objects.filter(usuario=usuario, activo=True).update(
-            activo=False,
-            fecha_revocacion=timezone.now(),
-            motivo_revocacion='Logout del usuario'
-        )
+        # Revocar tokens JWT si existen
+        if usuario.is_authenticated:
+            try:
+                from .models import Token
+                Token.objects.filter(usuario=usuario, activo=True).update(
+                    activo=False,
+                    fecha_revocacion=timezone.now(),
+                    motivo_revocacion='Logout del usuario'
+                )
+            except Exception as e:
+                logger.warning(f"Error revocando tokens: {str(e)}")
         
-        logger.info(f"Logout: {usuario.username}")
+        # Limpiar sesión Django
+        from django.contrib.auth import logout as django_logout
+        django_logout(request)
         
-        return Response(
-            {'mensaje': 'Logout exitoso'},
-            status=status.HTTP_200_OK
-        )
-    
+        # Construir URL de logout de Auth0
+        domain = settings.SOCIAL_AUTH_AUTH0_DOMAIN
+        client_id = settings.SOCIAL_AUTH_AUTH0_KEY
+        
+        # Obtener la URL de retorno (puede ser pasada como parámetro o usar el host actual)
+        return_to = request.GET.get('return_to') or request.build_absolute_uri('/')
+        
+        # Construir la URL de logout de Auth0
+        # Formato: https://YOUR_DOMAIN/v2/logout?client_id=YOUR_CLIENT_ID&returnTo=RETURN_URL
+        auth0_logout_url = f"https://{domain}/v2/logout?client_id={client_id}&returnTo={return_to}"
+        
+        logger.info(f"Logout: {usuario.username if usuario.is_authenticated else 'anonymous'}")
+        
+        # Si es una petición AJAX/fetch, retornar JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return Response(
+                {'mensaje': 'Logout exitoso', 'auth0_logout_url': auth0_logout_url},
+                status=status.HTTP_200_OK
+            )
+        
+        # Si es una petición normal, redirigir a Auth0 logout
+        return redirect(auth0_logout_url)
+        
     except Exception as e:
-        logger.error(f"Error en logout: {str(e)}")
+        logger.error(f"Error en logout: {str(e)}", exc_info=True)
         return Response(
             {'error': 'Error en logout'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
