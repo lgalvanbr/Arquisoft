@@ -458,89 +458,14 @@ tailwind.config = {
 </div>
 
 <script>
-  // ========== AUTH0 CONFIGURATION ==========
-  const auth0Config = {
-    domain: 'dev-vy27mzsmkwosyqhr.us.auth0.com',
-    clientId: 'hLSCIWW4Wof9DJeDv58kPXBLX07YLZCA',
-    audience: 'https://finops-api',
-    redirectUri: window.location.origin
-  };
-
-  let auth0Client = null;
+  // ========== AUTHENTICATION CONFIGURATION ==========
+  // Using django-social-auth for Auth0, no SPA SDK needed
+  // Auth0 login flow: user clicks /login/auth0 → Auth0 auth → /complete/auth0/?code=... → backend exchanges code
+  
   let accessToken = localStorage.getItem('access_token') || null;
   let currentUser = null;
 
-  // Initialize Auth0
-  async function initAuth0() {
-    auth0Client = await auth0.createAuth0Client({
-      domain: auth0Config.domain,
-      client_id: auth0Config.clientId,
-      audience: auth0Config.audience,
-      redirect_uri: auth0Config.redirectUri,
-      useRefreshTokens: true,
-      cacheLocation: 'localStorage'
-    });
-
-    // Check if returning from Auth0 callback
-    const query = window.location.search;
-    if (query.includes('code=') && query.includes('state=')) {
-      try {
-        await auth0Client.handleRedirectCallback();
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (err) {
-        console.error('Error handling callback:', err);
-      }
-    }
-  }
-
-  // Login with Auth0 (replaces doLogin)
-  async function doAuth0Login() {
-    try {
-      await auth0Client.loginWithPopup({
-        scope: 'openid profile email',
-        audience: auth0Config.audience
-      });
-      
-      const user = await auth0Client.getUser();
-      const token = await auth0Client.getTokenSilently({ audience: auth0Config.audience });
-      
-      accessToken = token;
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('auth0_user', JSON.stringify(user));
-      
-      enterDashboard(user);
-    } catch (err) {
-      showAuthError('Auth0 login failed: ' + err.message);
-    }
-  }
-
-  // Logout with Auth0
-  async function doAuth0Logout() {
-    try {
-      await auth0Client.logout({
-        returnTo: window.location.origin
-      });
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-  }
-
-  // Initialize Auth0 on page load
-  document.addEventListener('DOMContentLoaded', async () => {
-    await initAuth0();
-    
-    // Check if already authenticated
-    const isAuthenticated = await auth0Client.isAuthenticated();
-    if (isAuthenticated) {
-      const user = await auth0Client.getUser();
-      const token = await auth0Client.getTokenSilently({ audience: auth0Config.audience });
-      accessToken = token;
-      localStorage.setItem('access_token', token);
-      enterDashboard(user);
-    }
-  });
-
-  // ========== LEGACY LOGIN FUNCTIONS (fallback for local auth) ==========
+  // ========== LOGIN FUNCTIONS ==========
 
 
   function toggleSidebar() {
