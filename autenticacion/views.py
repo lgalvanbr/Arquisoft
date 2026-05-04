@@ -199,7 +199,27 @@ def obtener_usuario_actual(request):
     try:
         usuario = request.user
 
-        permisos = RolPermiso.objects.filter(rol=usuario.rol).select_related('permiso')
+        # Leer rol y empresa desde social_auth (usuario Auth0)
+        # o desde el modelo Usuario propio (usuario con JWT)
+        rol = 'usuario'
+        empresa = ''
+
+        try:
+            social = usuario.social_auth.filter(provider='auth0').first()
+            if social:
+                rol = social.extra_data.get('rol', 'usuario')
+                empresa = social.extra_data.get('empresa', '')
+            else:
+                # Usuario propio con JWT — tiene atributos directos
+                from autenticacion.models import Usuario as UsuarioModel
+                u = UsuarioModel.objects.filter(username=usuario.username).first()
+                if u:
+                    rol = u.rol
+                    empresa = str(u.empresa) if u.empresa else ''
+        except Exception:
+            pass
+
+        permisos = RolPermiso.objects.filter(rol=rol).select_related('permiso')
         permisos_list = [p.permiso.codigo for p in permisos]
 
         return Response(
@@ -210,16 +230,16 @@ def obtener_usuario_actual(request):
                     'email': usuario.email,
                     'first_name': usuario.first_name,
                     'last_name': usuario.last_name,
-                    'empresa': usuario.empresa,
-                    'rol': usuario.rol,
-                    'activo': usuario.activo,
-                    'bloqueado': usuario.bloqueado,
+                    'empresa': empresa,
+                    'rol': rol,
+                    'activo': True,
+                    'bloqueado': False,
                 },
                 'permisos': permisos_list,
             },
             status=status.HTTP_200_OK
         )
-    
+
     except Exception as e:
         logger.error(f"Error obteniendo usuario actual: {str(e)}")
         return Response(

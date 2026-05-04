@@ -61,10 +61,12 @@ def check_company_access(view_func):
                 # social_user.extra_data contiene claims mapeados:
                 # 'dev-vy27mzsmkwosyqhr.us.auth0.com/empresa_id' -> 'empresa'
                 try:
-                    social_user = request.user.social_user.get(provider='auth0')
-                    extra_data = social_user.extra_data
-                    # Usar 'empresa' que es el alias mapeado por EXTRA_DATA
-                    user_company = extra_data.get('empresa', None)
+                    social_user = request.user.social_auth.filter(provider='auth0').first()
+                    if not social_user:
+                        user_company = None
+                    else:
+                        extra_data = social_user.extra_data
+                        user_company = extra_data.get('empresa', None)
                 except:
                     user_company = None
         except:
@@ -87,8 +89,8 @@ def check_company_access(view_func):
             # Extraer token ID si existe
             token_id = None
             try:
-                social_user = request.user.social_user.get(provider='auth0')
-                token_id = social_user.extra_data.get('sub', 'UNKNOWN')
+                social_user = request.user.social_auth.filter(provider='auth0').first()
+                token_id = social_user.extra_data.get('sub', 'UNKNOWN') if social_user else 'UNKNOWN'
             except:
                 token_id = 'UNKNOWN'
             
