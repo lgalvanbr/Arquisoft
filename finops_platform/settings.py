@@ -112,6 +112,19 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ======================== SESSION CONFIGURATION ========================
+# Asegurar que las sesiones se limpien correctamente al logout
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Usar BD para sesiones
+SESSION_COOKIE_AGE = 3600  # 1 hora de inactividad
+SESSION_COOKIE_HTTPONLY = True  # No accessible via JavaScript
+SESSION_COOKIE_SECURE = False  # True en producción (HTTPS)
+SESSION_COOKIE_SAMESITE = 'Lax'  # Protege CSRF
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expira al cerrar navegador
+SESSION_SAVE_EVERY_REQUEST = True  # Actualizar sesión en cada request
+# Limpiar datos de sesión cuando el usuario logout
+CSRF_COOKIE_SECURE = False  # True en producción (HTTPS)
+CSRF_COOKIE_HTTPONLY = False  # Necesario para lectura en JavaScript
+
 # ======================== AUTH0 CONFIGURATION (Laboratorio ISIS2503) ========================
 
 LOGIN_URL = "/login/auth0"

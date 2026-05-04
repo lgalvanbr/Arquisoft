@@ -302,8 +302,14 @@ def logout(request):
                 )
             except Exception as e:
                 logger.warning(f"Error revocando tokens: {str(e)}")
+            
+            # Eliminar social auth associations para forzar re-login
+            try:
+                usuario.social_user.all().delete()
+            except Exception as e:
+                logger.warning(f"Error eliminando social_user: {str(e)}")
         
-        # Limpiar sesión Django
+        # Limpiar sesión Django completamente
         from django.contrib.auth import logout as django_logout
         django_logout(request)
         

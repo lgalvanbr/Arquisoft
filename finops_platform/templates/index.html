@@ -562,31 +562,59 @@ tailwind.config = {
           'Authorization': 'Bearer ' + accessToken,
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest'
-        }
+        },
+        credentials: 'include'  // Incluir cookies de sesión
       });
       
       if (res.ok) {
         const data = await res.json();
-        // Si la respuesta incluye URL de logout de Auth0, redirigir allá
+        
+        // Limpiar localStorage completamente
+        localStorage.clear();
+        
+        // Limpiar sessionStorage también
+        sessionStorage.clear();
+        
+        // Limpiar todas las variables globales de auth
+        accessToken = null;
+        currentUser = null;
+        
+        // Limpiar cookies de sesión manualmente (si es posible)
+        document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        
+        // Esperar y redirigir a Auth0 logout
         if (data.auth0_logout_url) {
-          // Esperar 500ms para que se complete la limpieza local
           setTimeout(() => {
             window.location.href = data.auth0_logout_url;
-          }, 500);
+          }, 100);
+        } else {
+          // Fallback: redirigir al inicio
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 100);
         }
+      } else {
+        // Si hay error, limpiar de todas formas
+        localStorage.clear();
+        sessionStorage.clear();
+        accessToken = null;
+        currentUser = null;
+        document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        window.location.href = '/';
       }
     } catch (e) {
       console.error('Error en logout:', e);
+      // Limpiar de todas formas aunque haya error
+      localStorage.clear();
+      sessionStorage.clear();
+      accessToken = null;
+      currentUser = null;
+      document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      window.location.href = '/';
     }
-    
-    // Limpiar estado local
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    accessToken = null;
-    
-    // Mostrar formulario de login
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('auth-section').style.display = 'flex';
   }
 
   function enterDashboard(user) {
@@ -700,11 +728,21 @@ tailwind.config = {
   // Verificar sesión Auth0 vía Django
   async function checkAuth0Session() {
     try {
-      const res = await fetch('/api/auth/auth0-me', { credentials: 'include' });
+      const res = await fetch('/api/auth/auth0-me', { 
+        credentials: 'include',
+        cache: 'no-cache'  // No usar cache
+      });
       if (res.ok) {
         const data = await res.json();
-        enterDashboard(data);
-        return true;
+        if (data && data.username) {
+          enterDashboard(data);
+          return true;
+        }
+      } else if (res.status === 401) {
+        // Sesión expirada o no válida, limpiar
+        localStorage.clear();
+        sessionStorage.clear();
+        accessToken = null;
       }
     } catch (e) {
       console.error('Error checking Auth0 session:', e);
@@ -721,10 +759,19 @@ tailwind.config = {
   if(accessToken){
     apiFetch('/api/auth/me').then(({res,data})=>{
       if(res.ok)enterDashboard(data);
-      else{localStorage.removeItem('access_token');accessToken=null;}
-    }).catch(()=>{localStorage.removeItem('access_token');accessToken=null;});
+      else{
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        accessToken=null;
+      }
+    }).catch(()=>{
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      accessToken=null;
+    });
   } else {
     // Si no hay JWT, intentar verificar sesión de Auth0 vía Django
+    // Pero solo si la sesión no está expirada
     checkAuth0Session();
   }
 </script>

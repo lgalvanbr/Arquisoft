@@ -27,6 +27,7 @@ urlpatterns = [
     
     # ======================== ENDPOINTS DE AUDITORÍA ========================
     path('api/auth/audit/historial', auth_views.historial_acceso, name='historial_acceso'),
+    path('api/auth/rechazos/integridad', auth_views.listar_rechazos_integridad, name='listar_rechazos_integridad'),
     
     # ======================== ENDPOINTS DE REPORTES ========================
     path('api/reportes/proyecto', report_views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),
