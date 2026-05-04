@@ -199,6 +199,7 @@ tailwind.config = {
       <button onclick="showPage('tendencias',this)" data-page="tendencias" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">trending_up</span>Tendencias</button>
       <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-4 mb-1">Sistema</p>
       <button onclick="showPage('health',this)" data-page="health" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">health_and_safety</span>Health</button>
+      <button onclick="showPage('seguridad',this)" data-page="seguridad" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">security</span>Seguridad</button>
       <button onclick="showPage('api',this)" data-page="api" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">api</span>API Explorer</button>
     </div>
     <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
@@ -437,6 +438,8 @@ tailwind.config = {
                 <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/gastos')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/gastos</span><span class="text-xs text-on-surface-variant hidden sm:block">Gastos por servicio</span></div>
                 <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/analisis')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/analisis</span><span class="text-xs text-on-surface-variant hidden sm:block">Optimizacion</span></div>
                 <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/tendencias')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/tendencias</span><span class="text-xs text-on-surface-variant hidden sm:block">Tendencias</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/costos/empresa/BITE.CO')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/costos/empresa/{id}</span><span class="text-xs text-on-surface-variant hidden sm:block">Obtener costos</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/costos/crear/BITE.CO','POST')"><span class="text-[10px] font-bold bg-[#fca5a5] text-[#7f1d1d] px-2 py-1 rounded font-mono min-w-[42px] text-center">POST</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/costos/crear/{id}</span><span class="text-xs text-on-surface-variant hidden sm:block">Crear reporte costos</span></div>
                 <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/health')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/health</span><span class="text-xs text-on-surface-variant hidden sm:block">Health check</span></div>
               </div>
             </div>
@@ -451,6 +454,81 @@ tailwind.config = {
                 </div>
               </div>
               <pre id="custom-result" class="flex-1 text-[11px] font-mono text-on-surface-variant p-5 overflow-auto terminal-scroll min-h-[420px] whitespace-pre-wrap break-words leading-relaxed">La respuesta aparecera aqui...</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEGURIDAD / RECHAZOS DE INTEGRIDAD -->
+      <div class="page" id="page-seguridad">
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold text-on-surface tracking-tight">Eventos de Seguridad</h1>
+          <p class="text-sm text-on-surface-variant mt-1 max-w-2xl">Monitorea rechazos de payloads adulterados y eventos de integridad.</p>
+        </div>
+
+        <!-- Filtros -->
+        <div class="bg-surface rounded-xl border border-outline-variant p-6 soft-glow mb-6">
+          <div class="flex items-center justify-between border-b border-surface-variant pb-4 mb-5">
+            <h2 class="text-base font-semibold text-on-surface">Filtros</h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-on-surface-variant mb-2">Últimos N días</label>
+              <input id="filter-dias" type="number" value="7" min="1" max="90" class="w-full bg-surface border border-outline-variant text-on-surface text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-on-surface-variant mb-2">Endpoint (parcial)</label>
+              <input id="filter-endpoint" type="text" placeholder="ej: /api/reportes" class="w-full bg-surface border border-outline-variant text-on-surface text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-on-surface-variant mb-2">IP Cliente</label>
+              <input id="filter-ip" type="text" placeholder="ej: 192.168.1.1" class="w-full bg-surface border border-outline-variant text-on-surface text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+            </div>
+            <div class="flex items-end">
+              <button onclick="cargarRechazosIntegridad(1)" class="w-full bg-gradient-to-b from-primary to-[#005275] text-white px-4 py-2.5 rounded-lg text-xs font-semibold shadow-[0_4px_14px_rgba(0,101,145,0.3)] hover:shadow-[0_6px_20px_rgba(0,101,145,0.4)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[16px]">search</span>Filtrar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Rechazos -->
+        <div class="bg-surface rounded-xl border border-outline-variant soft-glow overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-surface-variant bg-surface-container-low">
+            <h3 class="text-sm font-semibold text-on-surface">Rechazos de Integridad</h3>
+            <span class="text-xs text-on-surface-variant"><span id="total-rechazos">0</span> eventos</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-surface-container-low border-b border-surface-variant">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-on-surface-variant">Fecha/Hora</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-on-surface-variant">IP Origen</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-on-surface-variant">Endpoint</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-on-surface-variant">Motivo</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-rechazos" class="divide-y divide-surface-variant">
+                <tr>
+                  <td colspan="4" class="px-6 py-8 text-center text-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[24px] text-on-surface-variant/50 block mb-2">hourglass_empty</span>
+                    Cargando...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginación -->
+          <div class="flex items-center justify-between px-6 py-4 border-t border-surface-variant bg-surface-container-low">
+            <span class="text-xs text-on-surface-variant">Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
+            <div class="flex gap-2">
+              <button id="btn-prev" onclick="cargarRechazosIntegridad(currentPage - 1)" disabled class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+              </button>
+              <button id="btn-next" onclick="cargarRechazosIntegridad(currentPage + 1)" disabled class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </button>
             </div>
           </div>
         </div>
@@ -670,8 +748,13 @@ tailwind.config = {
     } catch(e){box.textContent='Error de conexion: '+e.message;box.style.color='#ba1a1a';}
   }
 
-  function setEndpoint(path) {
+  function setEndpoint(path, method = 'GET') {
     document.getElementById('custom-endpoint').value=path;
+    // Actualizar el selector de método
+    const methodSelect = document.querySelector('select');
+    if (methodSelect) {
+      methodSelect.value = method;
+    }
     fetchEndpoint(path,'custom-result');
   }
 
@@ -753,6 +836,139 @@ tailwind.config = {
   window.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&document.getElementById('auth-section').style.display!=='none')
       document.getElementById('tab-login').style.display!=='none'?doLogin():doRegister();
+  });
+
+  // ========== SEGURIDAD - ASR RECHAZOS ==========
+  let currentPage = 1;
+  
+  async function cargarRechazosIntegridad(page = 1) {
+    try {
+      const dias = document.getElementById('filter-dias').value || 7;
+      const endpoint = document.getElementById('filter-endpoint').value;
+      const ip = document.getElementById('filter-ip').value;
+      
+      let url = `/api/auth/rechazos/integridad?dias=${dias}&page=${page}&page_size=20`;
+      if (endpoint) url += `&endpoint=${encodeURIComponent(endpoint)}`;
+      if (ip) url += `&direccion_ip=${encodeURIComponent(ip)}`;
+      
+      const res = await fetch(url, {
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        document.getElementById('tbody-rechazos').innerHTML = `
+          <tr>
+            <td colspan="4" class="px-6 py-8 text-center text-sm text-error">
+              <span class="material-symbols-outlined">error</span>
+              ${error.error || 'Error al cargar rechazos'}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      const data = await res.json();
+      currentPage = page;
+      const totalPages = Math.ceil(data.total / data.page_size);
+      
+      // Actualizar tabla
+      if (data.rechazos && data.rechazos.length > 0) {
+        const rows = data.rechazos.map(r => {
+          const fecha = new Date(r.fecha_rechazo);
+          const fechaFormato = fecha.toLocaleString('es-CO', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          
+          return `
+            <tr class="hover:bg-surface-container-low transition-colors">
+              <td class="px-6 py-4 text-sm font-mono text-on-surface">${fechaFormato}</td>
+              <td class="px-6 py-4 text-sm font-mono text-primary">${r.direccion_ip}</td>
+              <td class="px-6 py-4 text-sm font-mono text-on-surface-variant">${r.endpoint}</td>
+              <td class="px-6 py-4 text-sm">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold 
+                  ${r.motivo_rechazo === 'PAYLOAD_TAMPERED' ? 'bg-error/15 text-error' : 'bg-warning/15 text-warning'}">
+                  <span class="material-symbols-outlined text-[14px]">
+                    ${r.motivo_rechazo === 'PAYLOAD_TAMPERED' ? 'security_update_warning' : 'warning'}
+                  </span>
+                  ${r.motivo_rechazo === 'PAYLOAD_TAMPERED' ? 'Payload Adulterado' : 'Firma Faltante'}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+        
+        document.getElementById('tbody-rechazos').innerHTML = rows;
+      } else {
+        document.getElementById('tbody-rechazos').innerHTML = `
+          <tr>
+            <td colspan="4" class="px-6 py-8 text-center text-sm text-on-surface-variant">
+              <span class="material-symbols-outlined text-[24px] text-on-surface-variant/50 block mb-2">check_circle</span>
+              No hay rechazos en este período
+            </td>
+          </tr>
+        `;
+      }
+      
+      // Actualizar información de paginación
+      document.getElementById('total-rechazos').textContent = data.total;
+      document.getElementById('current-page').textContent = page;
+      document.getElementById('total-pages').textContent = totalPages;
+      
+      // Actualizar estado de botones de paginación
+      const btnPrev = document.getElementById('btn-prev');
+      const btnNext = document.getElementById('btn-next');
+      
+      if (page <= 1) {
+        btnPrev.disabled = true;
+        btnPrev.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        btnPrev.disabled = false;
+        btnPrev.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+      
+      if (page >= totalPages) {
+        btnNext.disabled = true;
+        btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        btnNext.disabled = false;
+        btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+      
+    } catch (e) {
+      console.error('Error cargando rechazos:', e);
+      document.getElementById('tbody-rechazos').innerHTML = `
+        <tr>
+          <td colspan="4" class="px-6 py-8 text-center text-sm text-error">
+            Error: ${e.message}
+          </td>
+        </tr>
+      `;
+    }
+  }
+  
+  // Cargar rechazos cuando se navega a la página de Seguridad
+  const observer = new MutationObserver(() => {
+    const seguridad = document.getElementById('page-seguridad');
+    if (seguridad && seguridad.classList.contains('active')) {
+      cargarRechazosIntegridad(1);
+      observer.disconnect();
+    }
+  });
+  
+  observer.observe(document.getElementById('page-seguridad') || document.body, {
+    attributes: true,
+    attributeFilter: ['class'],
+    subtree: true
   });
 
   // Intentar cargar sesión existente

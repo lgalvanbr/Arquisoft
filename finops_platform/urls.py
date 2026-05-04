@@ -31,6 +31,7 @@ urlpatterns = [
     
     # ======================== ENDPOINTS DE REPORTES ========================
     path('api/reportes/proyecto', report_views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),
+    path('api/reportes/costos/empresa/<str:empresa_id>', report_views.obtener_reporte_costos, name='obtener_reporte_costos'),
     path('api/reportes/consumo', report_views.obtener_consumo_nube, name='obtener_consumo_nube'),
     path('api/reportes/gastos', report_views.obtener_gastos_por_servicio, name='obtener_gastos_por_servicio'),
     path('api/reportes/analisis', report_views.obtener_analisis_optimizacion, name='obtener_analisis_optimizacion'),

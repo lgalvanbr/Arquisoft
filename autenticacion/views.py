@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.db import transaction
 
 from .models import Usuario, Permiso, RolPermiso, RechazoIntegridad, IntentoAccesoNoAutorizado
-from .utilities import JWTManager, DetectorAnomalias, AuditoriaManager
+from .utilities import JWTManager, DetectorAnomalias, AuditoriaManager, require_scope
 
 logger = logging.getLogger(__name__)
 
@@ -411,6 +411,7 @@ def health_check(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@require_scope('read:integrity_logs')
 def listar_rechazos_integridad(request):
     """
     ASR Integridad: Listar todos los rechazos por integridad.

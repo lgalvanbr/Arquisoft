@@ -4,8 +4,11 @@ Utilidades para autenticación, JWT y detección de anomalías
 # import jwt  # TODO: Fix cryptography DLL issue before re-enabling
 import logging
 from datetime import datetime, timedelta
+from functools import wraps
 from django.utils import timezone
 from django.conf import settings
+from rest_framework.response import Response
+from rest_framework import status
 from .models import Token, AuditoriaAcceso, IntentoBloqueado
 
 logger = logging.getLogger(__name__)
@@ -185,8 +188,68 @@ class AuditoriaManager:
     @staticmethod
     def obtener_historial_acceso(usuario, dias=7):
         """Obtiene el historial de acceso de un usuario en los últimos N días"""
-        fecha_desde = timezone.now() - timedelta(days=dias)
+        fecha_desde = timezone.now() - timedelta(dias)
         return AuditoriaAcceso.objects.filter(
             usuario=usuario,
             fecha_evento__gte=fecha_desde
         ).order_by('-fecha_evento')
+
+
+def require_scope(required_scope):
+    """
+    Decorador para validar que el usuario tiene un scope específico de Auth0.
+    
+    Uso:
+        @require_scope('read:integrity_logs')
+        def listar_rechazos_integridad(request):
+            ...
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            # Obtener usuario autenticado
+            usuario = request.user
+            
+            # Si no está autenticado, DRF lo rechazará antes de llegar aquí
+            if not usuario or not usuario.is_authenticated:
+                return Response(
+                    {'error': 'Usuario no autenticado'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Verificar si es admin (tiene acceso a todo)
+            if usuario.is_staff or usuario.is_superuser:
+                return func(request, *args, **kwargs)
+            
+            # Verificar si tiene el scope requerido en Auth0
+            # Los scopes se almacenan en la sesión o token de Auth0
+            user_scopes = []
+            
+            # Intentar obtener scopes de múltiples lugares
+            if hasattr(usuario, 'auth0_scopes'):
+                user_scopes = usuario.auth0_scopes if isinstance(usuario.auth0_scopes, list) else [usuario.auth0_scopes]
+            elif hasattr(request, 'auth') and hasattr(request.auth, 'scopes'):
+                user_scopes = request.auth.scopes
+            elif hasattr(request.session, 'auth0_scope'):
+                user_scopes = request.session.get('auth0_scope', '').split()
+            
+            # Verificar si tiene el scope requerido
+            if required_scope not in user_scopes:
+                logger.warning(
+                    f"Usuario {usuario.username} intentó acceder a endpoint que requiere '{required_scope}'. "
+                    f"Scopes disponibles: {user_scopes}"
+                )
+                return Response(
+                    {
+                        'error': f'Permiso insuficiente. Requiere scope: {required_scope}',
+                        'required_scope': required_scope,
+                        'available_scopes': user_scopes
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Usuario tiene el scope, proceder con la función
+            return func(request, *args, **kwargs)
+        
+        return wrapper
+    return decorator
