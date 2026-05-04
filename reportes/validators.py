@@ -1,85 +1,155 @@
 """
-Validadores de payloads para endpoints de reportes
-ASR Integridad: Validación de esquemas JSON
+Validadores de integridad de payload.
+Detecta manipulación de mensajes de solicitud.
+Laboratorio ISIS2503 - Seguridad Integridad y Confidencialidad
 """
-try:
-    from jsonschema import validate, ValidationError
-    HAS_JSONSCHEMA = True
-except ImportError:
-    HAS_JSONSCHEMA = False
-    ValidationError = Exception
+import hmac
+import hashlib
+import json
+from django.http import JsonResponse
+from functools import wraps
+from django.conf import settings
+from autenticacion.models import AuditLog
+from django.utils import timezone
 
 
-SCHEMA_REPORTE_COSTOS = {
-    "type": "object",
-    "required": ["mes", "ano"],
-    "properties": {
-        "mes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 12,
-            "description": "Mes del reporte (1-12)"
-        },
-        "ano": {
-            "type": "integer",
-            "minimum": 2020,
-            "maximum": 2099,
-            "description": "Año del reporte"
-        },
-        "incluir_detalle": {
-            "type": "boolean",
-            "default": False,
-            "description": "Incluir detalles en el reporte"
-        },
-        "filtros": {
-            "type": "object",
-            "description": "Filtros adicionales",
-            "properties": {
-                "proveedor": {
-                    "type": "string",
-                    "enum": ["AWS", "GCP"],
-                    "description": "Proveedor cloud"
-                },
-                "proyecto": {
-                    "type": "string",
-                    "description": "Nombre del proyecto"
-                }
-            }
-        }
-    },
-    "additionalProperties": False  # Rechaza campos desconocidos
-}
-
-
-class PayloadValidator:
-    """Validador de payloads JSON contra esquemas"""
+def validate_payload_integrity(view_func):
+    """
+    Decorador para validar integridad de payloads.
     
-    @staticmethod
-    def validar_reporte_costos(data):
-        """
-        Valida que el payload cumpla con el schema esperado para reportes de costos.
+    Verifica que el request NO ha sido adulterado.
+    El cliente debe incluir header: X-Payload-Signature
+    
+    Signature = HMAC-SHA256(payload_body, SECRET_KEY)
+    
+    Si la firma no coincide:
+    - 100% de mensajes adulterados son rechazados
+    - Ningún dato es persistido
+    - El rechazo es registrado en log con fecha, IP y motivo
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # 1. Solo validar en métodos que envían data
+        if request.method not in ['POST', 'PUT', 'PATCH']:
+            return view_func(request, *args, **kwargs)
         
-        Lanza ValidationError si no es válido.
+        # 2. Obtener firma del header
+        received_signature = request.META.get('HTTP_X_PAYLOAD_SIGNATURE', '')
         
-        Args:
-            data (dict): Payload a validar
-            
-        Returns:
-            bool: True si es válido
-            
-        Raises:
-            ValidationError: Si el payload no cumple con el schema
-        """
-        if not HAS_JSONSCHEMA:
-            # STUB: Sin jsonschema instalado, hacer validación básica
-            if not isinstance(data, dict):
-                raise ValidationError("Payload debe ser un diccionario")
-            if 'mes' not in data or 'ano' not in data:
-                raise ValidationError("Parámetros mes y ano requeridos")
-            if not (1 <= int(data.get('mes', 0)) <= 12):
-                raise ValidationError("mes debe estar entre 1-12")
-            return True
+        if not received_signature:
+            # Sin firma = rechazo
+            _log_integrity_violation(
+                request,
+                'MISSING_SIGNATURE',
+                'Header X-Payload-Signature no presente'
+            )
+            return JsonResponse({
+                'error': 'No autorizado',
+                'detail': 'Falta header de integridad: X-Payload-Signature'
+            }, status=401)
         
-        # Con jsonschema: validar contra schema completo
-        validate(instance=data, schema=SCHEMA_REPORTE_COSTOS)
-        return True
+        # 3. Leer body del request
+        try:
+            if request.content_type == 'application/json':
+                request.body.seek(0)  # Reset stream
+                payload_body = request.body.read()
+                if not payload_body:
+                    payload_body = b'{}'
+            else:
+                payload_body = request.body
+        except:
+            payload_body = b'{}'
+        
+        # 4. Calcular firma esperada
+        secret = settings.SECRET_KEY.encode()
+        expected_signature = hmac.new(
+            secret,
+            payload_body,
+            hashlib.sha256
+        ).hexdigest()
+        
+        # 5. Comparar firmas (timing-safe)
+        if not hmac.compare_digest(received_signature, expected_signature):
+            # Manipulación detectada → RECHAZO
+            _log_integrity_violation(
+                request,
+                'PAYLOAD_TAMPERED',
+                f'Firma inválida. Esperada: {expected_signature[:16]}..., Recibida: {received_signature[:16]}...'
+            )
+            return JsonResponse({
+                'error': 'No autorizado',
+                'detail': 'Payload adulterado. Integridad comprometida.'
+            }, status=401)
+        
+        # 6. Payload válido → continuar
+        return view_func(request, *args, **kwargs)
+    
+    return wrapper
+
+
+def _log_integrity_violation(request, reason, detail):
+    """Registra violación de integridad en RechazoIntegridad"""
+    try:
+        from autenticacion.models import RechazoIntegridad
+        
+        RechazoIntegridad.objects.create(
+            direccion_ip=_get_client_ip(request),
+            endpoint=request.path,
+            motivo_rechazo=reason,
+            payload_recibido={
+                'detail': detail,
+                'timestamp': timezone.now().isoformat()
+            },
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        )
+    except Exception as e:
+        # Log fallback si hay error en base de datos
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error registrando violación de integridad: {str(e)}")
+
+
+def _get_client_ip(request):
+    """Extrae IP cliente (considera proxies)"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR', 'UNKNOWN')
+    return ip
+
+
+def validate_report_request(view_func):
+    """
+    Decorador específico para validar requests de reportes.
+    Verifica:
+    - empresa_id no es None
+    - empresa_id es string válido
+    - No hay inyección SQL (caracteres especiales)
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        empresa_id = kwargs.get('empresa_id')
+        
+        # Validar formato
+        if not empresa_id:
+            return JsonResponse({
+                'error': 'Parámetro requerido',
+                'detail': 'empresa_id es obligatorio'
+            }, status=400)
+        
+        # Validar que es string alphanumeric (sin inyecciones)
+        if not isinstance(empresa_id, str) or not empresa_id.replace('.', '').replace('-', '').replace('_', '').isalnum():
+            _log_integrity_violation(
+                request,
+                'INVALID_EMPRESA_ID_FORMAT',
+                f'empresa_id contiene caracteres inválidos: {empresa_id}'
+            )
+            return JsonResponse({
+                'error': 'Formato inválido',
+                'detail': 'empresa_id contiene caracteres no permitidos'
+            }, status=400)
+        
+        return view_func(request, *args, **kwargs)
+    
+    return wrapper

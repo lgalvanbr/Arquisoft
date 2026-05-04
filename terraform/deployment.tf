@@ -356,54 +356,23 @@ else
   echo "[$(date)] Migraciones verificadas en app-b."
 fi
 
-# ── 7. Servicio systemd ───────────────────────────────────────────────
-GUNICORN_BIN="$VENV_DIR/bin/gunicorn"
-
-cat > /etc/systemd/system/cloudynet.service <<SVCEOF
-[Unit]
-Description=CloudyNet FinOps Gunicorn (app-${each.key})
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=exec
-User=root
-WorkingDirectory=$APP_DIR
-EnvironmentFile=/etc/cloudynet.env
-ExecStart=$GUNICORN_BIN finops_platform.wsgi:application --bind 0.0.0.0:8080 --workers 4 --timeout 120 --access-logfile /var/log/gunicorn-access.log --error-logfile /var/log/gunicorn-error.log
-ExecReload=/bin/kill -s HUP \$MAINPID
-Restart=always
-RestartSec=5
-StandardOutput=append:/var/log/gunicorn-stdout.log
-StandardError=append:/var/log/gunicorn-error.log
-
-[Install]
-WantedBy=multi-user.target
-SVCEOF
-
-# ── 8. Script de actualización rápida (git pull + restart) ───────────
-cat > /usr/local/bin/cloudynet-update <<UPDEOF
+# ── 7. Instrucciones para runserver manual ────────────────────────────
+cat > /root/RUN_SERVER.sh <<RUNEOF
 #!/bin/bash
-cd $APP_DIR
-git fetch origin
-git reset --hard origin/$BRANCH
-$VENV_DIR/bin/pip install -r requirements.txt -q
-set -a; source /etc/cloudynet.env; set +a
-$VENV_DIR/bin/python manage.py migrate --noinput
-systemctl restart cloudynet.service
-systemctl is-active cloudynet.service
-echo "Actualización completada."
-UPDEOF
-chmod +x /usr/local/bin/cloudynet-update
+# Script para iniciar el servidor Django manualmente en puerto 8080
+# Ejecutar: /root/RUN_SERVER.sh
+source /etc/cloudynet.env
+source "$VENV_DIR/bin/activate"
+cd "$APP_DIR"
+python manage.py runserver 0.0.0.0:8080
+RUNEOF
+chmod +x /root/RUN_SERVER.sh
 
-# ── 9. Habilitar e iniciar ────────────────────────────────────────────
-systemctl daemon-reload
-systemctl enable cloudynet.service
-systemctl start cloudynet.service
-
-echo "[$(date)] Servicio cloudynet.service activo y habilitado en reboot."
+echo "[$(date)] Setup completado app-$INSTANCE_ID"
+echo "[$(date)] Para iniciar el servidor:"
+echo "[$(date)] ssh ec2-user@<IP> -i key.pem"
+echo "[$(date)] /root/RUN_SERVER.sh"
 echo "[$(date)] ===== Setup completado app-$INSTANCE_ID ====="
-echo "[$(date)] Para futuras actualizaciones: sudo cloudynet-update"
 EOT
 
   tags = merge(local.common_tags, {

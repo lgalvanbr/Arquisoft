@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <style>*{box-sizing:border-box}body{background:#f9f9fa;color:#1a1c1d;font-family:Inter,system-ui,sans-serif}#auth-section{display:flex;min-height:100vh}#dashboard{display:none}</style>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script src="https://cdn.auth0.com/js/auth0-spa-js/9.22.1/auth0-spa-js.production.js"></script>
+
 <script id="tailwind-config">
 tailwind.config = {
   darkMode:"class",
@@ -149,11 +149,11 @@ tailwind.config = {
             <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label>
             <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">person</span><input id="login-username" type="text" placeholder="tu_usuario" autocomplete="username" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
           </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label>
-            <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="login-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
-          </div>
-           <button onclick="doAuth0Login()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Ingresar con Auth0 <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+           <div>
+             <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label>
+             <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="login-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
+           </div>
+            <a href="/login/auth0" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 no-underline">Ingresar con Auth0 <span class="material-symbols-outlined text-[18px]">arrow_forward</span></a>
         </div>
       </div>
       <!-- REGISTER -->
@@ -202,7 +202,7 @@ tailwind.config = {
       <div class="flex items-center gap-3">
         <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
         <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
-         <button onclick="doAuth0Logout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+         <button onclick="location.href='/accounts/logout/'" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
       </div>
     </div>
   </nav>

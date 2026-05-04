@@ -2,15 +2,20 @@
 finops_platform URL Configuration
 
 Main URL router for autenticacion and reportes apps
+Implementación según laboratorio ISIS2503
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.views.generic import TemplateView
 from autenticacion import views as auth_views
 from reportes import views as report_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # ======================== AUTH0 / SOCIAL AUTH PATHS ========================
+    path('', include('django.contrib.auth.urls')),
+    path('', include('social_django.urls')),
     
     # ======================== ENDPOINTS DE AUTENTICACIÓN ========================
     path('api/auth/register', auth_views.register, name='register'),
@@ -22,18 +27,7 @@ urlpatterns = [
     # ======================== ENDPOINTS DE AUDITORÍA ========================
     path('api/auth/audit/historial', auth_views.historial_acceso, name='historial_acceso'),
     
-    # ======================== ASR ENDPOINTS (INTEGRIDAD Y CONFIDENCIALIDAD) ========================
-    path('api/asr/rechazos-integridad', auth_views.listar_rechazos_integridad, name='listar_rechazos_integridad'),
-    path('api/asr/intentos-no-autorizado', auth_views.listar_intentos_acceso_no_autorizado, name='listar_intentos_acceso_no_autorizado'),
-    path('api/asr/estadisticas', auth_views.estadisticas_asr, name='estadisticas_asr'),
-    
-    # ======================== ENDPOINTS DE REPORTES (PROTEGIDOS) ========================
-    # Reportes de costos con segregación por empresa
-    path('api/reportes/costos/empresa/<str:empresa_id>', report_views.obtener_reporte_costos, name='obtener_reporte_costos'),
-    path('api/reportes/costos/crear/<str:empresa_id>', report_views.crear_reporte_costos, name='crear_reporte_costos'),
-    path('api/reportes/empresa/<str:empresa_id>', report_views.listar_reportes_empresa, name='listar_reportes_empresa'),
-    
-    # Reportes adicionales
+    # ======================== ENDPOINTS DE REPORTES ========================
     path('api/reportes/proyecto', report_views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),
     path('api/reportes/consumo', report_views.obtener_consumo_nube, name='obtener_consumo_nube'),
     path('api/reportes/gastos', report_views.obtener_gastos_por_servicio, name='obtener_gastos_por_servicio'),

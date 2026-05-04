@@ -1,5 +1,6 @@
 """
 Django settings for finops_platform project - FinOps Platform for BITE.CO
+Implementación de Auth0 según laboratorio ISIS2503
 """
 
 import os
@@ -28,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'social_django',  # Auth0 via social_auth
     'autenticacion',
     'reportes',
 ]
@@ -41,7 +43,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'autenticacion.middleware.IntegridadPayloadMiddleware',
+    'autenticacion.middleware.AuditLoggingMiddleware',  # Auditoría de intentos
 ]
 
 ROOT_URLCONF = 'finops_platform.urls'
@@ -57,6 +59,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
@@ -66,8 +70,6 @@ WSGI_APPLICATION = 'finops_platform.wsgi.application'
 
 # Database
 # Configure PostgreSQL connection for AWS deployment
-# When running in AWS EC2, DATABASE_HOST should be set to the private IP of the report-db instance
-# The variable is set automatically by the user_data script in terraform/deployment.tf
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -112,22 +114,41 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ======================== CONFIGURACIÓN PERSONALIZADA ========================
-# Custom User Model  
-# AUTH_USER_MODEL = 'autenticacion.Usuario'
+# ======================== AUTH0 CONFIGURATION (Laboratorio ISIS2503) ========================
 
-# Security Settings
-SECURITY_SETTINGS = {
-    'MAX_INTENTOS_LOGIN': 5,
-    'VENTANA_TIEMPO_INTENTOS_SEGUNDOS': 3600,
-    'DURACION_BLOQUEO_SEGUNDOS': 300,
-}
+LOGIN_URL = "/login/auth0"
+LOGIN_REDIRECT_URL = "/"
 
-# REST Framework
+# LOGOUT_REDIRECT_URL: Opción A - Hardcodear manualmente después de terraform apply
+# Pasos:
+# 1. terraform apply -auto-approve
+# 2. Obtener IP pública de app-a desde terraform output
+# 3. Editar esta línea: LOGOUT_REDIRECT_URL = "https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=http://<IP_PUBLICA>:8080"
+# 4. Git commit y push (o SSH a instancia y editar manualmente)
+#
+# Placeholder para desarrollo local:
+LOGOUT_REDIRECT_URL = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=http://localhost:8080'
+
+SOCIAL_AUTH_TRAILING_SLASH = False
+
+SOCIAL_AUTH_AUTH0_DOMAIN = 'dev-vy27mzsmkwosyqhr.us.auth0.com'
+SOCIAL_AUTH_AUTH0_KEY = 'hLSCIWW4Wof9DJeDv58kPXBLX07YLZCA'
+SOCIAL_AUTH_AUTH0_SECRET = 'Jn1VRUtos80bWySfxL5HFHk-aMu30fZM0CyKsRyaREIsGwVAq6y2rXmN4GmCbRAZ'
+
+SOCIAL_AUTH_AUTH0_SCOPE = [
+    'openid',
+    'profile',
+    'email',
+    'role',
+]
+
+AUTHENTICATION_BACKENDS = (
+    'autenticacion.auth0backend.Auth0',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+# ======================== REST FRAMEWORK ========================
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'autenticacion.auth0_backend.Auth0Authentication',
-    ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
     'DEFAULT_FILTER_BACKENDS': [
@@ -139,8 +160,9 @@ REST_FRAMEWORK = {
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
-# ========== AUTH0 CONFIGURATION ==========
-AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN', '')
-AUTH0_CLIENT_ID = os.getenv('AUTH0_CLIENT_ID', '')
-AUTH0_CLIENT_SECRET = os.getenv('AUTH0_CLIENT_SECRET', '')
-AUTH0_API_IDENTIFIER = os.getenv('AUTH0_API_IDENTIFIER', 'https://finops-api')
+# ======================== SECURITY SETTINGS ========================
+SECURITY_SETTINGS = {
+    'MAX_INTENTOS_LOGIN': 5,
+    'VENTANA_TIEMPO_INTENTOS_SEGUNDOS': 3600,
+    'DURACION_BLOQUEO_SEGUNDOS': 300,
+}

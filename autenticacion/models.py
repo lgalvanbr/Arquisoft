@@ -285,3 +285,33 @@ class IntentoAccesoNoAutorizado(models.Model):
     
     def __str__(self):
         return f"Intento {self.usuario} - {self.empresa_solicitada_id} - {self.fecha_intento}"
+
+
+class AuditLog(models.Model):
+    """
+    Log general de auditoría para registrar eventos de seguridad.
+    Usado por decoradores de permissions y validators.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.CharField(max_length=100)  # ACCESO_NO_AUTORIZADO, INTENTO_MANIPULACION, etc.
+    resource = models.CharField(max_length=255)  # endpoint o recurso accedido
+    method = models.CharField(max_length=10)  # GET, POST, PUT, DELETE
+    ip_address = models.GenericIPAddressField()
+    status_code = models.IntegerField()  # 401, 403, 200, etc.
+    request_data = models.JSONField(default=dict, blank=True)
+    token_id = models.CharField(max_length=255, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        db_table = 'audit_log'
+        verbose_name = 'Audit Log'
+        verbose_name_plural = 'Audit Logs'
+        indexes = [
+            models.Index(fields=['action', 'timestamp']),
+            models.Index(fields=['ip_address', 'timestamp']),
+            models.Index(fields=['user', 'timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.action} - {self.ip_address} - {self.timestamp}"

@@ -1,118 +1,105 @@
 """
-Middleware para validación de integridad de payloads
-ASR Integridad: Detección y rechazo de mensajes adulterados
+Middleware de auditoría para registrar intentos de acceso.
+Laboratorio ISIS2503 - Seguridad Integridad y Confidencialidad
 """
 import json
-import logging
-from django.utils.deprecation import MiddlewareMixin
-from django.http import JsonResponse
 from django.utils import timezone
-from rest_framework import status
-from .models import RechazoIntegridad
-
-logger = logging.getLogger(__name__)
+from django.http import JsonResponse
 
 
-def obtener_ip_cliente(request):
+class AuditLoggingMiddleware:
     """
-    Obtiene la dirección IP del cliente desde el request.
+    Middleware que registra:
+    - Intentos de acceso no autorizado (403)
+    - Intentos de manipulación (401)
+    - Accesos exitosos a endpoints críticos (200)
     
-    Intenta obtener la IP del header X-Forwarded-For (proxy/load balancer),
-    si no está disponible usa REMOTE_ADDR.
-    """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        return x_forwarded_for.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', 'desconocida')
-
-
-class IntegridadPayloadMiddleware(MiddlewareMixin):
-    """
-    Middleware que valida la integridad de payloads en endpoints sensibles.
-    
-    ASR Integridad:
-    - 100% de mensajes adulterados son rechazados con error 401
-    - Ningún dato es persistido en BD
-    - Rechazo registrado en log con fecha, IP de origen y motivo
+    Incluye: fecha, IP origen, método, endpoint, usuario, status_code
     """
     
-    ENDPOINTS_PROTEGIDOS = [
-        '/api/reportes/',
-    ]
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Endpoints críticos a auditar
+        self.critical_endpoints = [
+            '/api/reportes/',
+            '/api/auth/me',
+        ]
     
-    def process_request(self, request):
-        """
-        Procesa la solicitud y valida integridad de payload.
+    def __call__(self, request):
+        # Procesar request
+        response = self.get_response(request)
         
-        Solo procesa:
-        - Métodos: POST, PUT, PATCH
-        - Endpoints en ENDPOINTS_PROTEGIDOS
-        """
-        # Solo procesar métodos que envían datos
-        if request.method not in ['POST', 'PUT', 'PATCH']:
-            return None
+        # Registrar si es un endpoint crítico o si hay error de autorización
+        if self._should_audit(request, response):
+            self._log_request(request, response)
         
-        # Solo endpoints protegidos
-        if not any(request.path.startswith(ep) for ep in self.ENDPOINTS_PROTEGIDOS):
-            return None
+        return response
+    
+    def _should_audit(self, request, response):
+        """Determina si el request debe ser auditado"""
+        # Auditar si es endpoint crítico Y (acceso no autorizado o exitoso)
+        is_critical = any(ep in request.path for ep in self.critical_endpoints)
+        is_auth_error = response.status_code in [401, 403]
+        is_success = response.status_code == 200
         
+        return is_critical and (is_auth_error or is_success)
+    
+    def _log_request(self, request, response):
+        """Registra el request en AuditLog"""
         try:
-            # Intentar parsear JSON
-            if request.body:
-                payload = json.loads(request.body)
-                request.payload = payload
-            else:
-                request.payload = {}
-        except json.JSONDecodeError as e:
-            # JSON inválido = Mensaje adulterado
-            return self._rechazar_integridad(
-                request,
-                f"JSON inválido: {str(e)}",
-                status.HTTP_400_BAD_REQUEST
+            from autenticacion.models import AuditLog
+            
+            # Obtener IP cliente
+            ip = self._get_client_ip(request)
+            
+            # Extraer token info si existe
+            token_id = None
+            try:
+                if request.user.is_authenticated:
+                    social_user = request.user.social_user.get(provider='auth0')
+                    token_id = social_user.extra_data.get('sub', None)
+            except:
+                pass
+            
+            # Preparar data
+            request_data = {
+                'method': request.method,
+                'endpoint': request.path,
+                'query_string': request.GET.dict() if request.GET else {},
+            }
+            
+            # Registrar
+            AuditLog.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                action=self._get_action(response.status_code),
+                resource=request.path,
+                method=request.method,
+                ip_address=ip,
+                status_code=response.status_code,
+                request_data=json.dumps(request_data),
+                token_id=token_id,
+                timestamp=timezone.now()
             )
         except Exception as e:
-            logger.error(f"Error parsing payload: {str(e)}")
-            return self._rechazar_integridad(
-                request,
-                "Error procesando solicitud",
-                status.HTTP_400_BAD_REQUEST
-            )
-        
-        return None
+            # No fallar el request si hay error en auditoría
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error en auditoría: {str(e)}")
     
-    def _rechazar_integridad(self, request, motivo, http_status):
-        """
-        Rechaza una solicitud por falta de integridad.
-        
-        Registra el evento en RechazoIntegridad con:
-        - Fecha exacta
-        - IP de origen
-        - Motivo del rechazo
-        - Payload recibido
-        """
-        ip_cliente = obtener_ip_cliente(request)
-        user_agent = request.META.get('HTTP_USER_AGENT', '')
-        
-        try:
-            RechazoIntegridad.objects.create(
-                direccion_ip=ip_cliente,
-                endpoint=request.path,
-                motivo_rechazo=motivo,
-                payload_recibido=getattr(request, 'payload', {}),
-                user_agent=user_agent
-            )
-        except Exception as e:
-            logger.error(f"Error registrando rechazo de integridad: {str(e)}")
-        
-        # Log con contexto completo
-        logger.warning(
-            f"[ASR INTEGRIDAD] Rechazo: {motivo} | "
-            f"Endpoint: {request.path} | "
-            f"IP: {ip_cliente} | "
-            f"Timestamp: {timezone.now().isoformat()}"
-        )
-        
-        return JsonResponse(
-            {'error': 'Mensaje inválido o adulterado'},
-            status=http_status
-        )
+    def _get_action(self, status_code):
+        """Determina la acción según status code"""
+        if status_code == 401:
+            return 'INTENTO_MANIPULACION'
+        elif status_code == 403:
+            return 'ACCESO_NO_AUTORIZADO'
+        else:
+            return 'ACCESO_EXITOSO'
+    
+    def _get_client_ip(self, request):
+        """Extrae IP cliente real (considera proxies)"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR', 'UNKNOWN')
+        return ip

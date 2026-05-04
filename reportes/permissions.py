@@ -1,104 +1,149 @@
 """
-Decoradores y validadores para confidencialidad
-ASR Confidencialidad: Detección de acceso no autorizado a empresas ajenas
+Validadores de permisos para segregación de datos por empresa.
+Laboratorio ISIS2503 - Seguridad Integridad y Confidencialidad
 """
-import logging
-from functools import wraps
 from django.http import JsonResponse
-from django.utils import timezone
-from rest_framework import status
-from autenticacion.models import IntentoAccesoNoAutorizado
-
-logger = logging.getLogger(__name__)
+from functools import wraps
+from autenticacion.auth0backend import getRole
 
 
-def obtener_ip_cliente(request):
+def require_authentication(view_func):
+    """Decorador para requerir usuario autenticado"""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'error': 'No autorizado',
+                'detail': 'Usuario no autenticado'
+            }, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def check_company_access(view_func):
     """
-    Obtiene la dirección IP del cliente desde el request.
-    """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        return x_forwarded_for.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', 'desconocida')
-
-
-def validar_acceso_empresa(view_func):
-    """
-    Decorador que valida que el usuario solo acceda a su empresa.
+    Decorador para validar acceso a empresa solicitada.
+    Evita que usuario de Empresa A acceda a datos de Empresa B.
     
-    ASR Confidencialidad:
-    - Extrae empresa_id de la URL (parámetro de ruta)
-    - Compara con empresa del usuario en JWT
-    - Si no coinciden: rechaza con 403, registra en IntentoAccesoNoAutorizado
-    - Registra: IP, token_identifier, empresa_solicitada, empresa_autorizada, fecha
+    Extrae company_id de:
+    1. URL parameter (reportes/costos/empresa/<company_id>)
+    2. Request body (JSON)
+    3. Query parameter (?company_id=...)
     
-    Uso:
-        @validar_acceso_empresa
-        def my_view(request, empresa_id):
-            pass
+    Compara con empresa del usuario en el token Auth0.
+    Si no coinciden → 403 Forbidden + log de intento.
     """
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        # Obtener empresa_id de la URL
-        empresa_solicitada_id = kwargs.get('empresa_id')
+        # 1. Obtener company_id solicitado
+        requested_company = kwargs.get('empresa_id') or \
+                           request.GET.get('company_id') or \
+                           request.GET.get('empresa_id')
         
-        if not empresa_solicitada_id:
-            logger.warning(f"[ASR CONFIDENCIALIDAD] Endpoint sin empresa_id en ruta")
-            return JsonResponse(
-                {'error': 'empresa_id requerido en la ruta'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Obtener empresa del usuario (desde Auth0 en el JWT)
-        usuario = request.user
-        empresa_autorizada_id = getattr(usuario, 'auth0_empresa_id', None)
-        
-        # Si el usuario no tiene empresa asignada en el token
-        if not empresa_autorizada_id:
-            logger.warning(
-                f"[ASR CONFIDENCIALIDAD] Usuario sin empresa_id en token: {usuario.usuario_django.email}"
-            )
-            return JsonResponse(
-                {'error': 'Usuario sin empresa asignada'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        # Comparar: ¿Intenta acceder a una empresa distinta a la suya?
-        if str(empresa_solicitada_id) != str(empresa_autorizada_id):
-            ip_cliente = obtener_ip_cliente(request)
-            token_identifier = request.auth[:50] if request.auth else 'unknown'  # Primeros 50 chars del token
-            
-            # Registrar intento de acceso no autorizado
+        if not requested_company:
             try:
-                IntentoAccesoNoAutorizado.objects.create(
-                    usuario=usuario,
-                    empresa_solicitada_id=empresa_solicitada_id,
-                    empresa_autorizada_id=empresa_autorizada_id,
-                    endpoint=request.path,
-                    direccion_ip=ip_cliente,
-                    token_identifier=token_identifier
-                )
-            except Exception as e:
-                logger.error(f"Error registrando acceso no autorizado: {str(e)}")
-            
-            # Log detallado
-            logger.warning(
-                f"[ASR CONFIDENCIALIDAD] Intento de acceso no autorizado | "
-                f"Usuario: {usuario.usuario_django.email} | "
-                f"Empresa solicitada: {empresa_solicitada_id} | "
-                f"Empresa autorizada: {empresa_autorizada_id} | "
-                f"Endpoint: {request.path} | "
-                f"IP: {ip_cliente} | "
-                f"Timestamp: {timezone.now().isoformat()}"
-            )
-            
-            # Rechazar acceso
-            return JsonResponse(
-                {'error': 'No autorizado para acceder a esta empresa'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+                data = request.POST or {}
+                requested_company = data.get('company_id') or data.get('empresa_id')
+            except:
+                pass
         
-        # Acceso permitido - continuar con la vista
+        if not requested_company:
+            return JsonResponse({
+                'error': 'Parámetro requerido',
+                'detail': 'company_id o empresa_id no especificado'
+            }, status=400)
+        
+        # 2. Obtener empresa del usuario autenticado
+        user_company = None
+        try:
+            # Desde Auth0 custom claims
+            if request.user.is_authenticated:
+                # social_user.extra_data contiene el token decode
+                try:
+                    social_user = request.user.social_user.get(provider='auth0')
+                    extra_data = social_user.extra_data
+                    user_company = extra_data.get('https://finops-api/empresa', None)
+                except:
+                    user_company = None
+        except:
+            pass
+        
+        # 3. Validar coincidencia de empresa
+        if not user_company:
+            # Si no hay empresa en token, rechazar
+            return JsonResponse({
+                'error': 'Acceso Denegado',
+                'detail': 'No se encontró información de empresa en el token'
+            }, status=403)
+        
+        if str(user_company).upper() != str(requested_company).upper():
+            # INTENTO DE ACCESO NO AUTORIZADO - REGISTRAR
+            from autenticacion.models import IntentoAccesoNoAutorizado
+            from django.utils import timezone
+            import json
+            
+            # Extraer token ID si existe
+            token_id = None
+            try:
+                social_user = request.user.social_user.get(provider='auth0')
+                token_id = social_user.extra_data.get('sub', 'UNKNOWN')
+            except:
+                token_id = 'UNKNOWN'
+            
+            IntentoAccesoNoAutorizado.objects.create(
+                usuario=request.user if request.user.is_authenticated else None,
+                empresa_solicitada_id=requested_company,
+                empresa_autorizada_id=user_company,
+                endpoint=request.path,
+                direccion_ip=get_client_ip(request),
+                token_identifier=token_id,
+                fecha_intento=timezone.now()
+            )
+            
+            return JsonResponse({
+                'error': 'Acceso Denegado',
+                'detail': 'No tienes permiso para acceder a esta empresa'
+            }, status=403)
+        
+        # 4. Pasar al siguiente middleware/view
+        return view_func(request, *args, **kwargs)
+    
+    return wrapper
+
+
+def get_client_ip(request):
+    """Extrae IP cliente real (considera proxies y load balancers)"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+def check_admin_role(view_func):
+    """Decorador para requerir rol admin"""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'error': 'No autorizado',
+                'detail': 'Usuario no autenticado'
+            }, status=401)
+        
+        try:
+            role = getRole(request.user)
+            if role != 'admin':
+                return JsonResponse({
+                    'error': 'Acceso Denegado',
+                    'detail': f'Se requiere rol admin. Tu rol: {role}'
+                }, status=403)
+        except:
+            return JsonResponse({
+                'error': 'Acceso Denegado',
+                'detail': 'No se pudo validar el rol'
+            }, status=403)
+        
         return view_func(request, *args, **kwargs)
     
     return wrapper
