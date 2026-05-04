@@ -18,7 +18,7 @@ class Auth0(BaseOAuth2):
     EXTRA_DATA = [
         ('picture', 'picture'),
         ('access_token', 'access_token'),
-        ('id_token', 'id_token'),  # guardar id_token para leer claims
+        ('id_token', 'id_token'),
     ]
 
     def authorization_url(self):
@@ -31,22 +31,36 @@ class Auth0(BaseOAuth2):
         return details.get('user_id') or response.get('sub')
 
     def get_user_details(self, response):
-        """Obtener detalles del usuario desde el id_token (JWT decodificable)"""
         try:
             DOMAIN = settings.SOCIAL_AUTH_AUTH0_DOMAIN
 
-            # Leer claims desde el id_token (es JWT, se puede decodificar)
-            id_token = response.get('id_token')
-            claims = self._extract_from_jwt(id_token) if id_token else {}
+            # ===== DEBUG =====
+            print("=== AUTH0 DEBUG ===")
+            print("response keys:", list(response.keys()))
 
-            # Fallback a /userinfo si no hay id_token
-            if not claims or 'sub' not in claims:
-                access_token = response.get('access_token')
-                url = 'https://' + self.setting('DOMAIN') + '/userinfo'
-                headers = {'authorization': 'Bearer ' + access_token}
-                resp = requests.get(url, headers=headers, timeout=5)
-                resp.raise_for_status()
-                claims = resp.json()
+            id_token = response.get('id_token')
+            print("id_token exists:", bool(id_token))
+
+            if id_token:
+                claims_from_id = self._extract_from_jwt(id_token)
+                print("id_token claims:", json.dumps(claims_from_id, indent=2))
+            else:
+                claims_from_id = {}
+
+            access_token = response.get('access_token')
+            url = 'https://' + self.setting('DOMAIN') + '/userinfo'
+            headers = {'authorization': 'Bearer ' + access_token}
+            resp = requests.get(url, headers=headers, timeout=5)
+            userinfo = resp.json()
+            print("userinfo response:", json.dumps(userinfo, indent=2))
+            print(f"Looking for claim: {DOMAIN}/empresa_id")
+            print(f"empresa from id_token: {claims_from_id.get(f'{DOMAIN}/empresa_id')}")
+            print(f"empresa from userinfo: {userinfo.get(f'{DOMAIN}/empresa_id')}")
+            print("=== FIN DEBUG ===")
+            # ===== FIN DEBUG =====
+
+            # Usar id_token si tiene claims, sino userinfo
+            claims = claims_from_id if claims_from_id.get('sub') else userinfo
 
             username = claims.get('nickname') or claims.get('email', '').split('@')[0]
 
@@ -59,10 +73,12 @@ class Auth0(BaseOAuth2):
                 'empresa': claims.get(f'{DOMAIN}/empresa_id', ''),
                 'rol': claims.get(f'{DOMAIN}/rol', 'usuario'),
             }
+
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error en get_user_details: {str(e)}", exc_info=True)
+            print(f"=== AUTH0 ERROR: {str(e)} ===")
             return {
                 'username': response.get('sub', 'unknown'),
                 'first_name': '',
@@ -92,23 +108,24 @@ class Auth0(BaseOAuth2):
 def getRole(request):
     """
     Obtiene el rol del usuario leyendo el id_token guardado en extra_data.
-    El id_token es un JWT decodificable que contiene los custom claims de Auth0.
     """
     try:
         user = request.user
         auth0user = user.social_auth.filter(provider="auth0")[0]
         DOMAIN = settings.SOCIAL_AUTH_AUTH0_DOMAIN
 
-        # Leer el id_token guardado en extra_data
+        # Intentar desde id_token
         id_token = auth0user.extra_data.get('id_token')
         if id_token:
             parts = id_token.split('.')
             payload = parts[1] + '=' * (4 - len(parts[1]) % 4)
             claims = json.loads(base64.urlsafe_b64decode(payload))
+            print(f"=== getRole claims: {claims} ===")
             return claims.get(f'{DOMAIN}/rol', 'usuario')
 
-        # Fallback: leer del extra_data mapeado
+        # Fallback a extra_data
         return auth0user.extra_data.get('rol', 'usuario')
 
-    except Exception:
+    except Exception as e:
+        print(f"=== getRole ERROR: {str(e)} ===")
         return 'usuario'

@@ -285,11 +285,23 @@ def logout(request):
     """Endpoint para logout del usuario (maneja tanto JWT como Auth0)
     
     - Para usuarios con JWT: revoca el token
-    - Para usuarios con Auth0: redirige a logout de Auth0
+    - Para usuarios con sesión Django (Auth0): limpia sesión
+    - En ambos casos: redirige a logout de Auth0
     - Limpia la sesión Django en ambos casos
     """
     try:
         usuario = request.user
+        username = usuario.username if usuario.is_authenticated else 'anonymous'
+        
+        # Obtener detalles del usuario ANTES de hacer logout
+        # (después de logout, request.user se vuelve AnonymousUser)
+        is_auth0_user = False
+        if usuario.is_authenticated:
+            try:
+                social_user = usuario.social_user.get(provider='auth0')
+                is_auth0_user = True
+            except:
+                is_auth0_user = False
         
         # Revocar tokens JWT si existen
         if usuario.is_authenticated:
@@ -300,18 +312,22 @@ def logout(request):
                     fecha_revocacion=timezone.now(),
                     motivo_revocacion='Logout del usuario'
                 )
+                logger.info(f"JWT tokens revocados para usuario: {username}")
             except Exception as e:
-                logger.warning(f"Error revocando tokens: {str(e)}")
+                logger.warning(f"Error revocando JWT tokens: {str(e)}")
             
             # Eliminar social auth associations para forzar re-login
+            # Esto es importante para Auth0 users
             try:
                 usuario.social_user.all().delete()
+                logger.info(f"Social auth associations eliminadas para: {username}")
             except Exception as e:
                 logger.warning(f"Error eliminando social_user: {str(e)}")
         
         # Limpiar sesión Django completamente
         from django.contrib.auth import logout as django_logout
         django_logout(request)
+        logger.info(f"Logout: usuario={username}, is_auth0={is_auth0_user}")
         
         # Construir URL de logout de Auth0
         domain = settings.SOCIAL_AUTH_AUTH0_DOMAIN
@@ -323,15 +339,16 @@ def logout(request):
         
         # Construir URL de logout de Auth0
         # Formato: https://YOUR_DOMAIN/v2/logout?client_id=YOUR_CLIENT_ID&returnTo=RETURN_URL
-        # El parámetro 'federated' hace logout de todos los proveedores conectados
         auth0_logout_url = f"https://{domain}/v2/logout?client_id={client_id}&returnTo={return_to}"
-        
-        logger.info(f"Logout: {usuario.username if usuario.is_authenticated else 'anonymous'}")
         
         # Si es una petición AJAX/fetch, retornar JSON
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return Response(
-                {'mensaje': 'Logout exitoso', 'auth0_logout_url': auth0_logout_url},
+                {
+                    'mensaje': 'Logout exitoso',
+                    'auth0_logout_url': auth0_logout_url,
+                    'is_auth0_user': is_auth0_user
+                },
                 status=status.HTTP_200_OK
             )
         
@@ -340,10 +357,24 @@ def logout(request):
         
     except Exception as e:
         logger.error(f"Error en logout: {str(e)}", exc_info=True)
-        return Response(
-            {'error': 'Error en logout'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        # Intentar logout de todas formas
+        try:
+            from django.contrib.auth import logout as django_logout
+            django_logout(request)
+        except:
+            pass
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return Response(
+                {
+                    'error': 'Error en logout',
+                    'detail': str(e),
+                    'auth0_logout_url': f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/v2/logout?client_id={settings.SOCIAL_AUTH_AUTH0_KEY}&returnTo={request.build_absolute_uri('/?just_logged_out=true')}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        else:
+            return redirect(f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/v2/logout?client_id={settings.SOCIAL_AUTH_AUTH0_KEY}&returnTo={request.build_absolute_uri('/?just_logged_out=true')}")
 
 
 @api_view(['GET'])
