@@ -441,6 +441,23 @@ EOT
   depends_on = [aws_instance.database]
 }
 
+#añadir instancia Kong
+
+resource "aws_instance" "kong" {
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [
+    aws_security_group.traffic_kong.id,
+    aws_security_group.traffic_ssh.id
+  ]
+  tags = { Name = "cbd-kong" }
+}
+
+output "kong_public_ip" {
+  value = aws_instance.kong.public_ip
+}
+
 # ========== TARGET GROUP ==========
 
 resource "aws_lb_target_group" "app_group" {
