@@ -33,52 +33,40 @@ class Auth0(BaseOAuth2):
     def get_user_details(self, response):
         try:
             DOMAIN = settings.SOCIAL_AUTH_AUTH0_DOMAIN
-
-            # ===== DEBUG =====
-            print("=== AUTH0 DEBUG ===")
-            print("response keys:", list(response.keys()))
-
-            id_token = response.get('id_token')
-            print("id_token exists:", bool(id_token))
-
-            if id_token:
-                claims_from_id = self._extract_from_jwt(id_token)
-                print("id_token claims:", json.dumps(claims_from_id, indent=2))
-            else:
-                claims_from_id = {}
-
             access_token = response.get('access_token')
-            url = 'https://' + self.setting('DOMAIN') + '/userinfo'
-            headers = {'authorization': 'Bearer ' + access_token}
-            resp = requests.get(url, headers=headers, timeout=5)
-            userinfo = resp.json()
-            print("userinfo response:", json.dumps(userinfo, indent=2))
-            print(f"Looking for claim: {DOMAIN}/empresa_id")
-            print(f"empresa from id_token: {claims_from_id.get(f'{DOMAIN}/empresa_id')}")
-            print(f"empresa from userinfo: {userinfo.get(f'{DOMAIN}/empresa_id')}")
-            print("=== FIN DEBUG ===")
-            # ===== FIN DEBUG =====
 
-            # Usar id_token si tiene claims, sino userinfo
-            claims = claims_from_id if claims_from_id.get('sub') else userinfo
+            # 1. Intentar desde id_token
+            id_token = response.get('id_token')
+            claims = self._extract_from_jwt(id_token) if id_token else {}
+            
+            empresa = claims.get(f'{DOMAIN}/empresa_id')
+            rol = claims.get(f'{DOMAIN}/rol')
 
-            username = claims.get('nickname') or claims.get('email', '').split('@')[0]
+            # 2. Si faltan claims, llamar /userinfo
+            if not empresa or not rol:
+                url = 'https://' + self.setting('DOMAIN') + '/userinfo'
+                headers = {'authorization': 'Bearer ' + access_token}
+                resp = requests.get(url, headers=headers, timeout=5)
+                userinfo = resp.json()
+                empresa = empresa or userinfo.get(f'{DOMAIN}/empresa_id')
+                rol = rol or userinfo.get(f'{DOMAIN}/rol', 'usuario')
+                # Usar claims de userinfo como base si id_token está vacío
+                if not claims.get('sub'):
+                    claims = userinfo
 
             return {
-                'username': username,
+                'username': claims.get('nickname') or claims.get('email', '').split('@')[0],
                 'first_name': claims.get('name', ''),
                 'picture': claims.get('picture', ''),
                 'user_id': claims.get('sub'),
                 'email': claims.get('email', ''),
-                'empresa': claims.get(f'{DOMAIN}/empresa_id', ''),
-                'rol': claims.get(f'{DOMAIN}/rol', 'usuario'),
+                'empresa': empresa or '',
+                'rol': rol or 'usuario',
             }
-
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error en get_user_details: {str(e)}", exc_info=True)
-            print(f"=== AUTH0 ERROR: {str(e)} ===")
             return {
                 'username': response.get('sub', 'unknown'),
                 'first_name': '',

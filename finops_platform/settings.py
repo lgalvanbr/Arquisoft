@@ -154,7 +154,8 @@ SOCIAL_AUTH_AUTH0_SCOPE = [
 ]
 
 SOCIAL_AUTH_AUTH0_AUTH_EXTRA_ARGUMENTS = {
-    'audience': 'https://finops-api'
+    'audience': 'https://finops-api',
+    'prompt': 'login'
 }
 
 # Usar pipeline por defecto de social_django (no personalizado)
