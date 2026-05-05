@@ -1,0 +1,45 @@
+_format_version: "1.1"
+
+services:
+  - name: finops_auth_service
+    host: finops_upstream
+    protocol: http
+    routes:
+      - name: auth_routes
+        paths:
+          - /api/auth
+        strip_path: false
+  
+  - name: finops_reportes_service
+    host: finops_upstream
+    protocol: http
+    routes:
+      - name: reportes_routes
+        paths:
+          - /api/reportes
+        strip_path: false
+      - name: root_route
+        paths:
+          - /
+        strip_path: false
+
+upstreams:
+  - name: finops_upstream
+    targets:
+      - target: <IP-PRIVADA-APP-A>:8080
+        weight: 100
+      - target: <IP-PRIVADA-APP-B>:8080
+        weight: 100
+      - target: <IP-PRIVADA-APP-C>:8080
+        weight: 100
+    healthchecks:
+      threshold: 66
+      active:
+        http_path: /api/reportes/health
+        timeout: 5
+        healthy:
+          successes: 2
+          interval: 5
+        unhealthy:
+          tcp_failures: 2
+          interval: 5
