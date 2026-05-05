@@ -32,7 +32,7 @@ class Auth0(BaseOAuth2):
 
     def get_user_details(self, response):
         try:
-            DOMAIN = settings.SOCIAL_AUTH_AUTH0_DOMAIN
+            DOMAIN ='https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN
             access_token = response.get('access_token')
 
             # 1. Intentar desde id_token
@@ -100,7 +100,7 @@ def getRole(request):
     try:
         user = request.user
         auth0user = user.social_auth.filter(provider="auth0")[0]
-        DOMAIN = settings.SOCIAL_AUTH_AUTH0_DOMAIN
+        DOMAIN = 'https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN
 
         # Intentar desde id_token
         id_token = auth0user.extra_data.get('id_token')
