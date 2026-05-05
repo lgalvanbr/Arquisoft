@@ -79,18 +79,35 @@ def getRole(request):
     """
     user = request.user 
 
-    auth0user = user.social_auth.filter(provider="auth0")[0] 
-   
-    accessToken = auth0user.extra_data['access_token'] 
+    try:
+        auth0user = user.social_auth.filter(provider="auth0").first()
+        if not auth0user:
+            print("=== getRole: No social_auth encontrado para provider auth0 ===")
+            return None
+    
+        accessToken = auth0user.extra_data.get('access_token')
+        if not accessToken:
+            print("=== getRole: No access_token en extra_data ===")
+            print("=== getRole: extra_data keys:", list(auth0user.extra_data.keys()))
+            return None
 
-    url = 'https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN + '/userinfo' 
+        url = 'https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN + '/userinfo' 
+        headers = {'authorization': 'Bearer ' + accessToken} 
 
-    headers = {'authorization': 'Bearer ' + accessToken} 
+        print("=== getRole: calling userinfo ===", url)
 
-    resp = requests.get(url, headers=headers) 
+        resp = requests.get(url, headers=headers) 
+        print("=== getRole: userinfo response status:", resp.status_code)
+        userinfo = resp.json() 
+        print("=== getRole: userinfo response:", json.dumps(userinfo, indent=2))
 
-    userinfo = resp.json() 
+        namespace = f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/rol"
+        print("=== getRole: buscando claim:", namespace)
 
-    role = userinfo.get(f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/rol") \
+        role = userinfo.get(namespace)
+        print("=== getRole: role encontrado:", role)
         
-    return (role) 
+        return role
+    except Exception as e:
+        print("=== getRole: exception:", str(e))
+        return None 
