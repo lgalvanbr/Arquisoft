@@ -470,7 +470,7 @@ resource "aws_lb_target_group" "app_group" {
     unhealthy_threshold = 2
     timeout             = 5
     interval            = 30
-    path                = "/api/reportes/health"
+    path                = "/reportes/health"
     matcher             = "200"
     protocol            = "HTTP"
   }
