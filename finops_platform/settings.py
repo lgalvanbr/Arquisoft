@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'social_django',  # Auth0 via social_auth
+    'finops_platform',
     'autenticacion',
     'reportes',
     'usuario',

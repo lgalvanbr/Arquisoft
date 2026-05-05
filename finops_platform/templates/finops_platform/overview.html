@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- DASHBOARD -->
-<div id="dashboard" style="display:flex" class="min-h-screen flex bg-background">
+<div id="dashboard" class="min-h-screen flex bg-background">
   <!-- Mobile overlay -->
   <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
   <!-- Sidebar -->
@@ -116,26 +116,48 @@
 async function loadOverview() {
   const token = localStorage.getItem('access_token');
   try {
-    // Fetch auth health
     const authRes = await fetch('/autenticacion/health', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const authData = await authRes.json();
-    
-    // Fetch reportes health
     const reportesRes = await fetch('/reportes/health', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const reportesData = await reportesRes.json();
-    
     document.getElementById('ov-health').textContent = 'Activo';
   } catch (error) {
     console.error('Error loading overview:', error);
   }
 }
 
+// Cargar info del usuario en el sidebar/topbar
+async function loadUserInfo() {
+  const token = localStorage.getItem('access_token');
+  try {
+    const res = await fetch('/autenticacion/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      // Token inválido o expirado
+      window.location.href = '/login/';
+      return;
+    }
+    const data = await res.json();
+    const name = data.username || 'Usuario';
+    const ini = name[0].toUpperCase();
+    document.getElementById('user-display').textContent = name;
+    document.getElementById('user-avatar-letter').textContent = ini;
+    document.getElementById('sidebar-username').textContent = name;
+    document.getElementById('sidebar-avatar').textContent = ini;
+    document.getElementById('sidebar-rol').textContent = data.rol || 'usuario';
+    document.getElementById('ov-user').textContent = name;
+    document.getElementById('ov-rol').textContent = 'Rol: ' + (data.rol || 'usuario');
+    document.getElementById('me-data').textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+    window.location.href = '/login/';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-  loadUserData();
+  loadUserInfo();
   loadOverview();
 });
 </script>
