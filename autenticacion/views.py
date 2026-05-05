@@ -227,15 +227,14 @@ def obtener_usuario_actual(request):
         social = usuario.social_auth.filter(provider='auth0').first()
         if social:
             from autenticacion.auth0backend import getRole
-            rol = getRole(request) or 'usuario'
-            empresa = social.extra_data.get('https://finops-api/empresa', '') or social.extra_data.get('empresa', '')
+            rol = getRole(request)
+            empresa = social.extra_data.get('https://finops-api/empresa', '')
         else:
             from autenticacion.models import Usuario as UsuarioModel
             u = UsuarioModel.objects.filter(usuario_django=usuario).first()
             if u:
                 rol = u.rol
                 empresa = str(u.empresa) if u.empresa else ''
-            
 
         permisos = RolPermiso.objects.filter(rol=rol).select_related('permiso')
         permisos_list = [p.permiso.codigo for p in permisos]
