@@ -11,9 +11,9 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # ======================== AUTH0 / SOCIAL AUTH PATHS ========================
-    path('', include('django.contrib.auth.urls')),
-    path('', include('social_django.urls')),
+    # ======================== MAIN DASHBOARD ========================
+    path('finops_platform/', views.overview, name='finops_platform'),
+    path('', views.index, name='index'),
     
     # ======================== APP URLS ========================
     path('autenticacion/', include('autenticacion.urls')),
@@ -21,6 +21,7 @@ urlpatterns = [
     path('usuario/', include('usuario.urls')),
     path('empresa/', include('empresa.urls')),
     
-    # ======================== MAIN INDEX ========================
-    path('', views.index, name='index'),
+    # ======================== AUTH0 / SOCIAL AUTH PATHS ========================
+    path('', include('django.contrib.auth.urls')),
+    path('', include('social_django.urls')),
 ]

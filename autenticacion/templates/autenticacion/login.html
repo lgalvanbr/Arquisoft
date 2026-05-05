@@ -83,11 +83,12 @@
             <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label>
             <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">person</span><input id="login-username" type="text" placeholder="tu_usuario" autocomplete="username" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
           </div>
-           <div>
+         <div>
              <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label>
-             <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="login-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
-           </div>
-            <a href="/login/auth0" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 no-underline">Ingresar con Auth0 <span class="material-symbols-outlined text-[18px]">arrow_forward</span></a>
+              <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="login-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
+            </div>
+            <button onclick="doLogin()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Iniciar sesion <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+             <a href="/login/auth0" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 no-underline">Ingresar con Auth0 <span class="material-symbols-outlined text-[18px]">arrow_forward</span></a>
         </div>
       </div>
       <!-- REGISTER -->
@@ -113,11 +114,66 @@
 
 {% block extra_js %}
 <script>
+function switchTab(tab) {
+  document.getElementById('tab-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('tab-btn-login').classList.toggle('bg-surface-container-lowest', tab === 'login');
+  document.getElementById('tab-btn-login').classList.toggle('text-on-surface', tab === 'login');
+  document.getElementById('tab-btn-login').classList.toggle('shadow-sm', tab === 'login');
+  document.getElementById('tab-btn-login').classList.toggle('text-on-surface-variant', tab !== 'login');
+  document.getElementById('tab-btn-register').classList.toggle('bg-surface-container-lowest', tab === 'register');
+  document.getElementById('tab-btn-register').classList.toggle('text-on-surface', tab === 'register');
+  document.getElementById('tab-btn-register').classList.toggle('shadow-sm', tab === 'register');
+  document.getElementById('tab-btn-register').classList.toggle('text-on-surface-variant', tab !== 'register');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  
+  if (!username || !password) {
+    document.getElementById('auth-error').textContent = 'Por favor completa todos los campos';
+    document.getElementById('auth-error').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const response = await fetch('/autenticacion/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Guardar token
+      localStorage.setItem('access_token', data.access_token || data.access);
+      if (data.refresh_token) {
+        localStorage.setItem('refresh_token', data.refresh_token);
+      }
+      // Redirigir al dashboard
+      window.location.href = '/finops_platform/';
+    } else {
+      document.getElementById('auth-error').textContent = data.error || 'Credenciales incorrectas';
+      document.getElementById('auth-error').classList.remove('hidden');
+    }
+  } catch (error) {
+    document.getElementById('auth-error').textContent = 'No se pudo conectar al servidor';
+    document.getElementById('auth-error').classList.remove('hidden');
+  }
+}
+
 async function doRegister() {
-  const username = document.getElementById('reg-username').value;
-  const email = document.getElementById('reg-email').value;
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
-  const empresa = document.getElementById('reg-empresa').value;
+  const empresa = document.getElementById('reg-empresa').value.trim();
+
+  if (!username || !email || !password) {
+    document.getElementById('auth-error').textContent = 'Por favor completa los campos requeridos';
+    document.getElementById('auth-error').classList.remove('hidden');
+    return;
+  }
 
   try {
     const response = await fetch('/autenticacion/register', {
@@ -129,10 +185,15 @@ async function doRegister() {
     if (response.ok) {
       document.getElementById('auth-success').textContent = 'Cuenta creada exitosamente. Iniciar sesión.';
       document.getElementById('auth-success').classList.remove('hidden');
-      setTimeout(() => switchTab('login'), 2000);
+      document.getElementById('auth-error').classList.add('hidden');
+      setTimeout(() => {
+        switchTab('login');
+        document.getElementById('login-username').value = username;
+      }, 1500);
     } else {
       document.getElementById('auth-error').textContent = data.error || 'Error en el registro';
       document.getElementById('auth-error').classList.remove('hidden');
+      document.getElementById('auth-success').classList.add('hidden');
     }
   } catch (error) {
     document.getElementById('auth-error').textContent = error.message;
