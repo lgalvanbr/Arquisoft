@@ -219,7 +219,7 @@ def obtener_usuario_actual(request):
             else:
                 # Usuario propio con JWT — tiene atributos directos
                 from autenticacion.models import Usuario as UsuarioModel
-                u = UsuarioModel.objects.filter(username=usuario.username).first()
+                u = UsuarioModel.objects.filter(usuario_django=usuario).first()
                 if u:
                     rol = u.rol
                     empresa = str(u.empresa) if u.empresa else ''
