@@ -3,6 +3,7 @@ Views para finops_platform - Dashboard principal
 """
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 @require_http_methods(["GET"])
