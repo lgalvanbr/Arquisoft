@@ -235,9 +235,7 @@ def obtener_usuario_actual(request):
             if u:
                 rol = u.rol
                 empresa = str(u.empresa) if u.empresa else ''
-            else:
-                rol = 'usuario'
-                empresa = ''
+            
 
         permisos = RolPermiso.objects.filter(rol=rol).select_related('permiso')
         permisos_list = [p.permiso.codigo for p in permisos]
