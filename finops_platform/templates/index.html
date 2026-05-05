@@ -1,10 +1,10 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="color-scheme" content="light"/>
-<title>CloudyNet Â· FinOps Platform</title>
+<title>CloudyNet · FinOps Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://cdn.tailwindcss.com"/>
@@ -247,12 +247,12 @@ tailwind.config = {
           <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-primary/10 transition-colors duration-500"></div>
             <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[19px]">monitor_heart</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Estado Sistema</span></div>
-            <div class="relative z-10"><span id="ov-health" class="text-xl font-bold text-on-surface">-</span><p class="text-xs text-on-surface-variant mt-1">reportes Â· auth</p></div>
+            <div class="relative z-10"><span id="ov-health" class="text-xl font-bold text-on-surface">-</span><p class="text-xs text-on-surface-variant mt-1">reportes · auth</p></div>
           </div>
           <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-28 h-28 bg-secondary-container/30 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-secondary-container/50 transition-colors duration-500"></div>
             <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary"><span class="material-symbols-outlined text-[19px]">dns</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Instancias Activas</span></div>
-            <div class="relative z-10"><span class="text-2xl font-bold text-on-surface">2</span><div class="flex items-center gap-1 mt-1 text-[#10b981]"><span class="material-symbols-outlined text-[14px]">check_circle</span><span class="text-xs">app-a Â· app-b Â· LB</span></div></div>
+            <div class="relative z-10"><span class="text-2xl font-bold text-on-surface">2</span><div class="flex items-center gap-1 mt-1 text-[#10b981]"><span class="material-symbols-outlined text-[14px]">check_circle</span><span class="text-xs">app-a · app-b · LB</span></div></div>
           </div>
           <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-28 h-28 bg-tertiary-fixed/20 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-tertiary-fixed/40 transition-colors duration-500"></div>
@@ -268,7 +268,7 @@ tailwind.config = {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow flex flex-col">
             <div class="flex justify-between items-center mb-5">
-              <div><h3 class="text-base font-semibold text-on-surface">Trayectoria Multi-Cloud</h3><p class="text-xs text-on-surface-variant">AWS vs GCP Â· consumo 30 dias</p></div>
+              <div><h3 class="text-base font-semibold text-on-surface">Trayectoria Multi-Cloud</h3><p class="text-xs text-on-surface-variant">AWS vs GCP · consumo 30 dias</p></div>
               <div class="flex gap-2"><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant"><div class="w-2 h-2 rounded-full bg-primary"></div><span class="text-[11px] text-on-surface-variant">AWS</span></div><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant"><div class="w-2 h-2 rounded-full bg-secondary"></div><span class="text-[11px] text-on-surface-variant">GCP</span></div></div>
             </div>
             <div class="flex-1 min-h-[200px] relative border-l border-b border-surface-variant">
@@ -282,7 +282,7 @@ tailwind.config = {
             </div>
           </div>
           <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow flex flex-col">
-            <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Tu perfil</h3><span class="text-[9px] font-semibold text-primary bg-primary-fixed/40 px-2 py-1 rounded font-mono">GET /api/auth/me</span></div>
+            <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Tu perfil</h3><span class="text-[9px] font-semibold text-primary bg-primary-fixed/40 px-2 py-1 rounded font-mono">GET /autenticacion/me</span></div>
             <pre id="me-data" class="flex-1 text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-3.5 overflow-auto terminal-scroll leading-relaxed min-h-[160px] whitespace-pre-wrap break-words">Cargando...</pre>
           </div>
         </div>
@@ -292,7 +292,7 @@ tailwind.config = {
       <div class="page" id="page-reportes">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Reportes &amp; Analytics</h2><p class="text-sm text-on-surface-variant mt-1">Resumen de consumo cloud y rendimiento financiero.</p></div>
-          <button onclick="fetchEndpoint('/api/reportes/mensual','reportes-result')" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">download</span>Reporte mensual</button>
+          <button onclick="fetchEndpoint('/reportes/mensual','reportes-result')" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">download</span>Reporte mensual</button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
           <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
@@ -337,7 +337,7 @@ tailwind.config = {
           </div>
         </div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
-          <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Datos en tiempo real</h3><div class="flex gap-2 flex-wrap"><button onclick="fetchEndpoint('/api/reportes/mensual','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Mensual</button><button onclick="fetchEndpoint('/api/reportes/proyecto','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Por proyecto</button><button onclick="fetchEndpoint('/api/reportes/historial','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Historial</button></div></div>
+          <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Datos en tiempo real</h3><div class="flex gap-2 flex-wrap"><button onclick="fetchEndpoint('/reportes/mensual','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Mensual</button><button onclick="fetchEndpoint('/reportes/proyecto','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Por proyecto</button><button onclick="fetchEndpoint('/reportes/historial','reportes-result')" class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors">Historial</button></div></div>
           <pre id="reportes-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[100px] overflow-auto terminal-scroll whitespace-pre-wrap">Selecciona un reporte...</pre>
         </div>
       </div>
@@ -347,8 +347,8 @@ tailwind.config = {
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Consumo Cloud</h2><p class="text-sm text-on-surface-variant mt-1">Recursos AWS y GCP por servicio y proyecto.</p></div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
           <div class="flex gap-3 mb-5 flex-wrap">
-            <button onclick="fetchEndpoint('/api/reportes/consumo','consumo-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">cloud</span>Ver consumo</button>
-            <button onclick="fetchEndpoint('/api/reportes/gastos','consumo-result')" class="px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">payments</span>Por servicio</button>
+            <button onclick="fetchEndpoint('/reportes/consumo','consumo-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">cloud</span>Ver consumo</button>
+            <button onclick="fetchEndpoint('/reportes/gastos','consumo-result')" class="px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-xs font-medium hover:bg-surface-container-high transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">payments</span>Por servicio</button>
           </div>
           <pre id="consumo-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona un boton para cargar datos...</pre>
         </div>
@@ -375,7 +375,7 @@ tailwind.config = {
           </div>
         </div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
-          <div class="flex gap-3 mb-4"><button onclick="fetchEndpoint('/api/reportes/analisis','analisis-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">query_stats</span>Ejecutar analisis</button></div>
+          <div class="flex gap-3 mb-4"><button onclick="fetchEndpoint('/reportes/analisis','analisis-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">query_stats</span>Ejecutar analisis</button></div>
           <pre id="analisis-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[120px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para iniciar el analisis...</pre>
         </div>
       </div>
@@ -384,7 +384,7 @@ tailwind.config = {
       <div class="page" id="page-tendencias">
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Tendencias &amp; Anomalias</h2><p class="text-sm text-on-surface-variant mt-1">Patrones de consumo y deteccion de comportamientos inusuales.</p></div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
-          <div class="flex gap-3 mb-4"><button onclick="fetchEndpoint('/api/reportes/tendencias','tendencias-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">trending_up</span>Cargar tendencias</button></div>
+          <div class="flex gap-3 mb-4"><button onclick="fetchEndpoint('/reportes/tendencias','tendencias-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">trending_up</span>Cargar tendencias</button></div>
           <pre id="tendencias-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar el analisis de tendencias...</pre>
         </div>
       </div>
@@ -399,12 +399,12 @@ tailwind.config = {
           <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow">
             <p class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">analytics</span>Servicio Reportes</p>
             <div id="health-reportes-badge" class="mb-3"><span class="text-sm text-on-surface-variant italic">Pendiente verificacion...</span></div>
-            <code class="text-[10px] text-outline font-mono bg-surface-container px-2 py-1 rounded">GET /api/reportes/health</code>
+            <code class="text-[10px] text-outline font-mono bg-surface-container px-2 py-1 rounded">GET /reportes/health</code>
           </div>
           <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow">
             <p class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">security</span>Servicio Auth</p>
             <div id="health-auth-badge" class="mb-3"><span class="text-sm text-on-surface-variant italic">Pendiente verificacion...</span></div>
-            <code class="text-[10px] text-outline font-mono bg-surface-container px-2 py-1 rounded">GET /api/auth/health</code>
+            <code class="text-[10px] text-outline font-mono bg-surface-container px-2 py-1 rounded">GET /autenticacion/health</code>
           </div>
         </div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
@@ -421,7 +421,7 @@ tailwind.config = {
               <div class="flex items-center justify-between border-b border-surface-variant pb-4"><h2 class="text-base font-semibold text-on-surface">Request Configuration</h2></div>
               <div class="flex gap-3">
                 <div class="relative w-28 flex-shrink-0"><select class="w-full appearance-none bg-surface-container-low border border-outline-variant text-primary text-sm font-semibold rounded-xl pl-4 pr-8 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"><option>GET</option><option>POST</option></select><span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">expand_more</span></div>
-                <input id="custom-endpoint" type="text" value="/api/reportes/consumo" placeholder="/api/reportes/consumo" class="flex-1 bg-surface border border-outline-variant text-on-surface text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"/>
+                <input id="custom-endpoint" type="text" value="/reportes/consumo" placeholder="/reportes/consumo" class="flex-1 bg-surface border border-outline-variant text-on-surface text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"/>
               </div>
               <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2"><span class="text-xs text-on-surface-variant">Auth:</span><span class="bg-secondary-container text-on-secondary-container text-xs font-semibold px-3 py-1.5 rounded-full">Bearer Token (Admin)</span></div>
@@ -431,16 +431,16 @@ tailwind.config = {
             <div class="bg-surface rounded-xl border border-outline-variant soft-glow overflow-hidden">
               <div class="flex items-center justify-between px-5 py-3.5 border-b border-surface-variant bg-surface-container-low"><h3 class="text-sm font-semibold text-on-surface">Endpoints disponibles</h3><span class="text-[10px] text-on-surface-variant">Click para ejecutar</span></div>
               <div class="divide-y divide-surface-variant">
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/auth/me')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/auth/me</span><span class="text-xs text-on-surface-variant hidden sm:block">Perfil del usuario</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/auth/audit/historial')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/auth/audit/historial</span><span class="text-xs text-on-surface-variant hidden sm:block">Historial de accesos</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/mensual')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/mensual</span><span class="text-xs text-on-surface-variant hidden sm:block">Reporte mensual</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/consumo')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/consumo</span><span class="text-xs text-on-surface-variant hidden sm:block">Consumo cloud</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/gastos')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/gastos</span><span class="text-xs text-on-surface-variant hidden sm:block">Gastos por servicio</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/analisis')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/analisis</span><span class="text-xs text-on-surface-variant hidden sm:block">Optimizacion</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/tendencias')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/tendencias</span><span class="text-xs text-on-surface-variant hidden sm:block">Tendencias</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/costos/empresa/BITE.CO')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/costos/empresa/{id}</span><span class="text-xs text-on-surface-variant hidden sm:block">Obtener costos</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/costos/crear/BITE.CO','POST')"><span class="text-[10px] font-bold bg-[#fca5a5] text-[#7f1d1d] px-2 py-1 rounded font-mono min-w-[42px] text-center">POST</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/costos/crear/{id}</span><span class="text-xs text-on-surface-variant hidden sm:block">Crear reporte costos</span></div>
-                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/api/reportes/health')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/api/reportes/health</span><span class="text-xs text-on-surface-variant hidden sm:block">Health check</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/autenticacion/me')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/autenticacion/me</span><span class="text-xs text-on-surface-variant hidden sm:block">Perfil del usuario</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/autenticacion/audit/historial')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/autenticacion/audit/historial</span><span class="text-xs text-on-surface-variant hidden sm:block">Historial de accesos</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/mensual')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/mensual</span><span class="text-xs text-on-surface-variant hidden sm:block">Reporte mensual</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/consumo')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/consumo</span><span class="text-xs text-on-surface-variant hidden sm:block">Consumo cloud</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/gastos')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/gastos</span><span class="text-xs text-on-surface-variant hidden sm:block">Gastos por servicio</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/analisis')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/analisis</span><span class="text-xs text-on-surface-variant hidden sm:block">Optimizacion</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/tendencias')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/tendencias</span><span class="text-xs text-on-surface-variant hidden sm:block">Tendencias</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/costos/empresa/BITE.CO')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/costos/empresa/{id}</span><span class="text-xs text-on-surface-variant hidden sm:block">Obtener costos</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/costos/crear/BITE.CO','POST')"><span class="text-[10px] font-bold bg-[#fca5a5] text-[#7f1d1d] px-2 py-1 rounded font-mono min-w-[42px] text-center">POST</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/costos/crear/{id}</span><span class="text-xs text-on-surface-variant hidden sm:block">Crear reporte costos</span></div>
+                <div class="flex items-center gap-3 px-5 py-3 hover:bg-surface-container-low cursor-pointer transition-colors" onclick="setEndpoint('/reportes/health')"><span class="text-[10px] font-bold bg-[#dcfce7] text-[#166534] px-2 py-1 rounded font-mono min-w-[42px] text-center">GET</span><span class="font-mono text-xs text-on-surface flex-1">/reportes/health</span><span class="text-xs text-on-surface-variant hidden sm:block">Health check</span></div>
               </div>
             </div>
           </div>
@@ -473,12 +473,12 @@ tailwind.config = {
           </div>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-on-surface-variant mb-2">Ãšltimos N dÃ­as</label>
+              <label class="block text-xs font-semibold text-on-surface-variant mb-2">Últimos N días</label>
               <input id="filter-dias" type="number" value="7" min="1" max="90" class="w-full bg-surface border border-outline-variant text-on-surface text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
             </div>
             <div>
               <label class="block text-xs font-semibold text-on-surface-variant mb-2">Endpoint (parcial)</label>
-              <input id="filter-endpoint" type="text" placeholder="ej: /api/reportes" class="w-full bg-surface border border-outline-variant text-on-surface text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+              <input id="filter-endpoint" type="text" placeholder="ej: /reportes" class="w-full bg-surface border border-outline-variant text-on-surface text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
             </div>
             <div>
               <label class="block text-xs font-semibold text-on-surface-variant mb-2">IP Cliente</label>
@@ -519,9 +519,9 @@ tailwind.config = {
             </table>
           </div>
 
-          <!-- PaginaciÃ³n -->
+          <!-- Paginación -->
           <div class="flex items-center justify-between px-6 py-4 border-t border-surface-variant bg-surface-container-low">
-            <span class="text-xs text-on-surface-variant">PÃ¡gina <span id="current-page">1</span> de <span id="total-pages">1</span></span>
+            <span class="text-xs text-on-surface-variant">Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
             <div class="flex gap-2">
               <button id="btn-prev" onclick="cargarRechazosIntegridad(currentPage - 1)" disabled class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-outline-variant text-on-surface hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 <span class="material-symbols-outlined text-[16px]">chevron_left</span>
@@ -541,7 +541,7 @@ tailwind.config = {
 <script>
   // ========== AUTHENTICATION CONFIGURATION ==========
   // Using django-social-auth for Auth0, no SPA SDK needed
-  // Auth0 login flow: user clicks /login/auth0 â†’ Auth0 auth â†’ /complete/auth0/?code=... â†’ backend exchanges code
+  // Auth0 login flow: user clicks /login/auth0 ? Auth0 auth ? /complete/auth0/?code=... ? backend exchanges code
   
   let accessToken = localStorage.getItem('access_token') || null;
   let currentUser = null;
@@ -604,7 +604,7 @@ tailwind.config = {
      const password=document.getElementById('login-password').value;
      if(!username||!password){showAuthError('Completa todos los campos');return;}
      try {
-       const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken||''},body:JSON.stringify({username,password})});
+       const res=await fetch('/autenticacion/login',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken||''},body:JSON.stringify({username,password})});
        const data=await res.json();
        if(!res.ok){showAuthError(data.error||data.detail||'Credenciales incorrectas');return;}
        accessToken=data.access_token||data.tokens?.access||data.access;
@@ -623,7 +623,7 @@ tailwind.config = {
     const empresa=document.getElementById('reg-empresa').value.trim();
     if(!username||!email||!password){showAuthError('Completa los campos requeridos');return;}
     try {
-      const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email,password,empresa})});
+      const res=await fetch('/autenticacion/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email,password,empresa})});
       const data=await res.json();
       if(!res.ok){showAuthError(data.error||data.detail||'Error al registrar');return;}
       showAuthSuccess('Cuenta creada exitosamente! Inicia sesion.');
@@ -636,7 +636,7 @@ tailwind.config = {
     localStorage.clear();
     sessionStorage.clear();
     accessToken = null;
-    window.location.href = '/api/auth/logout';
+    window.location.href = '/autenticacion/logout';
   }
 
   function enterDashboard(user) {
@@ -694,7 +694,7 @@ tailwind.config = {
 
   function setEndpoint(path, method = 'GET') {
     document.getElementById('custom-endpoint').value=path;
-    // Actualizar el selector de mÃ©todo
+    // Actualizar el selector de método
     const methodSelect = document.querySelector('select');
     if (methodSelect) {
       methodSelect.value = method;
@@ -704,7 +704,7 @@ tailwind.config = {
 
   async function loadOverview() {
     try {
-      const{data}=await apiFetch('/api/auth/me');
+      const{data}=await apiFetch('/autenticacion/me');
       document.getElementById('me-data').textContent=JSON.stringify(data,null,2);
       if(data.username){
         const ini=data.username[0].toUpperCase();
@@ -722,7 +722,7 @@ tailwind.config = {
     const box=document.getElementById('health-result');
     box.style.color='';box.textContent='Verificando servicios...';
     const results={};
-    for(const[key,path]of[['reportes','/api/reportes/health'],['auth','/api/auth/health']]){
+    for(const[key,path]of[['reportes','/reportes/health'],['auth','/autenticacion/health']]){
       try{
         const{res,data}=await apiFetch(path);
         results[path]={status:res.status,data};
@@ -739,7 +739,7 @@ tailwind.config = {
 
   async function checkHealthDot() {
     try{
-      const res=await fetch('/api/reportes/health');
+      const res=await fetch('/reportes/health');
       const ok=res.ok;
       document.getElementById('health-dot').style.background=ok?'#10b981':'#ba1a1a';
       document.getElementById('health-status-text').textContent=ok?'Sistema OK':'Error detectado';
@@ -752,10 +752,10 @@ tailwind.config = {
   }
   function startHealthPoll(){checkHealthDot();setInterval(checkHealthDot,30000);}
 
-  // Verificar sesiÃ³n Auth0 vÃ­a Django
+  // Verificar sesión Auth0 vía Django
   async function checkAuth0Session() {
     try {
-      const res = await fetch('/api/auth/auth0-me', { 
+      const res = await fetch('/autenticacion/auth0-me', { 
         credentials: 'include',
         cache: 'no-cache'  // No usar cache
       });
@@ -766,7 +766,7 @@ tailwind.config = {
           return true;
         }
       } else if (res.status === 401) {
-        // SesiÃ³n expirada o no vÃ¡lida, limpiar
+        // Sesión expirada o no válida, limpiar
         localStorage.clear();
         sessionStorage.clear();
         accessToken = null;
@@ -791,7 +791,7 @@ tailwind.config = {
       const endpoint = document.getElementById('filter-endpoint').value;
       const ip = document.getElementById('filter-ip').value;
       
-      let url = `/api/auth/rechazos/integridad?dias=${dias}&page=${page}&page_size=20`;
+      let url = `/autenticacion/rechazos/integridad?dias=${dias}&page=${page}&page_size=20`;
       if (endpoint) url += `&endpoint=${encodeURIComponent(endpoint)}`;
       if (ip) url += `&direccion_ip=${encodeURIComponent(ip)}`;
       
@@ -857,18 +857,18 @@ tailwind.config = {
           <tr>
             <td colspan="4" class="px-6 py-8 text-center text-sm text-on-surface-variant">
               <span class="material-symbols-outlined text-[24px] text-on-surface-variant/50 block mb-2">check_circle</span>
-              No hay rechazos en este perÃ­odo
+              No hay rechazos en este período
             </td>
           </tr>
         `;
       }
       
-      // Actualizar informaciÃ³n de paginaciÃ³n
+      // Actualizar información de paginación
       document.getElementById('total-rechazos').textContent = data.total;
       document.getElementById('current-page').textContent = page;
       document.getElementById('total-pages').textContent = totalPages;
       
-      // Actualizar estado de botones de paginaciÃ³n
+      // Actualizar estado de botones de paginación
       const btnPrev = document.getElementById('btn-prev');
       const btnNext = document.getElementById('btn-next');
       
@@ -900,7 +900,7 @@ tailwind.config = {
     }
   }
   
-  // Cargar rechazos cuando se navega a la pÃ¡gina de Seguridad
+  // Cargar rechazos cuando se navega a la página de Seguridad
   const observer = new MutationObserver(() => {
     const seguridad = document.getElementById('page-seguridad');
     if (seguridad && seguridad.classList.contains('active')) {
@@ -915,18 +915,18 @@ tailwind.config = {
     subtree: true
   });
 
-  // Verificar si acabamos de hacer logout (via parÃ¡metro URL)
+  // Verificar si acabamos de hacer logout (via parámetro URL)
   const urlParams = new URLSearchParams(window.location.search);
   const justLoggedOut = urlParams.has('just_logged_out');
   
   if (justLoggedOut) {
-    // Hemos hecho logout, NO intentar restaurar sesiÃ³n
-    // Limpiar el parÃ¡metro URL para dejar limpio el historio
+    // Hemos hecho logout, NO intentar restaurar sesión
+    // Limpiar el parámetro URL para dejar limpio el historio
     window.history.replaceState({}, document.title, '/');
     console.log('Logout completado, mostrando formulario de login');
   } else if(accessToken){
-    // Intentar restaurar sesiÃ³n con JWT existente
-    apiFetch('/api/auth/me').then(({res,data})=>{
+    // Intentar restaurar sesión con JWT existente
+    apiFetch('/autenticacion/me').then(({res,data})=>{
       if(res.ok)enterDashboard(data);
       else{
         localStorage.removeItem('access_token');
@@ -939,7 +939,7 @@ tailwind.config = {
       accessToken=null;
     });
   } else {
-    // Si no hay JWT, intentar verificar sesiÃ³n de Auth0 vÃ­a Django
+    // Si no hay JWT, intentar verificar sesión de Auth0 vía Django
     // Pero solo si NO acabamos de hacer logout
     checkAuth0Session();
   }

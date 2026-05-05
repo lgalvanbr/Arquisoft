@@ -1,22 +1,35 @@
 """
-URL configuration for autenticacion_autorizacion project.
+URL configuration for autenticacion app.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Rutas de autenticación, autorización y auditoría.
+Implementación según laboratorio ISIS2503
 """
-from django.contrib import admin
 from django.urls import path
+from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # ======================== TEMPLATE VIEWS ========================
+    path('', views.login_view, name='login_page'),
+    path('seguridad/', views.seguridad_view, name='seguridad_page'),
+    
+    # ======================== AUTH0 / SOCIAL AUTH PATHS ========================
+    # Se incluyen en finops_platform/urls.py
+    
+    # ======================== ENDPOINTS DE AUTENTICACIÓN ========================
+    path('register', views.register, name='register'),
+    path('login', views.login, name='login'),
+    path('me', views.obtener_usuario_actual, name='obtener_usuario_actual'),
+    path('auth0-me', views.auth0_me, name='auth0_me'),
+    path('refresh', views.refresh_token, name='refresh_token'),
+    path('logout', views.logout, name='logout'),
+    
+    # ======================== ENDPOINTS DE AUDITORÍA ========================
+    path('audit/historial', views.historial_acceso, name='historial_acceso'),
+    path('rechazos/integridad', views.listar_rechazos_integridad, name='listar_rechazos_integridad'),
+    
+    # ======================== HEALTH CHECK ========================
+    path('health', views.health_check, name='health_check'),
+
+    # ======================== AUTH0 LOGIN (custom entry point) ========================
+    path('login/auth0', views.auth0_login, name='auth0_login'),
 ]

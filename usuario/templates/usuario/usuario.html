@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-4 flex-1">
+  <!-- Sidebar -->
+  <div class="flex gap-4 flex-1">
+    <aside class="w-56 bg-surface border-r border-outline-variant rounded-2xl overflow-hidden flex flex-col">
+      <div class="flex items-center gap-3 px-4 py-4 border-b border-outline-variant">
+        <span class="material-symbols-outlined text-primary text-[24px]">people</span>
+        <h2 class="text-sm font-bold text-on-surface">Gestión de Usuarios</h2>
+      </div>
+      <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+        <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Usuarios</p>
+        <button onclick="showPage('lista',this)" data-page="lista" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">list</span>Listar Usuarios</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+      <!-- LISTA DE USUARIOS -->
+      <div class="page" id="page-lista">
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Lista de Usuarios</h2><p class="text-sm text-on-surface-variant mt-1">Todos los usuarios registrados en el sistema.</p></div>
+        
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-5">
+            <button onclick="cargarUsuarios()" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">refresh</span>Recargar</button>
+          </div>
+          
+          <!-- Tabla de usuarios -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="border-b border-outline-variant">
+                <tr class="text-on-surface-variant">
+                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">ID</th>
+                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Usuario</th>
+                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Email</th>
+                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Nombre</th>
+                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Apellido</th>
+                </tr>
+              </thead>
+              <tbody id="usuarios-tbody">
+                <tr class="border-b border-outline-variant/30">
+                  <td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">Cargando usuarios...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Datos en JSON -->
+          <div class="mt-6">
+            <h3 class="text-base font-semibold text-on-surface mb-3">Datos en tiempo real</h3>
+            <pre id="usuarios-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[150px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona "Recargar" para cargar datos...</pre>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function cargarUsuarios() {
+  const token = localStorage.getItem('access_token');
+  try {
+    const response = await fetch('/usuario/listar/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    
+    // Mostrar JSON
+    document.getElementById('usuarios-result').textContent = JSON.stringify(data, null, 2);
+    
+    // Llenar tabla
+    const tbody = document.getElementById('usuarios-tbody');
+    tbody.innerHTML = '';
+    
+    if (data.usuarios && data.usuarios.length > 0) {
+      data.usuarios.forEach(usuario => {
+        const row = document.createElement('tr');
+        row.className = 'border-b border-outline-variant/30 hover:bg-surface-container/50 transition-colors';
+        row.innerHTML = `
+          <td class="px-4 py-3 text-on-surface font-mono text-[11px]">${usuario.id}</td>
+          <td class="px-4 py-3 text-on-surface font-medium">${usuario.username}</td>
+          <td class="px-4 py-3 text-on-surface-variant text-[12px]">${usuario.email || '-'}</td>
+          <td class="px-4 py-3 text-on-surface">${usuario.first_name || '-'}</td>
+          <td class="px-4 py-3 text-on-surface">${usuario.last_name || '-'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    } else {
+      tbody.innerHTML = '<tr class="border-b border-outline-variant/30"><td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">No hay usuarios</td></tr>';
+    }
+  } catch (error) {
+    document.getElementById('usuarios-result').textContent = `Error: ${error.message}`;
+  }
+}
+
+// Cargar usuarios al abrir la página
+window.addEventListener('DOMContentLoaded', () => {
+  cargarUsuarios();
+});
+</script>
+{% endblock %}

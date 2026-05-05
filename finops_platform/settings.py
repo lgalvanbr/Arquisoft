@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'social_django',  # Auth0 via social_auth
     'autenticacion',
     'reportes',
+    'usuario',
+    'empresa',
 ]
 
 MIDDLEWARE = [
@@ -51,7 +53,13 @@ ROOT_URLCONF = 'finops_platform.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'finops_platform', 'templates')],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'finops_platform', 'templates'),
+            os.path.join(BASE_DIR, 'autenticacion', 'templates'),
+            os.path.join(BASE_DIR, 'reportes', 'templates'),
+            os.path.join(BASE_DIR, 'usuario', 'templates'),
+            os.path.join(BASE_DIR, 'empresa', 'templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

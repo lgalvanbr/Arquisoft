@@ -1,22 +1,29 @@
 """
-URL configuration for reportes project.
+URL configuration for reportes app.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Rutas de reportes y análisis de costos en la nube.
+Implementación según laboratorio ISIS2503
 """
-from django.contrib import admin
 from django.urls import path
+from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # ======================== TEMPLATE VIEW ========================
+    path('', views.reportes_view, name='reportes_page'),
+    
+    # ======================== ENDPOINTS DE REPORTES ========================
+    # Reportes de Costos
+    path('costos/empresa/<str:empresa_id>', views.listar_reportes_costos, name='listar_reportes_costos'),
+    path('crear/<str:empresa_id>', views.crear_reporte_costos, name='crear_reporte_costos'),
+    
+    # Otros reportes
+    path('proyecto', views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),
+    path('consumo', views.obtener_consumo_nube, name='obtener_consumo_nube'),
+    path('gastos', views.obtener_gastos_por_servicio, name='obtener_gastos_por_servicio'),
+    path('analisis', views.obtener_analisis_optimizacion, name='obtener_analisis_optimizacion'),
+    path('tendencias', views.obtener_tendencias, name='obtener_tendencias'),
+    path('historial', views.obtener_historial_reportes, name='obtener_historial_reportes'),
+    
+    # ======================== HEALTH CHECK ========================
+    path('health', views.health_check, name='health_check'),
 ]

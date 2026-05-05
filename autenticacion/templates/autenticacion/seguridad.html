@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Auditoría de Seguridad - CloudyNet{% endblock %}
+
+{% block content %}
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
+  <!-- Sidebar -->
+  <nav id="sidebar" class="fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest/95 backdrop-blur-2xl z-40 flex flex-col p-4">
+    <div class="px-3 py-5 mb-2 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-primary-container text-white flex items-center justify-center shadow-[0_4px_14px_rgba(14,165,233,0.35)]"><span class="material-symbols-outlined fill-icon text-[20px]">cloud</span></div>
+      <div><h1 class="text-base font-bold text-on-surface tracking-tight">CloudyNet</h1><p class="text-[10px] text-on-surface-variant font-medium">FinOps Management</p></div>
+    </div>
+    <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+      <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Seguridad</p>
+      <button onclick="showPage('seguridad',this)" data-page="seguridad" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">security</span>Auditoría</button>
+      <button onclick="showPage('integridad',this)" data-page="integridad" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">verified</span>Integridad</button>
+    </div>
+    <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
+       <div class="flex items-center gap-3">
+         <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
+         <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
+         <button onclick="doLogout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+       </div>
+     </div>
+   </nav>
+  <!-- Main area -->
+  <div class="lg:ml-64 flex flex-col flex-1 min-h-screen w-full">
+    <!-- Topbar -->
+    <header class="fixed top-0 lg:left-64 left-0 right-0 z-30 h-16 border-b border-outline-variant bg-surface-container-lowest/85 backdrop-blur-xl soft-glow flex justify-between items-center px-4 lg:px-6">
+      <div class="flex items-center gap-3 flex-1">
+        <button onclick="toggleSidebar()" class="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant flex-shrink-0"><span class="material-symbols-outlined text-[22px]">menu</span></button>
+        <div class="relative w-52 hidden sm:block">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
+          <input type="text" placeholder="Buscar en auditoria..." class="w-full pl-10 pr-4 py-2 bg-surface-container border border-outline-variant rounded-full text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">
+          <div class="w-2 h-2 rounded-full bg-[#10b981] pulse-dot"></div>
+          <span class="text-xs font-medium text-on-surface-variant">Online</span>
+        </div>
+        <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">notifications</span></button>
+        <div class="flex items-center gap-2 cursor-pointer">
+          <div id="user-avatar-letter" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm">?</div>
+          <span id="user-display" class="text-sm font-medium text-on-surface hidden md:block">-</span>
+        </div>
+      </div>
+    </header>
+    <!-- Pages -->
+    <main class="pt-16 p-6 lg:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+
+      <!-- AUDITORÍA -->
+      <div class="page active" id="page-seguridad">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Auditoría de Acceso</h2><p class="text-sm text-on-surface-variant mt-1">Historial completo de accesos, logins y operaciones realizadas.</p></div>
+          <button onclick="fetchEndpoint('/autenticacion/audit/historial','audit-result')" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Actualizar</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Total Accesos</h3><span class="material-symbols-outlined text-primary bg-primary-fixed/40 p-1.5 rounded-lg text-[19px]">login</span></div>
+            <div class="flex items-baseline gap-2"><span class="text-3xl font-bold text-on-surface" id="audit-total">-</span><span class="text-xs text-[#10b981] flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">arrow_upward</span>Hoy</span></div>
+            <p class="text-xs text-on-surface-variant mt-2">Últimos 30 días</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Últimos Acceso</h3><span class="material-symbols-outlined text-secondary bg-secondary-fixed/50 p-1.5 rounded-lg text-[19px]">schedule</span></div>
+            <span class="text-xl font-bold text-on-surface" id="audit-recent">Hace -</span>
+            <p class="text-xs text-on-surface-variant mt-2" id="audit-recent-time">-</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Intentos Fallidos</h3><span class="material-symbols-outlined text-error bg-error-container/40 p-1.5 rounded-lg text-[19px]">block</span></div>
+            <div class="flex items-baseline gap-2"><span class="text-3xl font-bold text-on-surface" id="audit-failed">0</span><span class="text-xs text-error flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">warning</span>Últimas 24h</span></div>
+            <p class="text-xs text-on-surface-variant mt-2">Sin intentos maliciosos</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Historial de Acceso</h3><span class="text-[10px] font-semibold text-primary bg-primary-fixed/40 px-2 py-1 rounded font-mono">GET /autenticacion/audit/historial</span></div>
+          <pre id="audit-result" class="text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll leading-relaxed whitespace-pre-wrap break-words">Cargando...</pre>
+        </div>
+      </div>
+
+      <!-- INTEGRIDAD -->
+      <div class="page" id="page-integridad">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Verificación de Integridad</h2><p class="text-sm text-on-surface-variant mt-1">Detección y registro de intentos de acceso no autorizados.</p></div>
+          <button onclick="fetchEndpoint('/autenticacion/rechazos/integridad','integrity-result')" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Verificar</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Rechazos Detectados</h3><span class="material-symbols-outlined text-error bg-error-container/40 p-1.5 rounded-lg text-[19px]">security</span></div>
+            <div class="flex items-baseline gap-2"><span class="text-3xl font-bold text-on-surface" id="integrity-total">-</span><span class="text-xs text-error flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">warning</span>Este mes</span></div>
+            <p class="text-xs text-on-surface-variant mt-2">Intentos bloqueados</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Estado Seguridad</h3><span class="material-symbols-outlined text-[#10b981] bg-[#dcfce7] p-1.5 rounded-lg text-[19px]">verified</span></div>
+            <span class="text-xl font-bold text-[#10b981]">Seguro</span>
+            <p class="text-xs text-on-surface-variant mt-2">Sin vulnerabilidades</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Tokens Válidos</h3><span class="material-symbols-outlined text-secondary bg-secondary-fixed/50 p-1.5 rounded-lg text-[19px]">token</span></div>
+            <span class="text-xl font-bold text-on-surface" id="integrity-tokens">-</span>
+            <p class="text-xs text-on-surface-variant mt-2">Sesiones activas verificadas</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Eventos de Integridad</h3><span class="text-[10px] font-semibold text-error bg-error-container/40 px-2 py-1 rounded font-mono">GET /autenticacion/rechazos/integridad</span></div>
+          <pre id="integrity-result" class="text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll leading-relaxed whitespace-pre-wrap break-words">Cargando...</pre>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}

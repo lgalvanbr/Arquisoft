@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes de Costos - CloudyNet{% endblock %}
+
+{% block content %}
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
+  <!-- Sidebar -->
+  <nav id="sidebar" class="fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest/95 backdrop-blur-2xl z-40 flex flex-col p-4">
+    <div class="px-3 py-5 mb-2 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-primary-container text-white flex items-center justify-center shadow-[0_4px_14px_rgba(14,165,233,0.35)]"><span class="material-symbols-outlined fill-icon text-[20px]">cloud</span></div>
+      <div><h1 class="text-base font-bold text-on-surface tracking-tight">CloudyNet</h1><p class="text-[10px] text-on-surface-variant font-medium">FinOps Management</p></div>
+    </div>
+    <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+      <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Reportes</p>
+      <button onclick="showPage('costos',this)" data-page="costos" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">payments</span>Reportes</button>
+      <button onclick="showPage('crear',this)" data-page="crear" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">add_circle</span>Crear Reporte</button>
+      <button onclick="showPage('consumo',this)" data-page="consumo" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">receipt_long</span>Consumo Cloud</button>
+      <button onclick="showPage('gastos',this)" data-page="gastos" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">trending_up</span>Gastos por Servicio</button>
+      <button onclick="showPage('analisis',this)" data-page="analisis" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">query_stats</span>Análisis</button>
+      <button onclick="showPage('tendencias',this)" data-page="tendencias" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">trending_up</span>Tendencias</button>
+      <button onclick="showPage('historial',this)" data-page="historial" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">history</span>Historial</button>
+    </div>
+    <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
+       <div class="flex items-center gap-3">
+         <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
+         <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
+         <button onclick="doLogout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+       </div>
+     </div>
+   </nav>
+  <!-- Main area -->
+  <div class="lg:ml-64 flex flex-col flex-1 min-h-screen w-full">
+    <!-- Topbar -->
+    <header class="fixed top-0 lg:left-64 left-0 right-0 z-30 h-16 border-b border-outline-variant bg-surface-container-lowest/85 backdrop-blur-xl soft-glow flex justify-between items-center px-4 lg:px-6">
+      <div class="flex items-center gap-3 flex-1">
+        <button onclick="toggleSidebar()" class="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant flex-shrink-0"><span class="material-symbols-outlined text-[22px]">menu</span></button>
+        <div class="relative w-52 hidden sm:block">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
+          <input type="text" placeholder="Buscar reportes..." class="w-full pl-10 pr-4 py-2 bg-surface-container border border-outline-variant rounded-full text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">
+          <div class="w-2 h-2 rounded-full bg-[#10b981] pulse-dot"></div>
+          <span class="text-xs font-medium text-on-surface-variant">Online</span>
+        </div>
+        <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">notifications</span></button>
+        <div class="flex items-center gap-2 cursor-pointer">
+          <div id="user-avatar-letter" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm">?</div>
+          <span id="user-display" class="text-sm font-medium text-on-surface hidden md:block">-</span>
+        </div>
+      </div>
+    </header>
+    <!-- Pages -->
+    <main class="pt-16 p-6 lg:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+
+      <!-- COSTOS POR EMPRESA -->
+      <div class="page active" id="page-costos">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Costos por Empresa</h2><p class="text-sm text-on-surface-variant mt-1">Análisis detallado de gastos cloud por empresa.</p></div>
+          <div class="flex gap-2">
+            <input type="text" id="empresa-filter" placeholder="Ingresa empresa_id..." class="px-4 py-2 bg-surface border border-outline-variant rounded-lg text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+            <button onclick="fetchCostosEmpresa()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:opacity-90 transition-opacity"><span class="material-symbols-outlined text-[17px]">search</span>Buscar</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Total YTD Spend</h3><span class="material-symbols-outlined text-primary bg-primary-fixed/40 p-1.5 rounded-lg text-[19px]">payments</span></div>
+            <div class="flex items-baseline gap-2"><span class="text-3xl font-bold text-on-surface" id="cost-total">$-</span><span class="text-xs text-error flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">arrow_upward</span>-</span></div>
+            <p class="text-xs text-on-surface-variant mt-2">vs. año anterior</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Promedio Diario</h3><span class="material-symbols-outlined text-secondary bg-secondary-fixed/50 p-1.5 rounded-lg text-[19px]">trending_up</span></div>
+            <span class="text-3xl font-bold text-on-surface" id="cost-daily">$-</span>
+            <p class="text-xs text-on-surface-variant mt-2">Último período</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Empresas Activas</h3><span class="material-symbols-outlined text-[#006e1c] bg-[#dcfce7] p-1.5 rounded-lg text-[19px]">business</span></div>
+            <span class="text-3xl font-bold text-on-surface" id="cost-companies">-</span>
+            <p class="text-xs text-on-surface-variant mt-2">Con datos disponibles</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Datos en tiempo real</h3>            <span class="text-[10px] font-semibold text-primary bg-primary-fixed/40 px-2 py-1 rounded font-mono">GET /reportes/costos/empresa/{id}</span></div>
+          <pre id="costos-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Ingresa un empresa_id y busca...</pre>
+        </div>
+      </div>
+
+      <!-- CREAR REPORTES -->
+      <div class="page" id="page-crear">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Crear Nuevo Reporte</h2><p class="text-sm text-on-surface-variant mt-1">Genera reportes de costos personalizados para tu empresa.</p></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Formulario -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <h3 class="text-base font-semibold text-on-surface mb-6">Información del Reporte</h3>
+            <div class="space-y-5">
+              <!-- Empresa ID -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">ID Empresa</label>
+                <input id="crear-empresa" type="text" placeholder="ej: empresa_001" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/>
+                <p class="text-[10px] text-on-surface-variant mt-1">El ID único de tu empresa</p>
+              </div>
+
+              <!-- Año -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Año</label>
+                <input id="crear-ano" type="number" min="2020" max="2099" placeholder="2025" value="2025" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/>
+              </div>
+
+              <!-- Mes -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Mes</label>
+                <select id="crear-mes" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all">
+                  <option value="">Selecciona un mes</option>
+                  <option value="1">Enero</option>
+                  <option value="2">Febrero</option>
+                  <option value="3">Marzo</option>
+                  <option value="4">Abril</option>
+                  <option value="5" selected>Mayo</option>
+                  <option value="6">Junio</option>
+                  <option value="7">Julio</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+              </div>
+
+              <!-- Tipo de Período -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Período</label>
+                <select id="crear-periodo" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all">
+                  <option value="mensual" selected>Mensual</option>
+                  <option value="trimestral">Trimestral</option>
+                  <option value="semestral">Semestral</option>
+                  <option value="anual">Anual</option>
+                </select>
+              </div>
+
+              <!-- Botón Crear -->
+              <button onclick="crearReporte()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 mt-4">
+                <span class="material-symbols-outlined text-[18px]">add_circle</span>Generar Reporte
+              </button>
+            </div>
+          </div>
+
+          <!-- Vista Previa / Resultado -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow flex flex-col">
+            <h3 class="text-base font-semibold text-on-surface mb-4">Resultado</h3>
+            <div id="crear-error" class="hidden mb-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20"></div>
+            <div id="crear-success" class="hidden mb-4 px-4 py-3 bg-[#dcfce7] text-[#166534] rounded-xl text-sm font-medium border border-[#bbf7d0]"></div>
+            <pre id="crear-result" class="flex-1 text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 overflow-auto terminal-scroll leading-relaxed min-h-[300px] whitespace-pre-wrap break-words">Completa el formulario y presiona "Generar Reporte"...</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONSUMO -->
+      <div class="page" id="page-consumo">
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Consumo Cloud</h2><p class="text-sm text-on-surface-variant mt-1">Recursos AWS y GCP por servicio y proyecto.</p></div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-5 flex-wrap">
+            <button onclick="fetchEndpoint('/reportes/consumo','consumo-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">cloud</span>Ver consumo</button>
+          </div>
+          <pre id="consumo-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona un botón para cargar datos...</pre>
+        </div>
+      </div>
+
+      <!-- GASTOS POR SERVICIO -->
+      <div class="page" id="page-gastos">
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Gastos por Servicio</h2><p class="text-sm text-on-surface-variant mt-1">Desglose de costos por tipo de servicio cloud.</p></div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-5">
+            <button onclick="fetchEndpoint('/reportes/gastos','gastos-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">payments</span>Cargar gastos</button>
+          </div>
+          <pre id="gastos-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar análisis de gastos...</pre>
+        </div>
+      </div>
+
+      <!-- ANÁLISIS -->
+      <div class="page" id="page-analisis">
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Análisis de Optimización</h2><p class="text-sm text-on-surface-variant mt-1">Oportunidades de ahorro detectadas.</p></div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-4">
+            <button onclick="fetchEndpoint('/reportes/analisis','analisis-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">query_stats</span>Ejecutar análisis</button>
+          </div>
+          <pre id="analisis-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para iniciar el análisis...</pre>
+        </div>
+      </div>
+
+      <!-- TENDENCIAS -->
+      <div class="page" id="page-tendencias">
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Tendencias &amp; Anomalías</h2><p class="text-sm text-on-surface-variant mt-1">Patrones de consumo y detección de comportamientos inusuales.</p></div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-4">
+            <button onclick="fetchEndpoint('/reportes/tendencias','tendencias-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">trending_up</span>Cargar tendencias</button>
+          </div>
+          <pre id="tendencias-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar análisis de tendencias...</pre>
+        </div>
+      </div>
+
+      <!-- HISTORIAL -->
+      <div class="page" id="page-historial">
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Historial de Reportes</h2><p class="text-sm text-on-surface-variant mt-1">Registro de todos los reportes generados.</p></div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex gap-3 mb-4">
+            <button onclick="fetchEndpoint('/reportes/historial','historial-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">history</span>Cargar historial</button>
+          </div>
+          <pre id="historial-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar historial de reportes...</pre>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function fetchCostosEmpresa() {
+  const empresaId = document.getElementById('empresa-filter').value;
+  if (!empresaId) {
+    document.getElementById('costos-result').textContent = 'Por favor ingresa un empresa_id';
+    return;
+  }
+  const token = localStorage.getItem('access_token');
+  try {
+    const response = await fetch(`/reportes/costos/empresa/${empresaId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    document.getElementById('costos-result').textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+     document.getElementById('costos-result').textContent = `Error: ${error.message}`;
+  }
+}
+
+async function crearReporte() {
+  const empresaId = document.getElementById('crear-empresa').value.trim();
+  const ano = document.getElementById('crear-ano').value;
+  const mes = document.getElementById('crear-mes').value;
+  const periodo = document.getElementById('crear-periodo').value;
+  
+  // Limpiar mensajes anteriores
+  document.getElementById('crear-error').classList.add('hidden');
+  document.getElementById('crear-success').classList.add('hidden');
+  
+  // Validar campos
+  if (!empresaId) {
+    document.getElementById('crear-error').textContent = 'Por favor ingresa el ID de la empresa';
+    document.getElementById('crear-error').classList.remove('hidden');
+    return;
+  }
+  
+  if (!mes) {
+    document.getElementById('crear-error').textContent = 'Por favor selecciona un mes';
+    document.getElementById('crear-error').classList.remove('hidden');
+    return;
+  }
+  
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    document.getElementById('crear-error').textContent = 'No estás autenticado. Por favor inicia sesión';
+    document.getElementById('crear-error').classList.remove('hidden');
+    return;
+  }
+  
+  try {
+    const payload = {
+      mes: parseInt(mes),
+      ano: parseInt(ano),
+      periodo: periodo
+    };
+    
+    const response = await fetch(`/reportes/crear/${empresaId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('crear-success').textContent = '✓ Reporte generado exitosamente';
+      document.getElementById('crear-success').classList.remove('hidden');
+    } else {
+      document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('crear-error').textContent = data.error || 'Error al crear el reporte';
+      document.getElementById('crear-error').classList.remove('hidden');
+    }
+  } catch (error) {
+    document.getElementById('crear-result').textContent = `Error: ${error.message}`;
+    document.getElementById('crear-error').textContent = error.message;
+    document.getElementById('crear-error').classList.remove('hidden');
+  }
+}
+</script>
+{% endblock %}

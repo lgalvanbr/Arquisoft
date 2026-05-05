@@ -8,6 +8,8 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
 from .validators import validate_payload_integrity, validate_report_request
 from .permissions import check_company_access, require_authentication
@@ -19,17 +21,82 @@ logger = logging.getLogger(__name__)
 
 # ==================== REPORTES DE COSTOS ====================
 
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET"])
+@require_authentication
+@check_company_access
+def listar_reportes_costos(request, empresa_id):
+    """
+    GET /api/reportes/costos/empresa/{empresa_id}
+    
+    Obtiene reportes de costos existentes para una empresa.
+    
+    ASR Confidencialidad:
+    - Solo acceso a empresa propia
+    - Si intenta acceder a empresa diferente: 403 Forbidden + log
+    - Log incluye: fecha, IP origen, usuario, token ID
+    """
+    try:
+        usuario = request.user
+        
+        # GET: Obtener reportes existentes
+        reportes = [
+            {
+                'id': f"rpt_{empresa_id}_2025_05",
+                'empresa_id': empresa_id,
+                'mes': 5,
+                'ano': 2025,
+                'usuario': usuario.email,
+                'costo_total': 2345.67,  # Simulado
+                'fecha_generacion': timezone.now().isoformat(),
+                'status': 'disponible',
+            },
+            {
+                'id': f"rpt_{empresa_id}_2025_04",
+                'empresa_id': empresa_id,
+                'mes': 4,
+                'ano': 2025,
+                'usuario': usuario.email,
+                'costo_total': 2150.45,  # Simulado
+                'fecha_generacion': timezone.now().isoformat(),
+                'status': 'disponible',
+            }
+        ]
+        
+        logger.info(
+            f"[REPORTES CONSULTADOS] Empresa: {empresa_id} | "
+            f"Usuario: {usuario.email} | Total: {len(reportes)}"
+        )
+        
+        return JsonResponse({
+            'total': len(reportes),
+            'reportes': reportes,
+        }, status=200)
+    
+    except Exception as e:
+        logger.error(f"Error en listar_reportes_costos: {str(e)}")
+        return JsonResponse({
+            'error': 'Error interno',
+            'detail': str(e)
+        }, status=500)
+
+
+@require_http_methods(["POST"])
 @require_authentication
 @check_company_access
 @validate_report_request
 @validate_payload_integrity
-def obtener_reporte_costos(request, empresa_id):
+def crear_reporte_costos(request, empresa_id):
     """
-    GET /api/reportes/costos/empresa/{empresa_id}
-    POST /api/reportes/costos/crear/{empresa_id}
+    POST /api/reportes/costos/empresa/{empresa_id}
     
-    Obtiene o crea reporte de costos para una empresa.
+    Crea un nuevo reporte de costos para una empresa.
+    
+    Body esperado:
+    {
+        "mes": 5,
+        "ano": 2025,
+        "periodo": "mensual"  // opcional
+    }
     
     ASR Integridad:
     - Valida integridad del payload (X-Payload-Signature header)
@@ -44,70 +111,62 @@ def obtener_reporte_costos(request, empresa_id):
     try:
         usuario = request.user
         
-        if request.method == 'POST':
-            # POST: Crear reporte
-            try:
-                payload = json.loads(request.body)
-            except:
-                return JsonResponse({
-                    'error': 'Payload inválido',
-                    'detail': 'No se pudo parsear JSON'
-                }, status=400)
-            
-            mes = payload.get('mes')
-            ano = payload.get('ano')
-            
-            if not mes or not ano:
-                return JsonResponse({
-                    'error': 'Parámetros requeridos',
-                    'detail': 'mes y ano son obligatorios'
-                }, status=400)
-            
-            reporte = {
-                'id': f"rpt_{empresa_id}_{ano}_{mes:02d}",
-                'empresa_id': empresa_id,
-                'mes': mes,
-                'ano': ano,
-                'usuario': usuario.email,
-                'costo_total': 1250.50,  # Simulado
-                'fecha_generacion': timezone.now().isoformat(),
-                'status': 'generado',
-            }
-            
-            logger.info(
-                f"[REPORTE CREADO] Empresa: {empresa_id} | "
-                f"Usuario: {usuario.email} | Período: {mes}/{ano}"
-            )
-            
+        # POST: Crear reporte
+        try:
+            payload = json.loads(request.body)
+        except:
             return JsonResponse({
-                'mensaje': 'Reporte generado exitosamente',
-                'reporte': reporte,
-            }, status=201)
+                'error': 'Payload inválido',
+                'detail': 'No se pudo parsear JSON'
+            }, status=400)
         
-        else:  # GET
-            # GET: Obtener reporte existente
-            reporte = {
-                'id': f"rpt_{empresa_id}_2025_05",
-                'empresa_id': empresa_id,
-                'mes': 5,
-                'ano': 2025,
-                'usuario': usuario.email,
-                'costo_total': 2345.67,  # Simulado
-                'fecha_generacion': timezone.now().isoformat(),
-                'status': 'disponible',
-            }
-            
-            logger.info(
-                f"[REPORTE CONSULTADO] Empresa: {empresa_id} | "
-                f"Usuario: {usuario.email}"
-            )
-            
+        mes = payload.get('mes')
+        ano = payload.get('ano')
+        periodo = payload.get('periodo', 'mensual')
+        
+        if not mes or not ano:
             return JsonResponse({
-                'reporte': reporte,
-            }, status=200)
+                'error': 'Parámetros requeridos',
+                'detail': 'mes y ano son obligatorios'
+            }, status=400)
+        
+        if not (1 <= mes <= 12):
+            return JsonResponse({
+                'error': 'Mes inválido',
+                'detail': 'El mes debe estar entre 1 y 12'
+            }, status=400)
+        
+        if ano < 2020 or ano > 2099:
+            return JsonResponse({
+                'error': 'Año inválido',
+                'detail': 'El año debe estar entre 2020 y 2099'
+            }, status=400)
+        
+        reporte = {
+            'id': f"rpt_{empresa_id}_{ano}_{mes:02d}",
+            'empresa_id': empresa_id,
+            'mes': mes,
+            'ano': ano,
+            'periodo': periodo,
+            'usuario': usuario.email,
+            'costo_total': 1250.50,  # Simulado
+            'fecha_generacion': timezone.now().isoformat(),
+            'status': 'generado',
+        }
+        
+        logger.info(
+            f"[REPORTE CREADO] Empresa: {empresa_id} | "
+            f"Usuario: {usuario.email} | Período: {mes}/{ano} | "
+            f"Tipo: {periodo}"
+        )
+        
+        return JsonResponse({
+            'mensaje': 'Reporte generado exitosamente',
+            'reporte': reporte,
+        }, status=201)
     
     except Exception as e:
-        logger.error(f"Error en obtener_reporte_costos: {str(e)}")
+        logger.error(f"Error en crear_reporte_costos: {str(e)}")
         return JsonResponse({
             'error': 'Error interno',
             'detail': str(e)
@@ -254,3 +313,12 @@ def health_check(request):
         'service': 'reportes',
         'timestamp': timezone.now().isoformat(),
     }, status=200)
+
+
+# ==================== TEMPLATE VIEWS ====================
+
+@require_http_methods(["GET"])
+@login_required
+def reportes_view(request):
+    """Renderiza la página de reportes"""
+    return render(request, 'reportes/reportes.html')

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - CloudyNet FinOps{% endblock %}
+
+{% block content %}
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
+  <!-- Sidebar -->
+  <nav id="sidebar" class="fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest/95 backdrop-blur-2xl z-40 flex flex-col p-4">
+    <div class="px-3 py-5 mb-2 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-primary-container text-white flex items-center justify-center shadow-[0_4px_14px_rgba(14,165,233,0.35)]"><span class="material-symbols-outlined fill-icon text-[20px]">cloud</span></div>
+      <div><h1 class="text-base font-bold text-on-surface tracking-tight">CloudyNet</h1><p class="text-[10px] text-on-surface-variant font-medium">FinOps Management</p></div>
+    </div>
+    <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+      <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Principal</p>
+      <button onclick="showPage('overview',this)" data-page="overview" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">home</span>Inicio</button>
+      <a href="/reportes/" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left no-underline"><span class="material-symbols-outlined text-[19px]">analytics</span>Reportes</a>
+      <a href="/usuario/" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left no-underline"><span class="material-symbols-outlined text-[19px]">people</span>Usuarios</a>
+      <a href="/empresa/" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left no-underline"><span class="material-symbols-outlined text-[19px]">business</span>Empresas</a>
+      <a href="/autenticacion/seguridad/" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left no-underline"><span class="material-symbols-outlined text-[19px]">security</span>Seguridad</a>
+    </div>
+    <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
+       <div class="flex items-center gap-3">
+         <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
+         <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
+         <button onclick="doLogout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+       </div>
+     </div>
+   </nav>
+  <!-- Main area -->
+  <div class="lg:ml-64 flex flex-col flex-1 min-h-screen w-full">
+    <!-- Topbar -->
+    <header class="fixed top-0 lg:left-64 left-0 right-0 z-30 h-16 border-b border-outline-variant bg-surface-container-lowest/85 backdrop-blur-xl soft-glow flex justify-between items-center px-4 lg:px-6">
+      <div class="flex items-center gap-3 flex-1">
+        <button onclick="toggleSidebar()" class="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant flex-shrink-0"><span class="material-symbols-outlined text-[22px]">menu</span></button>
+        <div class="relative w-52 hidden sm:block">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
+          <input type="text" placeholder="Buscar recursos..." class="w-full pl-10 pr-4 py-2 bg-surface-container border border-outline-variant rounded-full text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">
+          <div id="health-dot" class="w-2 h-2 rounded-full bg-[#10b981] pulse-dot"></div>
+          <span id="health-status-text" class="text-xs font-medium text-on-surface-variant">verificando...</span>
+        </div>
+        <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">notifications</span></button>
+        <div class="flex items-center gap-2 cursor-pointer">
+          <div id="user-avatar-letter" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm">?</div>
+          <span id="user-display" class="text-sm font-medium text-on-surface hidden md:block">-</span>
+        </div>
+      </div>
+    </header>
+    <!-- Pages -->
+    <main class="pt-16 p-6 lg:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+
+      <!-- OVERVIEW -->
+      <div class="page active" id="page-overview">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Inicio</h2><p class="text-sm text-on-surface-variant mt-1">Resumen multi-cloud y métricas de optimización en tiempo real.</p></div>
+          <button onclick="loadOverview()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Actualizar</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-primary/10 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[19px]">monitor_heart</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Estado Sistema</span></div>
+            <div class="relative z-10"><span id="ov-health" class="text-xl font-bold text-on-surface">-</span><p class="text-xs text-on-surface-variant mt-1">reportes · auth</p></div>
+          </div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-secondary-container/30 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-secondary-container/50 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary"><span class="material-symbols-outlined text-[19px]">dns</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Instancias Activas</span></div>
+            <div class="relative z-10"><span class="text-2xl font-bold text-on-surface">2</span><div class="flex items-center gap-1 mt-1 text-[#10b981]"><span class="material-symbols-outlined text-[14px]">check_circle</span><span class="text-xs">app-a · app-b · LB</span></div></div>
+          </div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-tertiary-fixed/20 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-tertiary-fixed/40 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary"><span class="material-symbols-outlined text-[19px]">person</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Usuario Actual</span></div>
+            <div class="relative z-10"><span id="ov-user" class="text-xl font-bold text-on-surface">-</span><p id="ov-rol" class="text-xs text-on-surface-variant mt-1">-</p></div>
+          </div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 soft-glow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-28 h-28 bg-primary-fixed/20 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-primary-fixed/40 transition-colors duration-500"></div>
+            <div class="flex items-center gap-2.5 mb-4 relative z-10"><div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary"><span class="material-symbols-outlined text-[19px]">key</span></div><span class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">JWT Auth Tokens</span></div>
+            <div class="relative z-10"><span class="text-xl font-bold text-on-surface">Activo</span><p class="text-xs text-on-surface-variant mt-1">Access + Refresh</p></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow flex flex-col">
+            <div class="flex justify-between items-center mb-5">
+              <div><h3 class="text-base font-semibold text-on-surface">Trayectoria Multi-Cloud</h3><p class="text-xs text-on-surface-variant">AWS vs GCP · consumo 30 días</p></div>
+              <div class="flex gap-2"><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant"><div class="w-2 h-2 rounded-full bg-primary"></div><span class="text-[11px] text-on-surface-variant">AWS</span></div><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant"><div class="w-2 h-2 rounded-full bg-secondary"></div><span class="text-[11px] text-on-surface-variant">GCP</span></div></div>
+            </div>
+            <div class="flex-1 min-h-[200px] relative border-l border-b border-surface-variant">
+              <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <defs><linearGradient id="ag" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#006591" stop-opacity=".18"/><stop offset="100%" stop-color="#006591" stop-opacity="0"/></linearGradient><linearGradient id="gg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#50616b" stop-opacity=".12"/><stop offset="100%" stop-color="#50616b" stop-opacity="0"/></linearGradient></defs>
+                <path d="M0,100 L0,80 C20,70 40,85 60,60 C80,35 90,40 100,20 L100,100 Z" fill="url(#ag)"/>
+                <path d="M0,100 L0,80 C20,70 40,85 60,60 C80,35 90,40 100,20" fill="none" stroke="#006591" stroke-width="2"/>
+                <path d="M0,100 L0,90 C25,85 45,75 70,70 C85,65 95,55 100,50 L100,100 Z" fill="url(#gg)"/>
+                <path d="M0,90 C25,85 45,75 70,70 C85,65 95,55 100,50" fill="none" stroke="#50616b" stroke-width="2" stroke-dasharray="4"/>
+              </svg>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-6 soft-glow flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Tu perfil</h3><span class="text-[9px] font-semibold text-primary bg-primary-fixed/40 px-2 py-1 rounded font-mono">GET /autenticacion/me</span></div>
+            <pre id="me-data" class="flex-1 text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-3.5 overflow-auto terminal-scroll leading-relaxed min-h-[160px] whitespace-pre-wrap break-words">Cargando...</pre>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadOverview() {
+  const token = localStorage.getItem('access_token');
+  try {
+    // Fetch auth health
+    const authRes = await fetch('/autenticacion/health', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const authData = await authRes.json();
+    
+    // Fetch reportes health
+    const reportesRes = await fetch('/reportes/health', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const reportesData = await reportesRes.json();
+    
+    document.getElementById('ov-health').textContent = 'Activo';
+  } catch (error) {
+    console.error('Error loading overview:', error);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadUserData();
+  loadOverview();
+});
+</script>
+{% endblock %}

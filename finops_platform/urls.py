@@ -1,14 +1,12 @@
 """
 finops_platform URL Configuration
 
-Main URL router for autenticacion and reportes apps
+Main URL router para autenticacion y reportes apps.
 Implementación según laboratorio ISIS2503
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
-from autenticacion import views as auth_views
-from reportes import views as report_views
+from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -17,34 +15,12 @@ urlpatterns = [
     path('', include('django.contrib.auth.urls')),
     path('', include('social_django.urls')),
     
-    # ======================== ENDPOINTS DE AUTENTICACIÓN ========================
-    path('api/auth/register', auth_views.register, name='register'),
-    path('api/auth/login', auth_views.login, name='login'),
-    path('api/auth/me', auth_views.obtener_usuario_actual, name='obtener_usuario_actual'),
-    path('api/auth/auth0-me', auth_views.auth0_me, name='auth0_me'),
-    path('api/auth/refresh', auth_views.refresh_token, name='refresh_token'),
-    path('api/auth/logout', auth_views.logout, name='logout'),
+    # ======================== APP URLS ========================
+    path('autenticacion/', include('autenticacion.urls')),
+    path('reportes/', include('reportes.urls')),
+    path('usuario/', include('usuario.urls')),
+    path('empresa/', include('empresa.urls')),
     
-    # ======================== ENDPOINTS DE AUDITORÍA ========================
-    path('api/auth/audit/historial', auth_views.historial_acceso, name='historial_acceso'),
-    path('api/auth/rechazos/integridad', auth_views.listar_rechazos_integridad, name='listar_rechazos_integridad'),
-    
-    # ======================== ENDPOINTS DE REPORTES ========================
-    path('api/reportes/proyecto', report_views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),
-    path('api/reportes/costos/empresa/<str:empresa_id>', report_views.obtener_reporte_costos, name='obtener_reporte_costos'),
-    path('api/reportes/consumo', report_views.obtener_consumo_nube, name='obtener_consumo_nube'),
-    path('api/reportes/gastos', report_views.obtener_gastos_por_servicio, name='obtener_gastos_por_servicio'),
-    path('api/reportes/analisis', report_views.obtener_analisis_optimizacion, name='obtener_analisis_optimizacion'),
-    path('api/reportes/tendencias', report_views.obtener_tendencias, name='obtener_tendencias'),
-    path('api/reportes/historial', report_views.obtener_historial_reportes, name='obtener_historial_reportes'),
-    
-    # ======================== HEALTH CHECK ========================
-    path('api/auth/health', auth_views.health_check, name='health_check'),
-    path('api/reportes/health', report_views.health_check, name='health_check'),
-
-    # ======================== AUTH0 LOGIN (custom entry point) ========================
-    path('login/auth0', auth_views.auth0_login, name='auth0_login'),
-    
-    # ======================== FRONTEND ========================
-    path('', TemplateView.as_view(template_name='index.html'), name='frontend'),
+    # ======================== MAIN INDEX ========================
+    path('', views.index, name='index'),
 ]

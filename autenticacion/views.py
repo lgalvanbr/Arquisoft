@@ -9,6 +9,8 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import transaction
+from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
 
 from .models import Usuario, Permiso, RolPermiso, RechazoIntegridad, IntentoAccesoNoAutorizado
 from .utilities import JWTManager, DetectorAnomalias, AuditoriaManager, require_scope
@@ -774,3 +776,22 @@ def auth0_me(request):
             {'error': 'Error al obtener información del usuario'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ======================== TEMPLATE VIEWS ========================
+
+@require_http_methods(["GET"])
+def login_view(request):
+    """Renderiza la página de login"""
+    return render(request, 'autenticacion/login.html')
+
+
+@require_http_methods(["GET"])
+def seguridad_view(request):
+    """Renderiza la página de seguridad y auditoria"""
+    if not request.user.is_authenticated:
+        return Response(
+            {'error': 'Requiere autenticación'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    return render(request, 'autenticacion/seguridad.html')

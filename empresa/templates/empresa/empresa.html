@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-4 flex-1">
+  <!-- Sidebar -->
+  <div class="flex gap-4 flex-1">
+    <aside class="w-56 bg-surface border-r border-outline-variant rounded-2xl overflow-hidden flex flex-col">
+      <div class="flex items-center gap-3 px-4 py-4 border-b border-outline-variant">
+        <span class="material-symbols-outlined text-primary text-[24px]">business</span>
+        <h2 class="text-sm font-bold text-on-surface">Gestión de Empresas</h2>
+      </div>
+      <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+        <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Empresas</p>
+        <button onclick="showPage('asociar',this)" data-page="asociar" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">link</span>Asociar Usuario</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+      <!-- ASOCIAR USUARIO-EMPRESA -->
+      <div class="page" id="page-asociar">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Asociar Usuario a Empresa</h2><p class="text-sm text-on-surface-variant mt-1">Vincula usuarios con empresas del sistema.</p></div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Formulario -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <h3 class="text-base font-semibold text-on-surface mb-6">Información de Asociación</h3>
+            <div class="space-y-5">
+              
+              <!-- Seleccionar Usuario -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label>
+                <select id="asociar-usuario" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all">
+                  <option value="">Cargando usuarios...</option>
+                </select>
+                <p class="text-[10px] text-on-surface-variant mt-1">Selecciona un usuario del sistema</p>
+              </div>
+
+              <!-- Seleccionar Empresa -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Empresa</label>
+                <select id="asociar-empresa" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all">
+                  <option value="">Cargando empresas...</option>
+                </select>
+                <p class="text-[10px] text-on-surface-variant mt-1">Selecciona una empresa</p>
+              </div>
+
+              <!-- Rol -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Rol</label>
+                <select id="asociar-rol" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all">
+                  <option value="usuario" selected>Usuario</option>
+                  <option value="gerente">Gerente</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+
+              <!-- Botón Asociar -->
+              <button onclick="asociarUsuarioEmpresa()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 mt-4">
+                <span class="material-symbols-outlined text-[18px]">link</span>Asociar
+              </button>
+            </div>
+          </div>
+
+          <!-- Vista Previa / Resultado -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow flex flex-col">
+            <h3 class="text-base font-semibold text-on-surface mb-4">Resultado</h3>
+            <div id="asociar-error" class="hidden mb-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20"></div>
+            <div id="asociar-success" class="hidden mb-4 px-4 py-3 bg-[#dcfce7] text-[#166534] rounded-xl text-sm font-medium border border-[#bbf7d0]"></div>
+            <pre id="asociar-result" class="flex-1 text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 overflow-auto terminal-scroll leading-relaxed min-h-[300px] whitespace-pre-wrap break-words">Selecciona usuario y empresa, luego presiona "Asociar"...</pre>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Cargar usuarios y empresas al iniciar
+async function cargarUsuariosYEmpresas() {
+  const token = localStorage.getItem('access_token');
+  
+  try {
+    // Cargar usuarios
+    const usuariosResponse = await fetch('/usuario/listar/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const usuariosData = await usuariosResponse.json();
+    
+    const usuarioSelect = document.getElementById('asociar-usuario');
+    usuarioSelect.innerHTML = '<option value="">Selecciona un usuario</option>';
+    
+    if (usuariosData.usuarios && usuariosData.usuarios.length > 0) {
+      usuariosData.usuarios.forEach(usuario => {
+        const option = document.createElement('option');
+        option.value = usuario.id;
+        option.textContent = `${usuario.username} (${usuario.email})`;
+        usuarioSelect.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Error cargando usuarios:', error);
+    document.getElementById('asociar-usuario').innerHTML = '<option value="">Error cargando usuarios</option>';
+  }
+  
+  try {
+    // Cargar empresas
+    const empresasResponse = await fetch('/empresa/listar/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const empresasData = await empresasResponse.json();
+    
+    const empresaSelect = document.getElementById('asociar-empresa');
+    empresaSelect.innerHTML = '<option value="">Selecciona una empresa</option>';
+    
+    if (empresasData.empresas && empresasData.empresas.length > 0) {
+      empresasData.empresas.forEach(empresa => {
+        const option = document.createElement('option');
+        option.value = empresa.id;
+        option.textContent = `${empresa.nombre} (${empresa.id})`;
+        empresaSelect.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Error cargando empresas:', error);
+    document.getElementById('asociar-empresa').innerHTML = '<option value="">Error cargando empresas</option>';
+  }
+}
+
+async function asociarUsuarioEmpresa() {
+  const usuarioId = document.getElementById('asociar-usuario').value;
+  const empresaId = document.getElementById('asociar-empresa').value;
+  const rol = document.getElementById('asociar-rol').value;
+  
+  // Limpiar mensajes anteriores
+  document.getElementById('asociar-error').classList.add('hidden');
+  document.getElementById('asociar-success').classList.add('hidden');
+  
+  // Validar selecciones
+  if (!usuarioId) {
+    document.getElementById('asociar-error').textContent = 'Por favor selecciona un usuario';
+    document.getElementById('asociar-error').classList.remove('hidden');
+    return;
+  }
+  
+  if (!empresaId) {
+    document.getElementById('asociar-error').textContent = 'Por favor selecciona una empresa';
+    document.getElementById('asociar-error').classList.remove('hidden');
+    return;
+  }
+  
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    document.getElementById('asociar-error').textContent = 'No estás autenticado. Por favor inicia sesión';
+    document.getElementById('asociar-error').classList.remove('hidden');
+    return;
+  }
+  
+  try {
+    const payload = {
+      usuario_id: parseInt(usuarioId),
+      empresa_id: empresaId,
+      rol: rol
+    };
+    
+    const response = await fetch('/empresa/asociar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      document.getElementById('asociar-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('asociar-success').textContent = '✓ Asociación realizada exitosamente';
+      document.getElementById('asociar-success').classList.remove('hidden');
+    } else {
+      document.getElementById('asociar-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('asociar-error').textContent = data.error || 'Error al asociar';
+      document.getElementById('asociar-error').classList.remove('hidden');
+    }
+  } catch (error) {
+    document.getElementById('asociar-result').textContent = `Error: ${error.message}`;
+    document.getElementById('asociar-error').textContent = error.message;
+    document.getElementById('asociar-error').classList.remove('hidden');
+  }
+}
+
+// Cargar datos al abrir la página
+window.addEventListener('DOMContentLoaded', () => {
+  cargarUsuariosYEmpresas();
+});
+</script>
+{% endblock %}
