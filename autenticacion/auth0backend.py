@@ -90,6 +90,10 @@ def getRole(request):
 
     userinfo = resp.json() 
 
-    role = userinfo[f"{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/rol"] 
-
+    role = userinfo.get(f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/rol") \
+        or userinfo.get(f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role") \
+        or userinfo.get("https://finops-api/rol") \
+        or userinfo.get("https://finops-api/role") \
+        or 'usuario'
+        
     return (role) 

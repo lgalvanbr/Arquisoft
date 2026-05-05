@@ -767,11 +767,12 @@ def auth0_me(request):
         # Obtener rol de social_auth si existe (Auth0)
         try:
             social_user = user.social_auth.filter(provider='auth0').first()
-            extra_data = social_user.extra_data if social_user else {}
-            response_data['rol'] = extra_data.get('https://finops-api/rol', response_data.get('rol', 'usuario'))
-            response_data['empresa'] = extra_data.get('https://finops-api/empresa', response_data.get('empresa', 'Unknown'))
-        except Exception:
-            pass
+            if social_user:
+                from .auth0backend import getRole  # ajusta el import según tu estructura
+                rol = getRole(request)
+                response_data['rol'] = rol
+        except Exception as e:
+           logger.warning(f"No se pudo obtener rol de Auth0: {e}") 
         
         return Response(response_data, status=status.HTTP_200_OK)
         

@@ -17,9 +17,6 @@ urlpatterns = [
     path('crear/<str:empresa_id>', views.crear_reporte_costos, name='crear_reporte_costos'),
     path('eliminar/<str:empresa_id>', views.eliminar_reporte, name='eliminar_reporte'),
     
-    # Catch-all para cualquier ruta no manejada (validación SQL Injection)
-    path('<str:empresa_id>', views.catch_all_reportes, name='catch_all_reportes'),
-    
     # Otros reportes
     path('proyecto', views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),
     path('consumo', views.obtener_consumo_nube, name='obtener_consumo_nube'),
@@ -30,4 +27,7 @@ urlpatterns = [
     
     # ======================== HEALTH CHECK ========================
     path('health', views.health_check, name='health_check'),
+    
+    # Catch-all: DEBE ir al final para no capturar rutas específicas
+    path('<str:empresa_id>', views.catch_all_reportes, name='catch_all_reportes'),
 ]
