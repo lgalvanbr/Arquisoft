@@ -12,12 +12,15 @@ from autenticacion import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # ======================== MAIN DASHBOARD ========================
-    path('finops_platform/', views.overview, name='finops_platform'),
+    # ======================== MAIN ENTRY POINT ========================
     path('', views.index, name='index'),
+    path('finops_platform/', views.overview, name='finops_platform'),
+    
+    # ======================== AUTH0 CALLBACK ========================
+    path('auth0/callback/', auth_views.auth0_callback_view, name='auth0_callback'),
     
     # ======================== LOGIN ========================
-    path('login/', auth_views.login_view, name='login'), 
+    path('login/', auth_views.login_view, name='login'),
     
     # ======================== APP URLS ========================
     path('autenticacion/', include('autenticacion.urls')),

@@ -222,6 +222,31 @@ function enterDashboard() {
   }
 }
 
+function loadUserData() {
+  const token = localStorage.getItem('access_token');
+  if (!token) return;
+  
+  fetch('/autenticacion/me', {
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+  .then(res => res.json())
+  .then(data => {
+    const name = data.usuario?.username || data.username || 'Usuario';
+    const rol = data.usuario?.rol || data.rol || 'usuario';
+    const ini = name[0].toUpperCase();
+    
+    document.getElementById('user-display').textContent = name;
+    document.getElementById('user-avatar-letter').textContent = ini;
+    document.getElementById('sidebar-username').textContent = name;
+    document.getElementById('sidebar-avatar').textContent = ini;
+    document.getElementById('sidebar-rol').textContent = rol;
+    document.getElementById('ov-user').textContent = name;
+    document.getElementById('ov-rol').textContent = 'Rol: ' + rol;
+    document.getElementById('me-data').textContent = JSON.stringify(data, null, 2);
+  })
+  .catch(err => console.error('Error loading user data:', err));
+}
+
 function showLogin() {
   document.getElementById('auth-section').style.display = 'flex';
   document.getElementById('dashboard').style.display = 'none';

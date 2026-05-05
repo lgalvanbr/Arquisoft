@@ -137,7 +137,7 @@ CSRF_COOKIE_HTTPONLY = False  # Necesario para lectura en JavaScript
 # ======================== AUTH0 CONFIGURATION (Laboratorio ISIS2503) ========================
 
 LOGIN_URL = "/login/auth0"
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "/auth0/callback/"
 
 # LOGOUT_REDIRECT_URL: Opción A - Hardcodear manualmente después de terraform apply
 # Pasos:
@@ -183,9 +183,6 @@ SOCIAL_AUTH_PIPELINE = (
     # Pipeline personalizado: genera JWT y guarda en sesión
     'autenticacion.pipeline.save_jwt_to_session',
 )
-
-# LOGIN_REDIRECT_URL: después de Auth0, redirige a la vista que captura tokens
-LOGIN_REDIRECT_URL = '/auth0/callback/'
 
 AUTHENTICATION_BACKENDS = (
     'autenticacion.auth0backend.Auth0',
