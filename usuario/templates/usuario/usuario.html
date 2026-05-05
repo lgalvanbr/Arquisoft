@@ -12,13 +12,14 @@
       <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
         <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Usuarios</p>
         <button onclick="showPage('lista',this)" data-page="lista" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">list</span>Listar Usuarios</button>
+        <button onclick="showPage('asignar-rol',this)" data-page="asignar-rol" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">admin_panel_settings</span>Asignar Rol</button>
       </div>
     </aside>
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto">
       <!-- LISTA DE USUARIOS -->
-      <div class="page" id="page-lista">
+      <div class="page active" id="page-lista">
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Lista de Usuarios</h2><p class="text-sm text-on-surface-variant mt-1">Todos los usuarios registrados en el sistema.</p></div>
         
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
@@ -34,13 +35,12 @@
                   <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">ID</th>
                   <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Usuario</th>
                   <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Email</th>
-                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Nombre</th>
-                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Apellido</th>
+                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Rol</th>
                 </tr>
               </thead>
               <tbody id="usuarios-tbody">
                 <tr class="border-b border-outline-variant/30">
-                  <td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">Cargando usuarios...</td>
+                  <td colspan="4" class="px-4 py-8 text-center text-on-surface-variant">Cargando usuarios...</td>
                 </tr>
               </tbody>
             </table>
@@ -50,6 +50,47 @@
           <div class="mt-6">
             <h3 class="text-base font-semibold text-on-surface mb-3">Datos en tiempo real</h3>
             <pre id="usuarios-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[150px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona "Recargar" para cargar datos...</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASIGNAR ROL -->
+      <div class="page" id="page-asignar-rol">
+        <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Asignar Rol</h2><p class="text-sm text-on-surface-variant mt-1">Asigna un rol a un usuario del sistema.</p></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Formulario -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <h3 class="text-base font-semibold text-on-surface mb-6">Información</h3>
+            <div class="space-y-5">
+              <!-- Seleccionar Usuario -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label>
+                <select id="asignar-usuario" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all">
+                  <option value="">Cargando usuarios...</option>
+                </select>
+              </div>
+
+              <!-- Rol (digitado) -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Rol</label>
+                <input id="asignar-rol-input" type="text" placeholder="admin, gerente o usuario" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/>
+                <p class="text-[10px] text-on-surface-variant mt-1">Escribe el rol: admin, gerente o usuario</p>
+              </div>
+
+              <!-- Botón Asignar -->
+              <button onclick="asignarRol()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 mt-4">
+                <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>Asignar Rol
+              </button>
+            </div>
+          </div>
+
+          <!-- Resultado -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow flex flex-col">
+            <h3 class="text-base font-semibold text-on-surface mb-4">Resultado</h3>
+            <div id="asignar-error" class="hidden mb-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20"></div>
+            <div id="asignar-success" class="hidden mb-4 px-4 py-3 bg-[#dcfce7] text-[#166534] rounded-xl text-sm font-medium border border-[#bbf7d0]"></div>
+            <pre id="asignar-result" class="flex-1 text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 overflow-auto terminal-scroll leading-relaxed min-h-[300px] whitespace-pre-wrap break-words">Selecciona un usuario, escribe el rol y presiona "Asignar Rol"...</pre>
           </div>
         </div>
       </div>
@@ -66,12 +107,13 @@ async function cargarUsuarios() {
     const response = await fetchWithAuth('/usuario/listar/');
     const data = await response.json();
     
-    // Mostrar JSON
     document.getElementById('usuarios-result').textContent = JSON.stringify(data, null, 2);
     
-    // Llenar tabla
     const tbody = document.getElementById('usuarios-tbody');
     tbody.innerHTML = '';
+    
+    const selectAsignar = document.getElementById('asignar-usuario');
+    selectAsignar.innerHTML = '<option value="">Selecciona un usuario</option>';
     
     if (data.usuarios && data.usuarios.length > 0) {
       data.usuarios.forEach(usuario => {
@@ -81,20 +123,84 @@ async function cargarUsuarios() {
           <td class="px-4 py-3 text-on-surface font-mono text-[11px]">${usuario.id}</td>
           <td class="px-4 py-3 text-on-surface font-medium">${usuario.username}</td>
           <td class="px-4 py-3 text-on-surface-variant text-[12px]">${usuario.email || '-'}</td>
-          <td class="px-4 py-3 text-on-surface">${usuario.first_name || '-'}</td>
-          <td class="px-4 py-3 text-on-surface">${usuario.last_name || '-'}</td>
+          <td class="px-4 py-3 text-on-surface"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getRolBadge(usuario.rol)}">${usuario.rol || 'usuario'}</span></td>
         `;
         tbody.appendChild(row);
+
+        const option = document.createElement('option');
+        option.value = usuario.id;
+        option.textContent = `${usuario.username} (${usuario.email || 'sin email'}) - Rol: ${usuario.rol || 'usuario'}`;
+        selectAsignar.appendChild(option);
       });
     } else {
-      tbody.innerHTML = '<tr class="border-b border-outline-variant/30"><td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">No hay usuarios</td></tr>';
+      tbody.innerHTML = '<tr class="border-b border-outline-variant/30"><td colspan="4" class="px-4 py-8 text-center text-on-surface-variant">No hay usuarios</td></tr>';
     }
   } catch (error) {
     document.getElementById('usuarios-result').textContent = `Error: ${error.message}`;
   }
 }
 
-// Cargar usuarios al abrir la página
+function getRolBadge(rol) {
+  switch(rol) {
+    case 'admin': return 'bg-red-100 text-red-800';
+    case 'gerente': return 'bg-yellow-100 text-yellow-800';
+    default: return 'bg-green-100 text-green-800';
+  }
+}
+
+async function asignarRol() {
+  const usuarioId = document.getElementById('asignar-usuario').value;
+  const rol = document.getElementById('asignar-rol-input').value.trim().toLowerCase();
+
+  document.getElementById('asignar-error').classList.add('hidden');
+  document.getElementById('asignar-success').classList.add('hidden');
+
+  if (!usuarioId) {
+    document.getElementById('asignar-error').textContent = 'Por favor selecciona un usuario';
+    document.getElementById('asignar-error').classList.remove('hidden');
+    return;
+  }
+
+  if (!rol) {
+    document.getElementById('asignar-error').textContent = 'Por favor ingresa un rol';
+    document.getElementById('asignar-error').classList.remove('hidden');
+    return;
+  }
+
+  const authenticated = await checkAuth();
+  if (!authenticated) {
+    document.getElementById('asignar-error').textContent = 'No estas autenticado. Por favor inicia sesion';
+    document.getElementById('asignar-error').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const response = await fetchWithAuth('/usuario/asignar-rol/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: parseInt(usuarioId), rol: rol })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      document.getElementById('asignar-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('asignar-success').textContent = data.mensaje || 'Rol asignado exitosamente';
+      document.getElementById('asignar-success').classList.remove('hidden');
+      document.getElementById('asignar-rol-input').value = '';
+      cargarUsuarios();
+    } else {
+      document.getElementById('asignar-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('asignar-error').textContent = data.error || 'Error al asignar rol';
+      document.getElementById('asignar-error').classList.remove('hidden');
+    }
+  } catch (error) {
+    document.getElementById('asignar-result').textContent = `Error: ${error.message}`;
+    document.getElementById('asignar-error').textContent = error.message;
+    document.getElementById('asignar-error').classList.remove('hidden');
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   cargarUsuarios();
 });

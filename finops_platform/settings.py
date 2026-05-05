@@ -139,7 +139,7 @@ CSRF_COOKIE_HTTPONLY = False  # Necesario para lectura en JavaScript
 LOGIN_URL = "/login/auth0"
 LOGIN_REDIRECT_URL = "/finops_platform/"
 
-LOGOUT_REDIRECT_URL = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=http%3A%2F%2Fip_publica_instancia:8080'
+LOGOUT_REDIRECT_URL = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=http%3A%2F%2F54.85.25.127:8080'
 
 SOCIAL_AUTH_TRAILING_SLASH = False
 
@@ -151,11 +151,10 @@ SOCIAL_AUTH_AUTH0_SCOPE = [
     'openid',
     'profile',
     'email',
-    'role',
+    'rol',
 ]
 
 SOCIAL_AUTH_AUTH0_AUTH_EXTRA_ARGUMENTS = {
-    'audience': 'https://finops-api',
     'prompt': 'login',
     'max_age': 0,
 }
