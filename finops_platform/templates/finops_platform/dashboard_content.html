@@ -107,7 +107,9 @@
 
 <script>
 async function loadOverview() {
+
   const token = localStorage.getItem('access_token');
+  if (!token) return;
   try {
     const authRes = await fetch('/autenticacion/health', {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -128,7 +130,7 @@ async function loadUserInfo() {
     window.location.href = '/';
     return;
   }
-  
+
   try {
     const res = await fetch('/autenticacion/me', {
       headers: { 'Authorization': `Bearer ${token}` }
