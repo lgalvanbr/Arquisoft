@@ -254,10 +254,19 @@ function showLogin() {
 
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', function() {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    enterDashboard();
-  }
+  const params = new URLSearchParams(window.location.search);
+    const authToken = params.get('auth_token');
+    const refreshToken = params.get('refresh_token');
+    
+    if (authToken) {
+        localStorage.setItem('access_token', authToken);
+        if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
+        // Limpiar la URL sin recargar
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    loadUserInfo();
+    loadOverview();
 });
 </script>
 {% endblock %}
