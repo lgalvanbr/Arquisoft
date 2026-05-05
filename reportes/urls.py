@@ -15,6 +15,10 @@ urlpatterns = [
     # Reportes de Costos
     path('costos/empresa/<str:empresa_id>', views.listar_reportes_costos, name='listar_reportes_costos'),
     path('crear/<str:empresa_id>', views.crear_reporte_costos, name='crear_reporte_costos'),
+    path('eliminar/<str:empresa_id>', views.eliminar_reporte, name='eliminar_reporte'),
+    
+    # Catch-all para cualquier ruta no manejada (validación SQL Injection)
+    path('<str:empresa_id>', views.catch_all_reportes, name='catch_all_reportes'),
     
     # Otros reportes
     path('proyecto', views.obtener_reporte_proyecto, name='obtener_reporte_proyecto'),

@@ -2,6 +2,7 @@
 Auth0 OAuth2 Backend para Django Social Auth
 Implementación según laboratorio ISIS2503
 """
+from django.contrib.auth.models import User
 import requests
 import json
 import base64
@@ -75,7 +76,7 @@ def getRole(request):
     """
     Obtiene el rol del usuario leyendo el id_token guardado en extra_data.
     """
-    auth0user = user.social_auth.filter(provider="auth0")[0] 
+    auth0user = User.social_auth.filter(provider="auth0")[0] 
 
     accessToken = auth0user.extra_data['access_token'] 
 

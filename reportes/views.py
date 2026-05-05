@@ -2,6 +2,7 @@
 Views para el servicio de reportes - FinOps
 ASR Integridad: Validación de integridad de payloads
 ASR Confidencialidad: Control de acceso por empresa
+ASR Disponibilidad: Detección de SQL Injection en reportes de costos
 """
 import logging
 import json
@@ -24,12 +25,14 @@ logger = logging.getLogger(__name__)
 @require_http_methods(["GET"])
 @require_authentication
 @check_company_access
+@validate_report_request
 def listar_reportes_costos(request, empresa_id):
     """
     GET /api/reportes/costos/empresa/{empresa_id}
     
     Obtiene reportes de costos existentes para una empresa.
     
+    ASR Disponibilidad: Valida empresa_id contra SQL Injection
     ASR Confidencialidad:
     - Solo acceso a empresa propia
     - Si intenta acceder a empresa diferente: 403 Forbidden + log
@@ -87,7 +90,7 @@ def listar_reportes_costos(request, empresa_id):
 @validate_payload_integrity
 def crear_reporte_costos(request, empresa_id):
     """
-    POST /api/reportes/costos/empresa/{empresa_id}
+    POST /api/reportes/crear/{empresa_id}
     
     Crea un nuevo reporte de costos para una empresa.
     
@@ -173,9 +176,68 @@ def crear_reporte_costos(request, empresa_id):
         }, status=500)
 
 
-def crear_reporte_costos(request, empresa_id):
-    """Alias para POST a obtener_reporte_costos"""
-    return obtener_reporte_costos(request, empresa_id)
+@require_http_methods(["DELETE"])
+@require_authentication
+@validate_report_request
+def eliminar_reporte(request, empresa_id):
+    """
+    DELETE /reportes/eliminar/{empresa_id}
+    
+    Elimina un reporte de costos.
+    
+    ASR Disponibilidad:
+    - Valida empresa_id contra SQL Injection
+    - Si detecta inyección: 401 Unauthorized + log en RechazoIntegridad
+    - 100% de intentos de inyección son rechazados
+    - Ningún dato es eliminado de la base de datos
+    """
+    try:
+        usuario = request.user
+        
+        logger.info(
+            f"[DELETE REPORTE INTENTADO] Empresa: {empresa_id} | "
+            f"Usuario: {usuario.email} | IP: {request.META.get('REMOTE_ADDR', 'UNKNOWN')}"
+        )
+        
+        # En producción, aquí se eliminaría el reporte de la base de datos
+        # Para esta demo, simulamos el éxito
+        return JsonResponse({
+            'mensaje': f'Reporte de empresa {empresa_id} eliminado exitosamente',
+            'empresa_id': empresa_id,
+            'usuario': usuario.email,
+        }, status=200)
+    
+    except Exception as e:
+        logger.error(f"Error en eliminar_reporte: {str(e)}")
+        return JsonResponse({
+            'error': 'Error interno',
+            'detail': str(e)
+        }, status=500)
+
+
+@require_http_methods(["GET", "POST", "PUT", "DELETE", "PATCH"])
+def catch_all_reportes(request, empresa_id):
+    """
+    Catch-all para cualquier método no manejado explícitamente.
+    Valida SQL Injection antes de responder.
+    """
+    from .validators import _detect_sql_injection, _log_integrity_violation
+
+    if _detect_sql_injection(empresa_id):
+        _log_integrity_violation(
+            request,
+            'SQL_INJECTION_ATTEMPTED',
+            f'Se detectó intento de SQL Injection en empresa_id: {empresa_id} (método: {request.method})'
+        )
+        return JsonResponse({
+            'error': 'No autorizado',
+            'detail': 'SQL Injection detectado. Solicitud rechazada.'
+        }, status=401)
+
+    return JsonResponse({
+        'error': 'Método no permitido',
+        'detail': f'Método {request.method} no soportado para esta ruta'
+    }, status=405)
 
 
 def listar_reportes_empresa(request, empresa_id):
