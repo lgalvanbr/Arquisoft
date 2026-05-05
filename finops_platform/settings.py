@@ -151,7 +151,7 @@ SOCIAL_AUTH_AUTH0_SCOPE = [
     'openid',
     'profile',
     'email',
-    'rol',
+    'role',
 ]
 
 SOCIAL_AUTH_AUTH0_AUTH_EXTRA_ARGUMENTS = {

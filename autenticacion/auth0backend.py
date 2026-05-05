@@ -32,7 +32,7 @@ class Auth0(BaseOAuth2):
         return "https://" + self.setting('DOMAIN') + "/oauth/token"
 
     def get_user_id(self, details, response):
-        return details.get('user_id') or response.get('sub')
+        return details['user_id']
 
     def get_user_details(self, response):
 
@@ -78,7 +78,7 @@ def getRole(request):
     user = request.user 
 
     try:
-        auth0user = user.social_auth.filter(provider="auth0").first()
+        auth0user = user.social_auth.filter(provider="auth0")[0]
         if not auth0user:
             return None
     
@@ -92,9 +92,9 @@ def getRole(request):
         resp = requests.get(url, headers=headers) 
         userinfo = resp.json() 
 
-        namespace = f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/rol"
+        namespace = f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role"
 
-        role = userinfo.get(namespace)
+        role = userinfo[f"{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role"]
         
         return role
     except Exception as e:
