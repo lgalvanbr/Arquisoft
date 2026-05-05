@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- DASHBOARD -->
-<div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+<div id="dashboard" style="display:flex" class="min-h-screen flex bg-background">
   <!-- Mobile overlay -->
   <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
   <!-- Sidebar -->
@@ -303,5 +303,8 @@ async function crearReporte() {
     document.getElementById('crear-error').classList.remove('hidden');
   }
 }
+document.addEventListener('DOMContentLoaded', function() {
+  loadUserData();
+});
 </script>
 {% endblock %}

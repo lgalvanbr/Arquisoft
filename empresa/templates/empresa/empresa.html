@@ -1,34 +1,112 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex flex-col gap-4 flex-1">
-  <!-- Sidebar -->
-  <div class="flex gap-4 flex-1">
-    <aside class="w-56 bg-surface border-r border-outline-variant rounded-2xl overflow-hidden flex flex-col">
-      <div class="flex items-center gap-3 px-4 py-4 border-b border-outline-variant">
-        <span class="material-symbols-outlined text-primary text-[24px]">business</span>
-        <h2 class="text-sm font-bold text-on-surface">Gestión de Empresas</h2>
-      </div>
-      <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
-        <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Empresas</p>
-        <button onclick="showPage('asociar',this)" data-page="asociar" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">link</span>Asociar Usuario</button>
-      </div>
-    </aside>
+<div id="dashboard" style="display:flex" class="min-h-screen flex bg-background">
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
 
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto">
+  <!-- Sidebar -->
+  <nav id="sidebar" class="fixed left-0 top-0 h-full w-64 border-r border-outline-variant bg-surface-container-lowest/95 backdrop-blur-2xl z-40 flex flex-col p-4">
+    <div class="px-3 py-5 mb-2 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-primary-container text-white flex items-center justify-center shadow-[0_4px_14px_rgba(14,165,233,0.35)]"><span class="material-symbols-outlined fill-icon text-[20px]">cloud</span></div>
+      <div><h1 class="text-base font-bold text-on-surface tracking-tight">CloudyNet</h1><p class="text-[10px] text-on-surface-variant font-medium">FinOps Management</p></div>
+    </div>
+    <div class="flex flex-col gap-0.5 flex-1 overflow-y-auto">
+      <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Empresas</p>
+      <button onclick="showPage('crear',this)" data-page="crear" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">add_business</span>Crear Empresa</button>
+      <button onclick="showPage('asociar',this)" data-page="asociar" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">link</span>Asociar Usuario</button>
+      <button onclick="showPage('listar',this)" data-page="listar" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">list</span>Listar Empresas</button>
+    </div>
+    <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
+       <div class="flex items-center gap-3">
+         <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm flex-shrink-0">?</div>
+         <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-on-surface truncate" id="sidebar-username">Usuario</p><p class="text-[11px] text-on-surface-variant truncate" id="sidebar-rol">-</p></div>
+         <button onclick="doLogout()" class="text-outline hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30" title="Cerrar sesion"><span class="material-symbols-outlined text-[20px]">logout</span></button>
+       </div>
+     </div>
+   </nav>
+
+  <!-- Main area -->
+  <div class="lg:ml-64 flex flex-col flex-1 min-h-screen w-full">
+    <!-- Topbar -->
+    <header class="fixed top-0 lg:left-64 left-0 right-0 z-30 h-16 border-b border-outline-variant bg-surface-container-lowest/85 backdrop-blur-xl soft-glow flex justify-between items-center px-4 lg:px-6">
+      <div class="flex items-center gap-3 flex-1">
+        <button onclick="toggleSidebar()" class="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl hover:bg-surface-container transition-colors text-on-surface-variant flex-shrink-0"><span class="material-symbols-outlined text-[22px]">menu</span></button>
+        <div class="relative w-52 hidden sm:block">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]">search</span>
+          <input type="text" placeholder="Buscar empresas..." class="w-full pl-10 pr-4 py-2 bg-surface-container border border-outline-variant rounded-full text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant">
+          <div class="w-2 h-2 rounded-full bg-[#10b981] pulse-dot"></div>
+          <span class="text-xs font-medium text-on-surface-variant">Online</span>
+        </div>
+        <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant"><span class="material-symbols-outlined text-[20px]">notifications</span></button>
+        <div class="flex items-center gap-2 cursor-pointer">
+          <div id="user-avatar-letter" class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center text-white font-bold text-sm">?</div>
+          <span id="user-display" class="text-sm font-medium text-on-surface hidden md:block">-</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Pages -->
+    <main class="pt-16 p-6 lg:p-10 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+
+      <!-- CREAR EMPRESA -->
+      <div class="page active" id="page-crear">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Crear Empresa</h2><p class="text-sm text-on-surface-variant mt-1">Registra una nueva empresa en el sistema.</p></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Formulario -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <h3 class="text-base font-semibold text-on-surface mb-6">Información de la Empresa</h3>
+            <div class="space-y-5">
+              <!-- ID Empresa -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">ID Empresa</label>
+                <input id="crear-empresa-id" type="text" placeholder="ej: empresa_001" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/>
+                <p class="text-[10px] text-on-surface-variant mt-1">Identificador único de la empresa</p>
+              </div>
+
+              <!-- Nombre -->
+              <div>
+                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Nombre</label>
+                <input id="crear-empresa-nombre" type="text" placeholder="ej: BITE.CO" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/>
+                <p class="text-[10px] text-on-surface-variant mt-1">Nombre de la empresa</p>
+              </div>
+
+              <!-- Botón Crear -->
+              <button onclick="crearEmpresa()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 mt-4">
+                <span class="material-symbols-outlined text-[18px]">add_business</span>Crear Empresa
+              </button>
+            </div>
+          </div>
+
+          <!-- Resultado -->
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow flex flex-col">
+            <h3 class="text-base font-semibold text-on-surface mb-4">Resultado</h3>
+            <div id="crear-error" class="hidden mb-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20"></div>
+            <div id="crear-success" class="hidden mb-4 px-4 py-3 bg-[#dcfce7] text-[#166534] rounded-xl text-sm font-medium border border-[#bbf7d0]"></div>
+            <pre id="crear-result" class="flex-1 text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 overflow-auto terminal-scroll leading-relaxed min-h-[300px] whitespace-pre-wrap break-words">Completa el formulario y presiona "Crear Empresa"...</pre>
+          </div>
+        </div>
+      </div>
+
       <!-- ASOCIAR USUARIO-EMPRESA -->
       <div class="page" id="page-asociar">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Asociar Usuario a Empresa</h2><p class="text-sm text-on-surface-variant mt-1">Vincula usuarios con empresas del sistema.</p></div>
         </div>
-        
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Formulario -->
           <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
             <h3 class="text-base font-semibold text-on-surface mb-6">Información de Asociación</h3>
             <div class="space-y-5">
-              
+
               <!-- Seleccionar Usuario -->
               <div>
                 <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label>
@@ -47,16 +125,6 @@
                 <p class="text-[10px] text-on-surface-variant mt-1">Selecciona una empresa</p>
               </div>
 
-              <!-- Rol -->
-              <div>
-                <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Rol</label>
-                <select id="asociar-rol" class="w-full px-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all">
-                  <option value="usuario" selected>Usuario</option>
-                  <option value="gerente">Gerente</option>
-                  <option value="admin">Administrador</option>
-                </select>
-              </div>
-
               <!-- Botón Asociar -->
               <button onclick="asociarUsuarioEmpresa()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 mt-4">
                 <span class="material-symbols-outlined text-[18px]">link</span>Asociar
@@ -64,7 +132,7 @@
             </div>
           </div>
 
-          <!-- Vista Previa / Resultado -->
+          <!-- Resultado -->
           <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow flex flex-col">
             <h3 class="text-base font-semibold text-on-surface mb-4">Resultado</h3>
             <div id="asociar-error" class="hidden mb-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20"></div>
@@ -73,10 +141,21 @@
           </div>
         </div>
       </div>
+
+      <!-- LISTAR EMPRESAS -->
+      <div class="page" id="page-listar">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Empresas Registradas</h2><p class="text-sm text-on-surface-variant mt-1">Lista de todas las empresas del sistema.</p></div>
+          <button onclick="cargarUsuariosYEmpresas()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Actualizar</button>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <pre id="listar-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona "Actualizar" para cargar la lista...</pre>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -84,17 +163,16 @@
 // Cargar usuarios y empresas al iniciar
 async function cargarUsuariosYEmpresas() {
   const token = localStorage.getItem('access_token');
-  
+
   try {
-    // Cargar usuarios
     const usuariosResponse = await fetch('/usuario/listar/', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const usuariosData = await usuariosResponse.json();
-    
+
     const usuarioSelect = document.getElementById('asociar-usuario');
     usuarioSelect.innerHTML = '<option value="">Selecciona un usuario</option>';
-    
+
     if (usuariosData.usuarios && usuariosData.usuarios.length > 0) {
       usuariosData.usuarios.forEach(usuario => {
         const option = document.createElement('option');
@@ -107,17 +185,16 @@ async function cargarUsuariosYEmpresas() {
     console.error('Error cargando usuarios:', error);
     document.getElementById('asociar-usuario').innerHTML = '<option value="">Error cargando usuarios</option>';
   }
-  
+
   try {
-    // Cargar empresas
     const empresasResponse = await fetch('/empresa/listar/', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const empresasData = await empresasResponse.json();
-    
+
     const empresaSelect = document.getElementById('asociar-empresa');
     empresaSelect.innerHTML = '<option value="">Selecciona una empresa</option>';
-    
+
     if (empresasData.empresas && empresasData.empresas.length > 0) {
       empresasData.empresas.forEach(empresa => {
         const option = document.createElement('option');
@@ -126,48 +203,106 @@ async function cargarUsuariosYEmpresas() {
         empresaSelect.appendChild(option);
       });
     }
+
+    // Actualizar lista en page-listar
+    document.getElementById('listar-result').textContent = JSON.stringify(empresasData, null, 2);
   } catch (error) {
     console.error('Error cargando empresas:', error);
     document.getElementById('asociar-empresa').innerHTML = '<option value="">Error cargando empresas</option>';
   }
 }
 
+async function crearEmpresa() {
+  const empresaId = document.getElementById('crear-empresa-id').value.trim();
+  const nombre = document.getElementById('crear-empresa-nombre').value.trim();
+
+  document.getElementById('crear-error').classList.add('hidden');
+  document.getElementById('crear-success').classList.add('hidden');
+
+  if (!empresaId) {
+    document.getElementById('crear-error').textContent = 'Por favor ingresa el ID de la empresa';
+    document.getElementById('crear-error').classList.remove('hidden');
+    return;
+  }
+
+  if (!nombre) {
+    document.getElementById('crear-error').textContent = 'Por favor ingresa el nombre de la empresa';
+    document.getElementById('crear-error').classList.remove('hidden');
+    return;
+  }
+
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    document.getElementById('crear-error').textContent = 'No estás autenticado. Por favor inicia sesión';
+    document.getElementById('crear-error').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const response = await fetch('/empresa/crear/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ id: empresaId, nombre: nombre })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('crear-success').textContent = '✓ Empresa creada exitosamente';
+      document.getElementById('crear-success').classList.remove('hidden');
+      // Limpiar formulario
+      document.getElementById('crear-empresa-id').value = '';
+      document.getElementById('crear-empresa-nombre').value = '';
+      // Recargar lista de empresas
+      cargarUsuariosYEmpresas();
+    } else {
+      document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('crear-error').textContent = data.error || 'Error al crear la empresa';
+      document.getElementById('crear-error').classList.remove('hidden');
+    }
+  } catch (error) {
+    document.getElementById('crear-result').textContent = `Error: ${error.message}`;
+    document.getElementById('crear-error').textContent = error.message;
+    document.getElementById('crear-error').classList.remove('hidden');
+  }
+}
+
 async function asociarUsuarioEmpresa() {
   const usuarioId = document.getElementById('asociar-usuario').value;
   const empresaId = document.getElementById('asociar-empresa').value;
-  const rol = document.getElementById('asociar-rol').value;
-  
-  // Limpiar mensajes anteriores
+
   document.getElementById('asociar-error').classList.add('hidden');
   document.getElementById('asociar-success').classList.add('hidden');
-  
-  // Validar selecciones
+
   if (!usuarioId) {
     document.getElementById('asociar-error').textContent = 'Por favor selecciona un usuario';
     document.getElementById('asociar-error').classList.remove('hidden');
     return;
   }
-  
+
   if (!empresaId) {
     document.getElementById('asociar-error').textContent = 'Por favor selecciona una empresa';
     document.getElementById('asociar-error').classList.remove('hidden');
     return;
   }
-  
+
   const token = localStorage.getItem('access_token');
   if (!token) {
     document.getElementById('asociar-error').textContent = 'No estás autenticado. Por favor inicia sesión';
     document.getElementById('asociar-error').classList.remove('hidden');
     return;
   }
-  
+
   try {
     const payload = {
       usuario_id: parseInt(usuarioId),
-      empresa_id: empresaId,
-      rol: rol
+      empresa_id: empresaId
     };
-    
+
     const response = await fetch('/empresa/asociar/', {
       method: 'POST',
       headers: {
@@ -176,9 +311,9 @@ async function asociarUsuarioEmpresa() {
       },
       body: JSON.stringify(payload)
     });
-    
+
     const data = await response.json();
-    
+
     if (response.ok) {
       document.getElementById('asociar-result').textContent = JSON.stringify(data, null, 2);
       document.getElementById('asociar-success').textContent = '✓ Asociación realizada exitosamente';
@@ -198,6 +333,7 @@ async function asociarUsuarioEmpresa() {
 // Cargar datos al abrir la página
 window.addEventListener('DOMContentLoaded', () => {
   cargarUsuariosYEmpresas();
+  loadUserData();
 });
 </script>
 {% endblock %}

@@ -7,5 +7,6 @@ urlpatterns = [
     
     # API endpoints
     path('listar/', views.listar_empresas, name='listar_empresas'),
+    path('crear/', views.crear_empresa, name='crear_empresa'),
     path('asociar/', views.asociar_usuario_empresa, name='asociar_usuario_empresa'),
 ]

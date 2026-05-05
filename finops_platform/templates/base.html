@@ -127,7 +127,46 @@ async function fetchEndpoint(endpoint, resultId) {
 function doLogout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
-  window.location.href = '/login/';   // ← redirige al login
+  window.location.href = '/login/';
+}
+
+async function loadUserData() {
+  const token = localStorage.getItem('access_token');
+  if (!token) return;
+
+  try {
+    const res = await fetch('/autenticacion/me', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+      window.location.href = '/login/';
+      return;
+    }
+    const data = await res.json();
+    const name = data.usuario?.username || data.username || 'Usuario';
+    const rol = data.usuario?.rol || data.rol || 'usuario';
+    const ini = name[0].toUpperCase();
+
+    const userDisplay = document.getElementById('user-display');
+    const userAvatar = document.getElementById('user-avatar-letter');
+    const sidebarUsername = document.getElementById('sidebar-username');
+    const sidebarAvatar = document.getElementById('sidebar-avatar');
+    const sidebarRol = document.getElementById('sidebar-rol');
+    const ovUser = document.getElementById('ov-user');
+    const ovRol = document.getElementById('ov-rol');
+    const meData = document.getElementById('me-data');
+
+    if (userDisplay) userDisplay.textContent = name;
+    if (userAvatar) userAvatar.textContent = ini;
+    if (sidebarUsername) sidebarUsername.textContent = name;
+    if (sidebarAvatar) sidebarAvatar.textContent = ini;
+    if (sidebarRol) sidebarRol.textContent = rol;
+    if (ovUser) ovUser.textContent = name;
+    if (ovRol) ovRol.textContent = 'Rol: ' + rol;
+    if (meData) meData.textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+    console.error('Error loading user data:', error);
+  }
 }
 
 

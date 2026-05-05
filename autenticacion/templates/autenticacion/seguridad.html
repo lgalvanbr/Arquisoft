@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- DASHBOARD -->
-<div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+<div id="dashboard" style="display:flex" class="min-h-screen flex bg-background">
   <!-- Mobile overlay -->
   <div id="sidebar-overlay" onclick="closeSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
   <!-- Sidebar -->
@@ -113,4 +113,83 @@
     </main>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadAuditHistory() {
+  const token = localStorage.getItem('access_token');
+  const resultBox = document.getElementById('audit-result');
+
+  try {
+    const response = await fetch('/autenticacion/audit/historial', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+
+    resultBox.textContent = JSON.stringify(data, null, 2);
+
+    if (response.ok && data.historial) {
+      document.getElementById('audit-total').textContent = data.total || data.historial.length;
+
+      if (data.historial.length > 0) {
+        const recent = data.historial[0];
+        const fecha = new Date(recent.fecha_evento);
+        const ahora = new Date();
+        const diffMs = ahora - fecha;
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffHrs = Math.floor(diffMs / 3600000);
+
+        if (diffMin < 1) {
+          document.getElementById('audit-recent').textContent = 'Hace segundos';
+        } else if (diffMin < 60) {
+          document.getElementById('audit-recent').textContent = `Hace ${diffMin} min`;
+        } else {
+          document.getElementById('audit-recent').textContent = `Hace ${diffHrs}h`;
+        }
+        document.getElementById('audit-recent-time').textContent = fecha.toLocaleString('es-ES');
+
+        // Contar intentos fallidos
+        const fallidos = data.historial.filter(h =>
+          h.tipo_evento === 'login_failed' || h.tipo_evento === 'acceso_denegado'
+        ).length;
+        document.getElementById('audit-failed').textContent = fallidos;
+      }
+    } else {
+      resultBox.textContent = 'Error: ' + (data.error || 'No se pudo cargar el historial');
+    }
+  } catch (error) {
+    resultBox.textContent = 'Error de conexión: ' + error.message;
+  }
+}
+
+async function loadIntegrityRejections() {
+  const token = localStorage.getItem('access_token');
+  const resultBox = document.getElementById('integrity-result');
+
+  try {
+    const response = await fetch('/autenticacion/rechazos/integridad', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+
+    resultBox.textContent = JSON.stringify(data, null, 2);
+
+    if (response.ok && data.rechazos) {
+      document.getElementById('integrity-total').textContent = data.total || data.rechazos.length;
+      document.getElementById('integrity-tokens').textContent = data.total || data.rechazos.length;
+    } else {
+      resultBox.textContent = 'Error: ' + (data.error || 'No se pudieron cargar los rechazos');
+    }
+  } catch (error) {
+    resultBox.textContent = 'Error de conexión: ' + error.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadUserData();
+  loadAuditHistory();
+  loadIntegrityRejections();
+});
+</script>
 {% endblock %}
