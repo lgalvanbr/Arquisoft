@@ -3,21 +3,24 @@ Views para finops_platform - Dashboard principal
 """
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
 
 
 @require_http_methods(["GET"])
 def index(request):
-    """Renderiza la página de inicio/login"""
-    if request.user.is_authenticated:
-        return render(request, 'finops_platform/overview.html')
-    return render(request, 'autenticacion/login.html')
+    """Renderiza la página principal (login o dashboard según token JWT del cliente)
+    
+    El servidor siempre retorna un HTML que contiene TANTO login como dashboard.
+    El cliente JavaScript verifica si hay token en localStorage y muestra lo apropiado.
+    """
+    return render(request, 'finops_platform/index.html')
 
 
 @require_http_methods(["GET"])
 def overview(request):
-    """Renderiza el dashboard de overview - requiere autenticación"""
-    if not request.user.is_authenticated:
-        return render(request, 'autenticacion/login.html')
-    return render(request, 'finops_platform/overview.html')
+    """Renderiza el dashboard de overview
+    
+    Esta ruta es un alias para /finops_platform/ que muestra el dashboard.
+    El cliente verifica si hay token JWT antes de mostrar.
+    """
+    return render(request, 'finops_platform/index.html')
 

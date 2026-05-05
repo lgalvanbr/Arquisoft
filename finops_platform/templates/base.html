@@ -76,6 +76,7 @@ tailwind.config = {
 {% block content %}{% endblock %}
 
 <script>
+
 // Utility functions
 function switchTab(tab) {
   document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
@@ -124,32 +125,24 @@ async function fetchEndpoint(endpoint, resultId) {
 }
 
 function doLogout() {
-  localStorage.clear();
-  location.reload();
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  window.location.href = '/login/';   // ← redirige al login
 }
 
-// Load user data
-function loadUserData() {
+// Guard: si no hay token, redirigir a /login/
+document.addEventListener('DOMContentLoaded', () => {
   const token = localStorage.getItem('access_token');
-  const authSection = document.getElementById('auth-section');
-  const dashboard = document.getElementById('dashboard');
-  
-  // Si los elementos no existen, no hacer nada (para templates sin estos elementos)
-  if (!authSection || !dashboard) {
+  if (!token) {
+    window.location.href = '/login/';
     return;
   }
-  
-  if (!token) {
-    authSection.style.display = 'flex';
-    dashboard.style.display = 'none';
-  } else {
-    authSection.style.display = 'none';
-    dashboard.style.display = 'flex';
-    fetchEndpoint('/autenticacion/me', 'me-data');
-  }
-}
+  // Token existe → mostrar dashboard y cargar datos
+  const dashboard = document.getElementById('dashboard');
+  if (dashboard) dashboard.style.display = 'flex';
+  fetchEndpoint('/autenticacion/me', 'me-data');
+});
 
-document.addEventListener('DOMContentLoaded', loadUserData);
 </script>
 {% block extra_js %}{% endblock %}
 </body>
