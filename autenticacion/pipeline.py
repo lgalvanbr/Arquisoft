@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 from autenticacion.models import Usuario
 
 def create_usuario_profile(backend, user, response, *args, **kwargs):
+    # DEBUG - ver todo lo que llega
+    print("=== RESPONSE KEYS:", list(response.keys()))
+    print("=== RESPONSE COMPLETO:", response)
+    
     from autenticacion.models import Usuario
     
     namespace = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com'
