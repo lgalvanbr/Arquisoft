@@ -226,21 +226,33 @@ def obtener_usuario_actual(request):
         usuario = request.user
         social = usuario.social_auth.filter(provider='auth0').first()
 
-        # Primero buscar rol en modelo local (seed_user o asignar-rol)
+        print("=== obtener_usuario_actual DEBUG ===")
+        print("user:", usuario.username)
+        print("social exists:", social is not None)
+        if social:
+            print("social extra_data keys:", list(social.extra_data.keys()))
+            print("social id_token present:", 'id_token' in social.extra_data)
+            print("social access_token present:", 'access_token' in social.extra_data)
+
         from autenticacion.models import Usuario as UsuarioModel
         local_usuario = UsuarioModel.objects.filter(usuario_django=usuario).first()
 
         if local_usuario:
+            print("local_usuario found, rol:", local_usuario.rol)
             rol = local_usuario.rol
             empresa = str(local_usuario.empresa) if local_usuario.empresa else ''
         elif social:
-            # Fallback: intentar obtener rol de Auth0 via userinfo
+            print("Falling back to Auth0 getRole")
             from autenticacion.auth0backend import getRole
             rol = getRole(request) or 'usuario'
             empresa = social.extra_data.get('https://finops-api/empresa', '') or social.extra_data.get('empresa', '')
         else:
+            print("No local_usuario, no social — defaulting to usuario")
             rol = 'usuario'
             empresa = ''
+
+        print("rol final:", rol)
+        print("empresa final:", empresa)
 
         return Response(
             {
@@ -257,12 +269,6 @@ def obtener_usuario_actual(request):
                 },
             },
             status=status.HTTP_200_OK
-        )
-    except Exception as e:
-        logger.error(f"Error obteniendo usuario actual: {str(e)}")
-        return Response(
-            {'error': 'Error al obtener usuario'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     except Exception as e:
         logger.error(f"Error obteniendo usuario actual: {str(e)}")

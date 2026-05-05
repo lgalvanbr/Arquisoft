@@ -80,21 +80,30 @@ def getRole(request):
     try:
         auth0user = user.social_auth.filter(provider="auth0")[0]
         if not auth0user:
+            print("=== getRole: NO social_auth para provider auth0 ===")
             return None
     
-        accessToken = auth0user.extra_data.get('access_token')
+        accessToken = auth0user.extra_data['access_token']
         if not accessToken:
+            print("=== getRole: NO access_token en extra_data ===")
+            print("=== getRole: extra_data keys:", list(auth0user.extra_data.keys()))
             return None
+
+        print("=== getRole: access_token len:", len(accessToken))
 
         url = 'https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN + '/userinfo' 
         headers = {'authorization': 'Bearer ' + accessToken} 
 
+        print("=== getRole: GET", url)
+
         resp = requests.get(url, headers=headers) 
+        print("=== getRole: status", resp.status_code)
+
         userinfo = resp.json() 
+        print("=== getRole: userinfo:", json.dumps(userinfo, indent=2))
 
-        namespace = f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role"
-
-        role = userinfo[f"{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role"]
+        role = userinfo[f"{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role"] 
+        print("=== getRole: role encontrado:", role)
         
         return role
     except Exception as e:
