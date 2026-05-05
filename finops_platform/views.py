@@ -22,4 +22,4 @@ def overview(request):
     Esta ruta es un alias para /finops_platform/ que muestra el dashboard.
     El cliente verifica si hay token JWT antes de mostrar.
     """
-    return render(request, 'finops_platform/overview.html')
+    return render(request, 'finops_platform/index.html')
