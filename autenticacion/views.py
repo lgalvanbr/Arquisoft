@@ -23,6 +23,24 @@ def login_view(request):
     return render(request, 'autenticacion/login.html')
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_session(request):
+    """Verifica si hay sesion activa de Django (Auth0). Retorna info basica del usuario."""
+    if request.user.is_authenticated:
+        social = request.user.social_auth.filter(provider='auth0').first()
+        rol = 'usuario'
+        if social:
+            rol = social.extra_data.get('https://dev-vy27mzsmkwosyqhr.us.auth0.com/rol', 'usuario')
+        return Response({
+            'authenticated': True,
+            'username': request.user.username,
+            'email': request.user.email,
+            'rol': rol,
+        })
+    return Response({'authenticated': False})
+
+
 def obtener_ip_cliente(request):
     """Obtiene la dirección IP del cliente"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')

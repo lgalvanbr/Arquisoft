@@ -245,6 +245,15 @@ function showLogin() {
 document.addEventListener('DOMContentLoaded', function() {
     if (localStorage.getItem('access_token')) {
         enterDashboard();
+    } else {
+        fetch('/autenticacion/session/')
+        .then(res => res.json())
+        .then(data => {
+            if (data.authenticated) {
+                enterDashboard();
+            }
+        })
+        .catch(() => {});
     }
 });
 </script>
