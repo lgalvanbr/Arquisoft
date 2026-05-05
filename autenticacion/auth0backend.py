@@ -44,31 +44,24 @@ class Auth0(BaseOAuth2):
             'picture': userinfo['picture'],
             'user_id': userinfo['sub'],
             'email': userinfo.get('email', ''),
-            'empresa': userinfo.get(f'{DOMAIN}/empresa_id', ''),
-            'rol': userinfo.get(f'{DOMAIN}/role', 'usuario'),
         }
 
-def getRole(request):
-    """
-    Obtiene el rol del usuario leyendo el id_token guardado en extra_data.
-    """
-    try:
-        user = request.user
-        auth0user = user.social_auth.filter(provider="auth0")[0]
-        DOMAIN = 'https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN
+def getRole(request): 
 
-        # Intentar desde id_token
-        id_token = auth0user.extra_data.get('id_token')
-        if id_token:
-            parts = id_token.split('.')
-            payload = parts[1] + '=' * (4 - len(parts[1]) % 4)
-            claims = json.loads(base64.urlsafe_b64decode(payload))
-            print(f"=== getRole claims: {claims} ===")
-            return claims.get(f'{DOMAIN}/rol', 'usuario')
+    user = request.user 
 
-        # Fallback a extra_data
-        return auth0user.extra_data.get('rol', 'usuario')
+    auth0user = user.social_auth.filter(provider="auth0")[0] 
 
-    except Exception as e:
-        print(f"=== getRole ERROR: {str(e)} ===")
-        return 'usuario'
+    accessToken = auth0user.extra_data['access_token'] 
+
+    url = 'https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN + '/userinfo' 
+
+    headers = {'authorization': 'Bearer ' + accessToken} 
+
+    resp = requests.get(url, headers=headers) 
+
+    userinfo = resp.json() 
+
+    role = userinfo[f"{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role"] 
+
+    return (role) 
