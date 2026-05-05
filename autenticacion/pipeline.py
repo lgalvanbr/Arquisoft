@@ -13,6 +13,47 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from autenticacion.models import Usuario
+
+def create_usuario_profile(backend, user, response, *args, **kwargs):
+    """
+    Crea el perfil Usuario propio si no existe después del login con Auth0.
+    """
+    try:
+        usuario = Usuario.objects.get(usuario_django=user)
+    except Usuario.DoesNotExist:
+        # Obtener rol desde los claims del token
+        namespace = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com'
+        rol = 'usuario'  # default
+        
+        # Intentar leer el rol desde extra_data
+        if kwargs.get('social') and kwargs['social'].extra_data:
+            rol = kwargs['social'].extra_data.get('rol', 'usuario') or 'usuario'
+        
+        # Intentar desde response directo
+        if rol == 'usuario':
+            rol_claim = response.get(f'{namespace}/rol')
+            if rol_claim:
+                rol = rol_claim
+
+        # Mapear rol de Auth0 a los choices del modelo
+        rol_map = {
+            'admin': 'admin',
+            'manager': 'gerente', 
+            'gerente': 'gerente',
+            'usuario': 'usuario',
+        }
+        rol = rol_map.get(rol, 'usuario')
+
+        usuario = Usuario.objects.create(
+            usuario_django=user,
+            rol=rol,
+            activo=True,
+        )
+        print(f"=== Usuario creado: {user.username} con rol: {rol} ===")
+    
+    return {'usuario_profile': usuario}
+
 
 def save_jwt_to_session(backend, user, response, *args, **kwargs):
     """

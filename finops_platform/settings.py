@@ -180,6 +180,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
+    'autenticacion.pipeline.create_usuario_profile',
     # Pipeline personalizado: genera JWT y guarda en sesión
     'autenticacion.pipeline.save_jwt_to_session',
 )
