@@ -118,13 +118,10 @@
 {% block extra_js %}
 <script>
 async function loadAuditHistory() {
-  const token = localStorage.getItem('access_token');
   const resultBox = document.getElementById('audit-result');
 
   try {
-    const response = await fetch('/autenticacion/audit/historial', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await fetchWithAuth('/autenticacion/audit/historial');
     const data = await response.json();
 
     resultBox.textContent = JSON.stringify(data, null, 2);
@@ -149,7 +146,6 @@ async function loadAuditHistory() {
         }
         document.getElementById('audit-recent-time').textContent = fecha.toLocaleString('es-ES');
 
-        // Contar intentos fallidos
         const fallidos = data.historial.filter(h =>
           h.tipo_evento === 'login_failed' || h.tipo_evento === 'acceso_denegado'
         ).length;
@@ -159,18 +155,15 @@ async function loadAuditHistory() {
       resultBox.textContent = 'Error: ' + (data.error || 'No se pudo cargar el historial');
     }
   } catch (error) {
-    resultBox.textContent = 'Error de conexión: ' + error.message;
+    resultBox.textContent = 'Error de conexion: ' + error.message;
   }
 }
 
 async function loadIntegrityRejections() {
-  const token = localStorage.getItem('access_token');
   const resultBox = document.getElementById('integrity-result');
 
   try {
-    const response = await fetch('/autenticacion/rechazos/integridad', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await fetchWithAuth('/autenticacion/rechazos/integridad');
     const data = await response.json();
 
     resultBox.textContent = JSON.stringify(data, null, 2);
@@ -182,7 +175,7 @@ async function loadIntegrityRejections() {
       resultBox.textContent = 'Error: ' + (data.error || 'No se pudieron cargar los rechazos');
     }
   } catch (error) {
-    resultBox.textContent = 'Error de conexión: ' + error.message;
+    resultBox.textContent = 'Error de conexion: ' + error.message;
   }
 }
 

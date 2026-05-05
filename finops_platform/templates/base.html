@@ -111,13 +111,50 @@ function setEndpoint(endpoint) {
   document.getElementById('custom-endpoint').value = endpoint;
 }
 
+function getCsrfToken() {
+  const el = document.querySelector('[name=csrfmiddlewaretoken]');
+  return el ? el.value : '';
+}
+
+function getAuthHeaders(extraHeaders = {}) {
+  const headers = { ...extraHeaders };
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    headers['Authorization'] = 'Bearer ' + token;
+  }
+  const csrf = getCsrfToken();
+  if (csrf) {
+    headers['X-CSRFToken'] = csrf;
+  }
+  return headers;
+}
+
+async function fetchWithAuth(url, options = {}) {
+  options.headers = getAuthHeaders(options.headers || {});
+  options.credentials = 'same-origin';
+  const response = await fetch(url, options);
+  return response;
+}
+
 async function fetchEndpoint(endpoint, resultId) {
   try {
-    const response = await fetch(endpoint);
+    const response = await fetchWithAuth(endpoint);
     const data = await response.json();
     document.getElementById(resultId).textContent = JSON.stringify(data, null, 2);
   } catch (error) {
     document.getElementById(resultId).textContent = `Error: ${error.message}`;
+  }
+}
+
+async function checkAuth() {
+  const token = localStorage.getItem('access_token');
+  if (token) return true;
+  try {
+    const res = await fetch('/autenticacion/session/', { credentials: 'same-origin' });
+    const data = await res.json();
+    return data.authenticated;
+  } catch {
+    return false;
   }
 }
 
@@ -129,7 +166,7 @@ function doLogout() {
 
 async function loadUserData() {
   try {
-    const res = await fetch('/autenticacion/me');
+    const res = await fetchWithAuth('/autenticacion/me');
     if (!res.ok) {
       return;
     }

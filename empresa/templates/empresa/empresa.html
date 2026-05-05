@@ -162,12 +162,8 @@
 <script>
 // Cargar usuarios y empresas al iniciar
 async function cargarUsuariosYEmpresas() {
-  const token = localStorage.getItem('access_token');
-
   try {
-    const usuariosResponse = await fetch('/usuario/listar/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const usuariosResponse = await fetchWithAuth('/usuario/listar/');
     const usuariosData = await usuariosResponse.json();
 
     const usuarioSelect = document.getElementById('asociar-usuario');
@@ -187,9 +183,7 @@ async function cargarUsuariosYEmpresas() {
   }
 
   try {
-    const empresasResponse = await fetch('/empresa/listar/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const empresasResponse = await fetchWithAuth('/empresa/listar/');
     const empresasData = await empresasResponse.json();
 
     const empresaSelect = document.getElementById('asociar-empresa');
@@ -231,20 +225,17 @@ async function crearEmpresa() {
     return;
   }
 
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    document.getElementById('crear-error').textContent = 'No estás autenticado. Por favor inicia sesión';
+  const authenticated = await checkAuth();
+  if (!authenticated) {
+    document.getElementById('crear-error').textContent = 'No estas autenticado. Por favor inicia sesion';
     document.getElementById('crear-error').classList.remove('hidden');
     return;
   }
 
   try {
-    const response = await fetch('/empresa/crear/', {
+    const response = await fetchWithAuth('/empresa/crear/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: empresaId, nombre: nombre })
     });
 
@@ -252,12 +243,10 @@ async function crearEmpresa() {
 
     if (response.ok) {
       document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);
-      document.getElementById('crear-success').textContent = '✓ Empresa creada exitosamente';
+      document.getElementById('crear-success').textContent = 'Empresa creada exitosamente';
       document.getElementById('crear-success').classList.remove('hidden');
-      // Limpiar formulario
       document.getElementById('crear-empresa-id').value = '';
       document.getElementById('crear-empresa-nombre').value = '';
-      // Recargar lista de empresas
       cargarUsuariosYEmpresas();
     } else {
       document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);
@@ -290,9 +279,9 @@ async function asociarUsuarioEmpresa() {
     return;
   }
 
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    document.getElementById('asociar-error').textContent = 'No estás autenticado. Por favor inicia sesión';
+  const authenticated = await checkAuth();
+  if (!authenticated) {
+    document.getElementById('asociar-error').textContent = 'No estas autenticado. Por favor inicia sesion';
     document.getElementById('asociar-error').classList.remove('hidden');
     return;
   }
@@ -303,12 +292,9 @@ async function asociarUsuarioEmpresa() {
       empresa_id: empresaId
     };
 
-    const response = await fetch('/empresa/asociar/', {
+    const response = await fetchWithAuth('/empresa/asociar/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
@@ -316,7 +302,7 @@ async function asociarUsuarioEmpresa() {
 
     if (response.ok) {
       document.getElementById('asociar-result').textContent = JSON.stringify(data, null, 2);
-      document.getElementById('asociar-success').textContent = '✓ Asociación realizada exitosamente';
+      document.getElementById('asociar-success').textContent = 'Asociacion realizada exitosamente';
       document.getElementById('asociar-success').classList.remove('hidden');
     } else {
       document.getElementById('asociar-result').textContent = JSON.stringify(data, null, 2);
@@ -329,8 +315,14 @@ async function asociarUsuarioEmpresa() {
     document.getElementById('asociar-error').classList.remove('hidden');
   }
 }
+  } catch (error) {
+    document.getElementById('asociar-result').textContent = `Error: ${error.message}`;
+    document.getElementById('asociar-error').textContent = error.message;
+    document.getElementById('asociar-error').classList.remove('hidden');
+  }
+}
 
-// Cargar datos al abrir la página
+// Cargar datos al abrir la pagina
 window.addEventListener('DOMContentLoaded', () => {
   cargarUsuariosYEmpresas();
   loadUserData();

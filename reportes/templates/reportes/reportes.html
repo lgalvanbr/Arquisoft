@@ -228,11 +228,8 @@ async function fetchCostosEmpresa() {
     document.getElementById('costos-result').textContent = 'Por favor ingresa un empresa_id';
     return;
   }
-  const token = localStorage.getItem('access_token');
   try {
-    const response = await fetch(`/reportes/costos/empresa/${empresaId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await fetchWithAuth(`/reportes/costos/empresa/${empresaId}`);
     const data = await response.json();
     document.getElementById('costos-result').textContent = JSON.stringify(data, null, 2);
   } catch (error) {
@@ -246,11 +243,9 @@ async function crearReporte() {
   const mes = document.getElementById('crear-mes').value;
   const periodo = document.getElementById('crear-periodo').value;
   
-  // Limpiar mensajes anteriores
   document.getElementById('crear-error').classList.add('hidden');
   document.getElementById('crear-success').classList.add('hidden');
   
-  // Validar campos
   if (!empresaId) {
     document.getElementById('crear-error').textContent = 'Por favor ingresa el ID de la empresa';
     document.getElementById('crear-error').classList.remove('hidden');
@@ -263,9 +258,9 @@ async function crearReporte() {
     return;
   }
   
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    document.getElementById('crear-error').textContent = 'No estás autenticado. Por favor inicia sesión';
+  const authenticated = await checkAuth();
+  if (!authenticated) {
+    document.getElementById('crear-error').textContent = 'No estas autenticado. Por favor inicia sesion';
     document.getElementById('crear-error').classList.remove('hidden');
     return;
   }
@@ -277,12 +272,9 @@ async function crearReporte() {
       periodo: periodo
     };
     
-    const response = await fetch(`/reportes/crear/${empresaId}`, {
+    const response = await fetchWithAuth(`/reportes/crear/${empresaId}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     
@@ -290,7 +282,7 @@ async function crearReporte() {
     
     if (response.ok) {
       document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);
-      document.getElementById('crear-success').textContent = '✓ Reporte generado exitosamente';
+      document.getElementById('crear-success').textContent = 'Reporte generado exitosamente';
       document.getElementById('crear-success').classList.remove('hidden');
     } else {
       document.getElementById('crear-result').textContent = JSON.stringify(data, null, 2);

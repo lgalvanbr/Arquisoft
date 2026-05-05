@@ -62,11 +62,8 @@
 {% block extra_js %}
 <script>
 async function cargarUsuarios() {
-  const token = localStorage.getItem('access_token');
   try {
-    const response = await fetch('/usuario/listar/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await fetchWithAuth('/usuario/listar/');
     const data = await response.json();
     
     // Mostrar JSON
