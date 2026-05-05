@@ -6,6 +6,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db import connection
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -67,4 +69,19 @@ def obtener_historial_reportes(request):
 @api_view(['GET'])
 def health_check(request):
     """GET /api/health - Health check del servicio de reportes"""
-    return Response({'status': 'healthy', 'service': 'reportes'}, status=status.HTTP_200_OK)
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return Response({
+            'status': 'healthy',
+            'service': 'reportes',
+            'timestamp': timezone.now().isoformat()
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return Response({
+            'status': 'unhealthy',
+            'service': 'reportes',
+            'error': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
