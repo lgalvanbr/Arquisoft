@@ -799,3 +799,29 @@ def seguridad_view(request):
             status=status.HTTP_401_UNAUTHORIZED
         )
     return render(request, 'autenticacion/seguridad.html')
+
+
+@require_http_methods(["GET"])
+def auth0_callback_view(request):
+    """
+    Vista que captura los tokens JWT de la sesión (generados por el pipeline)
+    y redirige al dashboard con los tokens en la URL.
+    """
+    try:
+        access_token = request.session.pop('auth0_access_token', None)
+        refresh_token = request.session.pop('auth0_refresh_token', None)
+        
+        if access_token:
+            # Redirigir al dashboard con tokens en la URL
+            # El frontend JavaScript capturará estos tokens
+            redirect_url = f'/finops_platform/?auth_token={access_token}'
+            if refresh_token:
+                redirect_url += f'&refresh_token={refresh_token}'
+            return redirect(redirect_url)
+        else:
+            # Si no hay tokens, redirigir al login con error
+            return redirect('/?error=auth0_callback_failed')
+            
+    except Exception as e:
+        logger.error(f"Error en auth0_callback_view: {str(e)}", exc_info=True)
+        return redirect('/?error=auth0_callback_exception')
