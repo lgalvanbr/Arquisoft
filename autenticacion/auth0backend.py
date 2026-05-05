@@ -23,7 +23,6 @@ class Auth0(BaseOAuth2):
         ('id_token', 'id_token'),
         ('email', 'email'),
         ('sub', 'sub'),
-        ('https://finops-api/rol', 'rol'),
     ]
 
     def authorization_url(self):
@@ -78,8 +77,10 @@ def getRole(request):
     """
     Obtiene el rol del usuario leyendo el id_token guardado en extra_data.
     """
-    auth0user = User.social_auth.filter(provider="auth0")[0] 
+    user = request.user 
 
+    auth0user = user.social_auth.filter(provider="auth0")[0] 
+   
     accessToken = auth0user.extra_data['access_token'] 
 
     url = 'https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN + '/userinfo' 
@@ -91,9 +92,5 @@ def getRole(request):
     userinfo = resp.json() 
 
     role = userinfo.get(f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/rol") \
-        or userinfo.get(f"https://{settings.SOCIAL_AUTH_AUTH0_DOMAIN}/role") \
-        or userinfo.get("https://finops-api/rol") \
-        or userinfo.get("https://finops-api/role") \
-        or 'usuario'
         
     return (role) 

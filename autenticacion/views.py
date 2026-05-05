@@ -203,31 +203,27 @@ def login(request):
 @permission_classes([IsAuthenticated])
 def obtener_usuario_actual(request):
     """Endpoint para obtener información del usuario autenticado"""
-    try:
-        usuario = request.user
+
 
         # Leer rol y empresa desde social_auth (usuario Auth0)
         # o desde el modelo Usuario propio (usuario con JWT)
-        rol = 'usuario'
-        empresa = ''
 
-        try:
-            social = usuario.social_auth.filter(provider='auth0').first()
-            if social:
-                rol = social.extra_data.get('rol', 'usuario')
-                empresa = social.extra_data.get('empresa', '')
-            else:
-                # Usuario propio con JWT — tiene atributos directos
-                from autenticacion.models import Usuario as UsuarioModel
-                u = UsuarioModel.objects.filter(usuario_django=usuario).first()
-                print("=== USUARIO ENCONTRADO ===", u)
-                print("=== ROL ===", u.rol if u else "NO ENCONTRADO")
-                print("=== EMPRESA ===", u.empresa if u else "NO ENCONTRADO")
-                if u:
-                    rol = u.rol
-                    empresa = str(u.empresa) if u.empresa else ''
-        except Exception:
-            pass
+    try:
+        usuario = request.user
+        social = usuario.social_auth.filter(provider='auth0').first()
+        if social:
+            from autenticacion.backends import getRole
+            rol = getRole(request)
+            empresa = social.extra_data.get('https://finops-api/empresa', '') \
+                or social.extra_data.get('empresa', '')
+        else:
+            from autenticacion.models import Usuario as UsuarioModel
+            u = UsuarioModel.objects.filter(usuario_django=usuario).first()
+            if u:
+                rol = u.rol
+                empresa = str(u.empresa) if u.empresa else ''
+    except Exception as e:
+        logger.warning(f"Error obteniendo rol: {e}")
 
         permisos = RolPermiso.objects.filter(rol=rol).select_related('permiso')
         permisos_list = [p.permiso.codigo for p in permisos]
