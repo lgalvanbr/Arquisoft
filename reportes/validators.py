@@ -1,16 +1,44 @@
 """
 Validadores de integridad de payload.
 Detecta manipulación de mensajes de solicitud.
+ASR Disponibilidad: Detección de SQL Injection en reportes de costos.
 Laboratorio ISIS2503 - Seguridad Integridad y Confidencialidad
 """
 import hmac
 import hashlib
 import json
+import re
 from django.http import JsonResponse
 from functools import wraps
 from django.conf import settings
 from autenticacion.models import AuditLog
 from django.utils import timezone
+
+
+# Patrones de SQL Injection para detectar ataques
+SQL_INJECTION_PATTERNS = [
+    r"(?i)\b(UNION|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC|EXECUTE)\b",
+    r"(--|\/\*|\*\/|;)",
+    r"(?i)\b(OR|AND)\b\s+[\d\w]+\s*=\s*[\d\w]+",
+    r"(?i)\b(SLEEP|WAITFOR|BENCHMARK|LOAD_FILE|INTO\s+OUTFILE|INTO\s+DUMPFILE)\b",
+    r"(?i)(\bDECLARE\b|\bEXEC\b|\bCAST\b|\bCONVERT\b)",
+    r"(?i)\b(1\s*=\s*1|1\s*=\s*'1'|'\s*OR\s+')",
+]
+
+SQL_INJECTION_REGEX = [re.compile(p) for p in SQL_INJECTION_PATTERNS]
+
+
+def _detect_sql_injection(value):
+    """
+    Detecta patrones de SQL Injection en un string.
+    Retorna True si se detecta un intento de inyección.
+    """
+    if not value or not isinstance(value, str):
+        return False
+    for regex in SQL_INJECTION_REGEX:
+        if regex.search(value):
+            return True
+    return False
 
 
 def validate_payload_integrity(view_func):
@@ -122,10 +150,12 @@ def _get_client_ip(request):
 def validate_report_request(view_func):
     """
     Decorador específico para validar requests de reportes.
+    ASR Disponibilidad: Detección de SQL Injection.
+    
     Verifica:
     - empresa_id no es None
     - empresa_id es string válido
-    - No hay inyección SQL (caracteres especiales)
+    - No hay inyección SQL (caracteres especiales y patrones de ataque)
     """
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -138,7 +168,19 @@ def validate_report_request(view_func):
                 'detail': 'empresa_id es obligatorio'
             }, status=400)
         
-        # Validar que es string alphanumeric (sin inyecciones)
+        # ASR Disponibilidad: Detección de SQL Injection
+        if _detect_sql_injection(empresa_id):
+            _log_integrity_violation(
+                request,
+                'SQL_INJECTION_ATTEMPTED',
+                f'Se detectó intento de SQL Injection en empresa_id: {empresa_id}'
+            )
+            return JsonResponse({
+                'error': 'No autorizado',
+                'detail': 'SQL Injection detectado. Solicitud rechazada.'
+            }, status=401)
+        
+        # Validar que es string alfanumérico (sin inyecciones básicas)
         if not isinstance(empresa_id, str) or not empresa_id.replace('.', '').replace('-', '').replace('_', '').isalnum():
             _log_integrity_violation(
                 request,
