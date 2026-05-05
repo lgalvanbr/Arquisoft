@@ -225,16 +225,28 @@ def obtener_usuario_actual(request):
     try:
         usuario = request.user
         social = usuario.social_auth.filter(provider='auth0').first()
+        print("=== obtener_usuario_actual DEBUG ===")
+        print("user:", usuario.username)
+        print("social exists:", social is not None)
         if social:
+            print("social extra_data keys:", list(social.extra_data.keys()))
+            print("social id_token present:", 'id_token' in social.extra_data)
+            print("social access_token present:", 'access_token' in social.extra_data)
+            
             from autenticacion.auth0backend import getRole
-            rol = getRole(request)
-            empresa = social.extra_data.get('https://finops-api/empresa', '')
+            rol = getRole(request) or 'usuario'
+            empresa = social.extra_data.get('https://finops-api/empresa', '') or social.extra_data.get('empresa', '')
         else:
             from autenticacion.models import Usuario as UsuarioModel
             u = UsuarioModel.objects.filter(usuario_django=usuario).first()
             if u:
                 rol = u.rol
                 empresa = str(u.empresa) if u.empresa else ''
+            else:
+                rol = 'usuario'
+                empresa = ''
+        print("rol final:", rol)
+        print("empresa final:", empresa)
 
         permisos = RolPermiso.objects.filter(rol=rol).select_related('permiso')
         permisos_list = [p.permiso.codigo for p in permisos]
@@ -255,6 +267,12 @@ def obtener_usuario_actual(request):
                 'permisos': permisos_list,
             },
             status=status.HTTP_200_OK
+        )
+    except Exception as e:
+        logger.error(f"Error obteniendo usuario actual: {str(e)}")
+        return Response(
+            {'error': 'Error al obtener usuario'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     except Exception as e:
         logger.error(f"Error obteniendo usuario actual: {str(e)}")
