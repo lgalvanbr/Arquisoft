@@ -168,8 +168,24 @@ SOCIAL_AUTH_AUTH0_AUTH_EXTRA_ARGUMENTS = {
     'max_age': 0,
 }
 
-# Usar pipeline por defecto de social_django (no personalizado)
-# El logout después de auth0 login se maneja con el parámetro ?just_logged_out=true en la URL
+# Pipeline personalizado para generar JWT después de Auth0 login
+SOCIAL_AUTH_PIPELINE = (
+    # Pipeline por defecto de social_django
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+    # Pipeline personalizado: genera JWT y guarda en sesión
+    'autenticacion.pipeline.save_jwt_to_session',
+)
+
+# LOGIN_REDIRECT_URL: después de Auth0, redirige a la vista que captura tokens
+LOGIN_REDIRECT_URL = '/auth0/callback/'
 
 AUTHENTICATION_BACKENDS = (
     'autenticacion.auth0backend.Auth0',
