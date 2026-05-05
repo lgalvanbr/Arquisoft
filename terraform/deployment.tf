@@ -205,6 +205,33 @@ resource "aws_security_group" "traffic_lb" {
   })
 }
 
+#grupos de seguridad para kong
+
+resource "aws_security_group" "traffic_kong" {
+  name        = "cbd-traffic-kong"
+  description = "Allow Kong proxy traffic on port 8000"
+
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 8001
+    to_port     = 8001
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = { Name = "cbd-traffic-kong" }
+}
+
 # ========== EC2 DATABASE ==========
 
 resource "aws_instance" "database" {
@@ -266,7 +293,7 @@ EOT
 # ========== EC2 APP INSTANCES ==========
 
 resource "aws_instance" "app_instances" {
-  for_each = toset(["a", "b"])
+  for_each = toset(["a", "b", "c"]) #modificacion para tener 3 instancias y threshold de 66%
 
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_app
