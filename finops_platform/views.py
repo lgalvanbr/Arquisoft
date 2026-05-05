@@ -7,11 +7,15 @@ from django.views.decorators.http import require_http_methods
 
 @require_http_methods(["GET"])
 def index(request):
-    """Renderiza la página principal (login o dashboard según token JWT del cliente)
-    
-    El servidor siempre retorna un HTML que contiene TANTO login como dashboard.
-    El cliente JavaScript verifica si hay token en localStorage y muestra lo apropiado.
-    """
+    # Si viene de Auth0 (usuario autenticado en Django pero sin JWT en frontend)
+    if request.user.is_authenticated:
+        refresh = RefreshToken.for_user(request.user)
+        return render(request, 'autenticacion/auth0_redirect.html', {
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+        })
+    # Si no hay sesión Django, servir el dashboard normal
+    # (el guard de JS en overview.html redirige a /login/ si no hay token)
     return render(request, 'finops_platform/overview.html')
 
 

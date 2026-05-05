@@ -130,18 +130,7 @@ function doLogout() {
   window.location.href = '/login/';   // ← redirige al login
 }
 
-// Guard: si no hay token, redirigir a /login/
-document.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    window.location.href = '/login/';
-    return;
-  }
-  // Token existe → mostrar dashboard y cargar datos
-  const dashboard = document.getElementById('dashboard');
-  if (dashboard) dashboard.style.display = 'flex';
-  fetchEndpoint('/autenticacion/me', 'me-data');
-});
+
 
 </script>
 {% block extra_js %}{% endblock %}
