@@ -131,12 +131,20 @@ function doLogout() {
 // Load user data
 function loadUserData() {
   const token = localStorage.getItem('access_token');
+  const authSection = document.getElementById('auth-section');
+  const dashboard = document.getElementById('dashboard');
+  
+  // Si los elementos no existen, no hacer nada (para templates sin estos elementos)
+  if (!authSection || !dashboard) {
+    return;
+  }
+  
   if (!token) {
-    document.getElementById('auth-section').style.display = 'flex';
-    document.getElementById('dashboard').style.display = 'none';
+    authSection.style.display = 'flex';
+    dashboard.style.display = 'none';
   } else {
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'flex';
+    authSection.style.display = 'none';
+    dashboard.style.display = 'flex';
     fetchEndpoint('/autenticacion/me', 'me-data');
   }
 }
