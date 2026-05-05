@@ -7,6 +7,7 @@ Implementación según laboratorio ISIS2503
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+from autenticacion import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -14,6 +15,9 @@ urlpatterns = [
     # ======================== MAIN DASHBOARD ========================
     path('finops_platform/', views.overview, name='finops_platform'),
     path('', views.index, name='index'),
+    
+    # ======================== LOGIN ========================
+    path('login/', auth_views.login_view, name='login'), 
     
     # ======================== APP URLS ========================
     path('autenticacion/', include('autenticacion.urls')),

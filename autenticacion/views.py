@@ -18,6 +18,10 @@ from .utilities import JWTManager, DetectorAnomalias, AuditoriaManager, require_
 logger = logging.getLogger(__name__)
 
 
+def login_view(request):
+    return render(request, 'autenticacion/login.html')
+
+
 def obtener_ip_cliente(request):
     """Obtiene la dirección IP del cliente"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
