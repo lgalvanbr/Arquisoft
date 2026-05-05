@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import transaction
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.conf import settings
 from django.views.decorators.http import require_http_methods
 
 from .models import Usuario, Permiso, RolPermiso, RechazoIntegridad, IntentoAccesoNoAutorizado

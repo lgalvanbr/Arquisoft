@@ -11,6 +11,7 @@ urlpatterns = [
     # ======================== TEMPLATE VIEWS ========================
     path('', views.login_view, name='login_page'),
     path('seguridad/', views.seguridad_view, name='seguridad_page'),
+    path('callback/', views.auth0_callback_view, name='auth0_callback_view'),
     
     # ======================== AUTH0 / SOCIAL AUTH PATHS ========================
     # Se incluyen en finops_platform/urls.py

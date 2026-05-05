@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}CloudyNet · FinOps Platform{% endblock %}
+
+{% block content %}
+<!-- AUTH SECTION (visible por defecto) -->
+<div id="auth-section" class="min-h-screen flex">
+  <!-- Left branding panel -->
+  <div class="hidden lg:flex lg:w-[45%] relative flex-col justify-between overflow-hidden bg-surface-container-low border-r border-outline-variant">
+    <div class="absolute inset-0 z-0 overflow-hidden">
+      <div class="absolute -top-32 -left-32 w-[500px] h-[500px] bg-primary/8 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-secondary-container/40 rounded-full blur-3xl"></div>
+      <svg class="absolute inset-0 w-full h-full opacity-[0.07]" viewBox="0 0 600 700" fill="none">
+        <ellipse cx="150" cy="180" rx="120" ry="80" fill="#006591"/>
+        <ellipse cx="380" cy="120" rx="90" ry="60" fill="#0ea5e9"/>
+        <ellipse cx="500" cy="320" rx="110" ry="75" fill="#50616b"/>
+        <ellipse cx="80" cy="450" rx="70" ry="50" fill="#006591"/>
+        <ellipse cx="450" cy="520" rx="90" ry="60" fill="#0ea5e9"/>
+      </svg>
+    </div>
+    <div class="relative z-10 p-10 flex-1 flex flex-col">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center text-white shadow-[0_4px_16px_rgba(14,165,233,0.4)]">
+          <span class="material-symbols-outlined fill-icon text-[22px]">cloud</span>
+        </div>
+        <div>
+          <span class="text-xl font-bold text-on-background tracking-tight">CloudyNet</span>
+          <p class="text-[11px] text-on-surface-variant font-medium">FinOps Management</p>
+        </div>
+      </div>
+      <div class="mt-auto mb-12">
+        <h1 class="text-4xl font-bold text-on-background mb-4 leading-tight tracking-tight">FinOps<br/>Command Center</h1>
+        <p class="text-base text-on-surface-variant max-w-sm leading-relaxed">Transforma datos financieros complejos en un entorno claro e inteligente. Visibilidad total de tu gasto cloud con precision y escala.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-10">
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">analytics</span>
+          <div><p class="text-sm font-semibold text-on-surface">Reportes &lt;100ms</p><p class="text-[11px] text-on-surface-variant">Tiempo real</p></div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">security</span>
+          <div><p class="text-sm font-semibold text-on-surface">JWT Seguro</p><p class="text-[11px] text-on-surface-variant">Auditoria completa</p></div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">balance</span>
+          <div><p class="text-sm font-semibold text-on-surface">Load Balancer</p><p class="text-[11px] text-on-surface-variant">Alta disponibilidad</p></div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-white/50 rounded-xl border border-outline-variant/50">
+          <span class="material-symbols-outlined text-primary text-[22px] mt-0.5">query_stats</span>
+          <div><p class="text-sm font-semibold text-on-surface">Anomalias</p><p class="text-[11px] text-on-surface-variant">Deteccion automatica</p></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 pt-6 border-t border-outline-variant/40">
+        <div class="flex -space-x-2">
+          <div class="w-8 h-8 rounded-full bg-secondary-container border-2 border-white flex items-center justify-center"><span class="material-symbols-outlined text-[15px]">person</span></div>
+          <div class="w-8 h-8 rounded-full bg-tertiary-container border-2 border-white flex items-center justify-center"><span class="material-symbols-outlined text-[15px]">person</span></div>
+          <div class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-white flex items-center justify-center text-[10px] font-bold">+9k</div>
+        </div>
+        <span class="text-xs text-on-surface-variant font-medium">Trusted by leading FinOps teams globally</span>
+      </div>
+    </div>
+  </div>
+  <!-- Right form panel -->
+  <div class="flex-1 flex flex-col justify-center items-center px-8 py-12 bg-surface-container-lowest relative">
+    <div class="absolute top-6 left-6 lg:hidden flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-white"><span class="material-symbols-outlined fill-icon text-[17px]">cloud</span></div>
+      <span class="font-bold text-on-background">CloudyNet</span>
+    </div>
+    <div class="w-full max-w-[400px]">
+      <!-- Tabs -->
+      <div class="flex gap-1 bg-surface-container rounded-xl p-1 mb-8 border border-outline-variant">
+        <button id="tab-btn-login" onclick="switchTab('login')" class="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all bg-surface-container-lowest text-on-surface shadow-sm">Iniciar sesion</button>
+        <button id="tab-btn-register" onclick="switchTab('register')" class="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all text-on-surface-variant hover:text-on-surface">Crear cuenta</button>
+      </div>
+      <!-- LOGIN -->
+      <div id="tab-login">
+        <div class="mb-7">
+          <h2 class="text-2xl font-bold text-on-background mb-1.5 tracking-tight">Bienvenido de vuelta</h2>
+          <p class="text-sm text-on-surface-variant">Ingresa tus credenciales para acceder.</p>
+        </div>
+        <div class="space-y-5">
+          <div>
+            <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label>
+            <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">person</span><input id="login-username" type="text" placeholder="tu_usuario" autocomplete="username" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
+          </div>
+         <div>
+             <label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label>
+              <div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="login-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 focus:border-primary-container transition-all"/></div>
+            </div>
+            <button onclick="doLogin()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Iniciar sesion <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+             <a href="/login/auth0" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2 no-underline">Ingresar con Auth0 <span class="material-symbols-outlined text-[18px]">arrow_forward</span></a>
+        </div>
+      </div>
+      <!-- REGISTER -->
+      <div id="tab-register" style="display:none">
+        <div class="mb-7">
+          <h2 class="text-2xl font-bold text-on-background mb-1.5 tracking-tight">Crea tu cuenta</h2>
+          <p class="text-sm text-on-surface-variant">Empieza a gestionar tus costos cloud hoy.</p>
+        </div>
+        <div class="space-y-4">
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Usuario</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">person</span><input id="reg-username" type="text" placeholder="nuevo_usuario" autocomplete="username" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Email corporativo</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">mail</span><input id="reg-email" type="email" placeholder="correo@empresa.com" autocomplete="email" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Contrasena</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">key</span><input id="reg-password" type="password" placeholder="minimo 8 caracteres" autocomplete="new-password" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <div><label class="block text-[11px] font-semibold text-on-surface mb-2 uppercase tracking-wider">Empresa</label><div class="relative"><span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">business</span><input id="reg-empresa" type="text" placeholder="BITE.CO" class="w-full pl-11 pr-4 py-3 bg-surface border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-all"/></div></div>
+          <button onclick="doRegister()" class="w-full py-3 px-4 bg-gradient-to-b from-primary-container to-[#0284c7] text-white rounded-xl text-sm font-semibold tracking-wide shadow-[0_4px_16px_rgba(14,165,233,0.3)] hover:shadow-[0_6px_24px_rgba(14,165,233,0.45)] btn-glass-edge transition-all duration-200 active:scale-[0.98] flex justify-center items-center gap-2">Crear cuenta <span class="material-symbols-outlined text-[18px]">arrow_forward</span></button>
+        </div>
+      </div>
+      <div id="auth-error"   class="hidden mt-4 px-4 py-3 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20"></div>
+      <div id="auth-success" class="hidden mt-4 px-4 py-3 bg-[#dcfce7] text-[#166534] rounded-xl text-sm font-medium border border-[#bbf7d0]"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD SECTION (hidden por defecto, se muestra con JS si hay token) -->
+<div id="dashboard" style="display:none" class="min-h-screen flex bg-background">
+  {% include 'finops_platform/dashboard_content.html' %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ===================== AUTH CAPTURE FROM URL =====================
+// Capturar tokens de la URL después de Auth0 callback (?auth_token=...)
+(function captureTokens() {
+  const params = new URLSearchParams(window.location.search);
+  const authToken = params.get('auth_token');
+  const refreshToken = params.get('refresh_token');
+  
+  if (authToken) {
+    localStorage.setItem('access_token', authToken);
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
+    // Limpiar URL sin recargar
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Mostrar dashboard
+    enterDashboard();
+  }
+})();
+
+// ===================== LOGIN =====================
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  
+  if (!username || !password) {
+    document.getElementById('auth-error').textContent = 'Por favor completa todos los campos';
+    document.getElementById('auth-error').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const response = await fetch('/autenticacion/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await response.json();
+    
+    if (response.ok) {
+      localStorage.setItem('access_token', data.access_token || data.access);
+      if (data.refresh_token) {
+        localStorage.setItem('refresh_token', data.refresh_token);
+      }
+      enterDashboard();
+    } else {
+      document.getElementById('auth-error').textContent = data.error || 'Credenciales incorrectas';
+      document.getElementById('auth-error').classList.remove('hidden');
+    }
+  } catch (error) {
+    document.getElementById('auth-error').textContent = 'No se pudo conectar al servidor';
+    document.getElementById('auth-error').classList.remove('hidden');
+  }
+}
+
+// ===================== REGISTER =====================
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const empresa = document.getElementById('reg-empresa').value.trim();
+
+  if (!username || !email || !password) {
+    document.getElementById('auth-error').textContent = 'Por favor completa los campos requeridos';
+    document.getElementById('auth-error').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const response = await fetch('/autenticacion/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password, empresa })
+    });
+    const data = await response.json();
+    if (response.ok) {
+      document.getElementById('auth-success').textContent = 'Cuenta creada exitosamente. Iniciar sesion.';
+      document.getElementById('auth-success').classList.remove('hidden');
+      document.getElementById('auth-error').classList.add('hidden');
+      setTimeout(() => {
+        switchTab('login');
+        document.getElementById('login-username').value = username;
+      }, 1500);
+    } else {
+      document.getElementById('auth-error').textContent = data.error || 'Error en el registro';
+      document.getElementById('auth-error').classList.remove('hidden');
+      document.getElementById('auth-success').classList.add('hidden');
+    }
+  } catch (error) {
+    document.getElementById('auth-error').textContent = error.message;
+    document.getElementById('auth-error').classList.remove('hidden');
+  }
+}
+
+// ===================== NAVIGATION =====================
+function enterDashboard() {
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'flex';
+  loadUserData();
+  if (typeof loadOverview === 'function') {
+    loadOverview();
+  }
+}
+
+function showLogin() {
+  document.getElementById('auth-section').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+}
+
+// ===================== INIT =====================
+document.addEventListener('DOMContentLoaded', function() {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    enterDashboard();
+  }
+});
+</script>
+{% endblock %}

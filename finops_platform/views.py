@@ -1,28 +1,21 @@
+"""
+Views para finops_platform - Dashboard principal
+"""
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth import logout
-from autenticacion.utilities import JWTManager
-from autenticacion.models import Usuario  # ← correcto
+
 
 @require_http_methods(["GET"])
 def index(request):
-    if request.user.is_authenticated:
-        try:
-            usuario = Usuario.objects.get(username=request.user.username)
-        except Usuario.DoesNotExist:
-            logout(request)
-            return render(request, 'finops_platform/overview.html')
-        
-        access_token = JWTManager.generar_token_access(usuario)
-        refresh_token = JWTManager.generar_token_refresh(usuario)
-        JWTManager.guardar_tokens(usuario, access_token, refresh_token)
-        logout(request)
-        return render(request, 'autenticacion/auth0_redirect.html', {
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-        })
-    return render(request, 'finops_platform/overview.html')
+    """Renderiza la página principal (login/dashboard unificado)
+    
+    Siempre retorna index.html que contiene TANTO el login como el dashboard.
+    El JavaScript del cliente decide qué mostrar según si hay token en localStorage.
+    """
+    return render(request, 'finops_platform/index.html')
+
 
 @require_http_methods(["GET"])
 def overview(request):
-    return render(request, 'finops_platform/overview.html')
+    """Renderiza el dashboard (alias para compatibilidad)"""
+    return render(request, 'finops_platform/index.html')
