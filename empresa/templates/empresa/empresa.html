@@ -310,13 +310,6 @@ async function asociarUsuarioEmpresa() {
       document.getElementById('asociar-error').classList.remove('hidden');
     }
   } catch (error) {
-    document.getElementById('asociar-result').textContent = `Error: ${error.message}`;
-    document.getElementById('asociar-error').textContent = error.message;
-    document.getElementById('asociar-error').classList.remove('hidden');
-  }
-}
-  } catch (error) {
-    document.getElementById('asociar-result').textContent = `Error: ${error.message}`;
     document.getElementById('asociar-error').textContent = error.message;
     document.getElementById('asociar-error').classList.remove('hidden');
   }

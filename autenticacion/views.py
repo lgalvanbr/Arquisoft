@@ -31,7 +31,8 @@ def check_session(request):
         social = request.user.social_auth.filter(provider='auth0').first()
         rol = 'usuario'
         if social:
-            rol = social.extra_data.get('https://dev-vy27mzsmkwosyqhr.us.auth0.com/rol', 'usuario')
+            from autenticacion.auth0backend import getRole
+            rol = getRole(request) or 'usuario'
         return Response({
             'authenticated': True,
             'username': request.user.username,
@@ -225,7 +226,8 @@ def obtener_usuario_actual(request):
         usuario = request.user
         social = usuario.social_auth.filter(provider='auth0').first()
         if social:
-            rol = social.extra_data.get('https://dev-vy27mzsmkwosyqhr.us.auth0.com/rol', 'usuario')
+            from autenticacion.auth0backend import getRole
+            rol = getRole(request) or 'usuario'
             empresa = social.extra_data.get('https://finops-api/empresa', '') or social.extra_data.get('empresa', '')
         else:
             from autenticacion.models import Usuario as UsuarioModel

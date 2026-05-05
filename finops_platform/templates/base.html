@@ -70,8 +70,8 @@ tailwind.config = {
 </head>
 <body class="bg-background min-h-screen font-body-md text-on-background antialiased" style="background:#f9f9fa;color:#1a1c1d">
 
-<!-- CSRF TOKEN -->
-{% csrf_token %}
+<!-- CSRF TOKEN - visible para todos los templates que extienden -->
+<div style="display:none" id="csrf-container">{% csrf_token %}</div>
 
 {% block content %}{% endblock %}
 
@@ -151,6 +151,7 @@ async function checkAuth() {
   if (token) return true;
   try {
     const res = await fetch('/autenticacion/session/', { credentials: 'same-origin' });
+    if (!res.ok) return false;
     const data = await res.json();
     return data.authenticated;
   } catch {
