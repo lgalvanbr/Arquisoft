@@ -127,7 +127,8 @@ async function loadUserInfo() {
     const res = await fetch('/autenticacion/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) {
+    
+    if (!res) {
       window.location.href = '/';
       return;
     }
