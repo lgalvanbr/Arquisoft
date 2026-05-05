@@ -12,6 +12,8 @@ from django.utils import timezone
 from .validators import validate_payload_integrity, validate_report_request
 from .permissions import check_company_access, require_authentication
 
+
+
 logger = logging.getLogger(__name__)
 
 

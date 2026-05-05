@@ -31,67 +31,22 @@ class Auth0(BaseOAuth2):
         return details.get('user_id') or response.get('sub')
 
     def get_user_details(self, response):
-        try:
-            DOMAIN ='https://' + settings.SOCIAL_AUTH_AUTH0_DOMAIN
-            access_token = response.get('access_token')
-
-            # 1. Intentar desde id_token
-            id_token = response.get('id_token')
-            claims = self._extract_from_jwt(id_token) if id_token else {}
-            
-            empresa = claims.get(f'{DOMAIN}/empresa_id')
-            rol = claims.get(f'{DOMAIN}/rol')
-
-            # 2. Si faltan claims, llamar /userinfo
-            if not empresa or not rol:
-                url = 'https://' + self.setting('DOMAIN') + '/userinfo'
-                headers = {'authorization': 'Bearer ' + access_token}
-                resp = requests.get(url, headers=headers, timeout=5)
-                userinfo = resp.json()
-                empresa = empresa or userinfo.get(f'{DOMAIN}/empresa_id')
-                rol = rol or userinfo.get(f'{DOMAIN}/rol', 'usuario')
-                # Usar claims de userinfo como base si id_token está vacío
-                if not claims.get('sub'):
-                    claims = userinfo
-
-            return {
-                'username': claims.get('nickname') or claims.get('email', '').split('@')[0],
-                'first_name': claims.get('name', ''),
-                'picture': claims.get('picture', ''),
-                'user_id': claims.get('sub'),
-                'email': claims.get('email', ''),
-                'empresa': empresa or '',
-                'rol': rol or 'usuario',
-            }
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error en get_user_details: {str(e)}", exc_info=True)
-            return {
-                'username': response.get('sub', 'unknown'),
-                'first_name': '',
-                'picture': '',
-                'user_id': response.get('sub'),
-                'email': '',
-                'empresa': '',
-                'rol': 'usuario',
-            }
-
-    def _extract_from_jwt(self, token):
-        """Extrae claims del id_token JWT sin validar firma"""
-        try:
-            parts = token.split('.')
-            if len(parts) != 3:
-                return {}
-            payload = parts[1]
-            padding = 4 - len(payload) % 4
-            if padding != 4:
-                payload += '=' * padding
-            decoded = base64.urlsafe_b64decode(payload)
-            return json.loads(decoded)
-        except Exception:
-            return {}
-
+        url = 'https://' + self.setting('DOMAIN') + '/userinfo'
+        headers = {'authorization': 'Bearer ' + response['access_token']}
+        resp = requests.get(url, headers=headers)
+        userinfo = resp.json()
+ 
+        DOMAIN = settings.SOCIAL_AUTH_AUTH0_DOMAIN
+ 
+        return {
+            'username': userinfo['nickname'],
+            'first_name': userinfo['name'],
+            'picture': userinfo['picture'],
+            'user_id': userinfo['sub'],
+            'email': userinfo.get('email', ''),
+            'empresa': userinfo.get(f'{DOMAIN}/empresa_id', ''),
+            'rol': userinfo.get(f'{DOMAIN}/role', 'usuario'),
+        }
 
 def getRole(request):
     """
