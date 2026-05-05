@@ -112,11 +112,8 @@ function setEndpoint(endpoint) {
 }
 
 async function fetchEndpoint(endpoint, resultId) {
-  const token = localStorage.getItem('access_token');
   try {
-    const response = await fetch(endpoint, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await fetch(endpoint);
     const data = await response.json();
     document.getElementById(resultId).textContent = JSON.stringify(data, null, 2);
   } catch (error) {
@@ -127,19 +124,13 @@ async function fetchEndpoint(endpoint, resultId) {
 function doLogout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
-  window.location.href = '/login/';
+  window.location.href = '/autenticacion/logout';
 }
 
 async function loadUserData() {
-  const token = localStorage.getItem('access_token');
-  if (!token) return;
-
   try {
-    const res = await fetch('/autenticacion/me', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
+    const res = await fetch('/autenticacion/me');
     if (!res.ok) {
-      window.location.href = '/login/';
       return;
     }
     const data = await res.json();

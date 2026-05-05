@@ -2,7 +2,7 @@
 finops_platform URL Configuration
 
 Main URL router para autenticacion y reportes apps.
-Implementación según laboratorio ISIS2503
+Implementacion segun laboratorio ISIS2503
 """
 from django.contrib import admin
 from django.urls import path, include
@@ -15,9 +15,6 @@ urlpatterns = [
     # ======================== MAIN ENTRY POINT ========================
     path('', views.index, name='index'),
     path('finops_platform/', views.overview, name='finops_platform'),
-    
-    # ======================== AUTH0 CALLBACK ========================
-    path('auth0/callback/', auth_views.auth0_callback_view, name='auth0_callback'),
     
     # ======================== LOGIN ========================
     path('login/', auth_views.login_view, name='login'),

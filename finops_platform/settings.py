@@ -137,16 +137,8 @@ CSRF_COOKIE_HTTPONLY = False  # Necesario para lectura en JavaScript
 # ======================== AUTH0 CONFIGURATION (Laboratorio ISIS2503) ========================
 
 LOGIN_URL = "/login/auth0"
-LOGIN_REDIRECT_URL = "/auth0/callback/"
+LOGIN_REDIRECT_URL = "/finops_platform/"
 
-# LOGOUT_REDIRECT_URL: Opción A - Hardcodear manualmente después de terraform apply
-# Pasos:
-# 1. terraform apply -auto-approve
-# 2. Obtener IP pública de app-a desde terraform output
-# 3. Editar esta línea: LOGOUT_REDIRECT_URL = "https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=http://<IP_PUBLICA>:8080"
-# 4. Git commit y push (o SSH a instancia y editar manualmente)
-#
-# Placeholder para desarrollo local:
 LOGOUT_REDIRECT_URL = 'https://dev-vy27mzsmkwosyqhr.us.auth0.com/v2/logout?returnTo=http%3A%2F%2Fip_publica_instancia:8080'
 
 SOCIAL_AUTH_TRAILING_SLASH = False
@@ -168,7 +160,7 @@ SOCIAL_AUTH_AUTH0_AUTH_EXTRA_ARGUMENTS = {
     'max_age': 0,
 }
 
-# Pipeline personalizado para generar JWT después de Auth0 login
+# Pipeline personalizado para crear perfil de usuario despues de Auth0 login
 SOCIAL_AUTH_PIPELINE = (
     # Pipeline por defecto de social_django
     'social_core.pipeline.social_auth.social_details',
@@ -181,8 +173,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
     'autenticacion.pipeline.create_usuario_profile',
-    # Pipeline personalizado: genera JWT y guarda en sesión
-    'autenticacion.pipeline.save_jwt_to_session',
 )
 
 AUTHENTICATION_BACKENDS = (
@@ -197,6 +187,9 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
     ],
 }
 

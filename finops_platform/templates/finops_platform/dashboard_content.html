@@ -107,16 +107,9 @@
 
 <script>
 async function loadOverview() {
-
-  const token = localStorage.getItem('access_token');
-  if (!token) return;
   try {
-    const authRes = await fetch('/autenticacion/health', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const reportesRes = await fetch('/reportes/health', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    await fetch('/autenticacion/health');
+    await fetch('/reportes/health');
     document.getElementById('ov-health').textContent = 'Activo';
   } catch (error) {
     console.error('Error loading overview:', error);
@@ -125,21 +118,12 @@ async function loadOverview() {
 
 async function loadUserInfo() {
   const token = localStorage.getItem('access_token');
-  
-  if (!token) {                          // ← guard antes del fetch
-    window.location.href = '/';
-    return;
-  }
+  if (!token) return;
 
   try {
-    const res = await fetch('/autenticacion/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const res = await fetch('/autenticacion/me');
     
-    if (!res.ok) {
-      window.location.href = '/';
-      return;
-    }
+    if (!res.ok) return;
     const data = await res.json();
     const name = data.usuario?.username || data.username || 'Usuario';
     const ini = name[0].toUpperCase();

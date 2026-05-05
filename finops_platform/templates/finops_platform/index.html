@@ -120,7 +120,6 @@
 {% block extra_js %}
 <script>
 // ===================== AUTH CAPTURE FROM URL =====================
-// Capturar tokens de la URL después de Auth0 callback (?auth_token=...)
 (function captureTokens() {
   const params = new URLSearchParams(window.location.search);
   const authToken = params.get('auth_token');
@@ -131,10 +130,7 @@
     if (refreshToken) {
       localStorage.setItem('refresh_token', refreshToken);
     }
-    // Limpiar URL sin recargar
     window.history.replaceState({}, document.title, window.location.pathname);
-    // Mostrar dashboard
-    enterDashboard();
   }
 })();
 
@@ -217,18 +213,11 @@ function enterDashboard() {
   document.getElementById('auth-section').style.display = 'none';
   document.getElementById('dashboard').style.display = 'flex';
   loadUserData();
-  if (typeof loadOverview === 'function') {
-    loadOverview();
-  }
+  loadOverview();
 }
 
 function loadUserData() {
-  const token = localStorage.getItem('access_token');
-  if (!token) return;
-  
-  fetch('/autenticacion/me', {
-    headers: { 'Authorization': 'Bearer ' + token }
-  })
+  fetch('/autenticacion/me')
   .then(res => res.json())
   .then(data => {
     const name = data.usuario?.username || data.username || 'Usuario';
@@ -254,19 +243,9 @@ function showLogin() {
 
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', function() {
-  const params = new URLSearchParams(window.location.search);
-    const authToken = params.get('auth_token');
-    const refreshToken = params.get('refresh_token');
-    
-    if (authToken) {
-        localStorage.setItem('access_token', authToken);
-        if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
-        // Limpiar la URL sin recargar
-        window.history.replaceState({}, document.title, window.location.pathname);
+    if (localStorage.getItem('access_token')) {
+        enterDashboard();
     }
-    
-    loadUserInfo();
-    loadOverview();
 });
 </script>
 {% endblock %}

@@ -202,28 +202,22 @@ def login(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def obtener_usuario_actual(request):
-    """Endpoint para obtener información del usuario autenticado"""
-
-
-        # Leer rol y empresa desde social_auth (usuario Auth0)
-        # o desde el modelo Usuario propio (usuario con JWT)
-
+    """Endpoint para obtener informacion del usuario autenticado"""
     try:
         usuario = request.user
         social = usuario.social_auth.filter(provider='auth0').first()
         if social:
-            from autenticacion.backends import getRole
-            rol = getRole(request)
-            empresa = social.extra_data.get('https://finops-api/empresa', '') \
-                or social.extra_data.get('empresa', '')
+            rol = social.extra_data.get('https://dev-vy27mzsmkwosyqhr.us.auth0.com/rol', 'usuario')
+            empresa = social.extra_data.get('https://finops-api/empresa', '') or social.extra_data.get('empresa', '')
         else:
             from autenticacion.models import Usuario as UsuarioModel
             u = UsuarioModel.objects.filter(usuario_django=usuario).first()
             if u:
                 rol = u.rol
                 empresa = str(u.empresa) if u.empresa else ''
-    except Exception as e:
-        logger.warning(f"Error obteniendo rol: {e}")
+            else:
+                rol = 'usuario'
+                empresa = ''
 
         permisos = RolPermiso.objects.filter(rol=rol).select_related('permiso')
         permisos_list = [p.permiso.codigo for p in permisos]
@@ -245,7 +239,6 @@ def obtener_usuario_actual(request):
             },
             status=status.HTTP_200_OK
         )
-
     except Exception as e:
         logger.error(f"Error obteniendo usuario actual: {str(e)}")
         return Response(
@@ -642,187 +635,19 @@ from django.conf import settings
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def auth0_login(request):
-    """Inicia el flujo de login con Auth0"""
-    try:
-        # Usar la URL de social_django para iniciar el flujo de Auth0
-        # social_django proporciona: /complete/auth0/?code=...&state=...
-        domain = settings.SOCIAL_AUTH_AUTH0_DOMAIN
-        client_id = settings.SOCIAL_AUTH_AUTH0_KEY
-        
-        # Construir la URL de autorización de Auth0
-        auth0_authorize_url = f"https://{domain}/authorize"
-        
-        # El callback debe apuntar a /complete/auth0/ (manejado por social_django)
-        callback_url = request.build_absolute_uri('/complete/auth0/')
-        
-        params = {
-            'client_id': client_id,
-            'redirect_uri': callback_url,
-            'response_type': 'code',
-            'scope': 'openid profile email',
-        }
-        
-        redirect_url = f"{auth0_authorize_url}?{urlencode(params)}"
-        return redirect(redirect_url)
-        
-    except Exception as e:
-        logger.error(f"Error en auth0_login: {str(e)}")
-        return Response(
-            {'error': 'Error al iniciar sesión con Auth0'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    """Inicia el flujo de login con Auth0 via social_django"""
+    return redirect('/login/auth0/')
 
-
-@api_view(['GET'])
-def auth0_callback_handler(request):
-    """Callback handler para Auth0 que genera JWT en lugar de mantener sesión
-    
-    Este endpoint es llamado por social_django después de la autenticación.
-    En lugar de mantener la sesión Django, generamos un JWT y redirigimos
-    al frontend con el token.
-    """
-    try:
-        user = request.user
-        
-        if not user.is_authenticated:
-            return redirect('/login/auth0?error=auth_failed')
-        
-        # Generar JWT para este usuario
-        from .utilities import JWTManager
-        tokens = JWTManager.generar_tokens(user)
-        
-        # Limpiar sesión Django inmediatamente (NO mantener sesión)
-        from django.contrib.auth import logout as django_logout
-        django_logout(request)
-        
-        # Redirigir al frontend con el JWT en la URL
-        # El frontend extraerá el token y lo guardará en localStorage
-        access_token = tokens.get('access')
-        return redirect(f'/?auth_token={access_token}')
-        
-    except Exception as e:
-        logger.error(f"Error en auth0_callback_handler: {str(e)}", exc_info=True)
-        return redirect('/?error=callback_failed')
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def auth0_me(request):
-    """Retorna info del usuario autenticado vía Auth0 (usando sesión Django o JWT)
-    
-    Este endpoint:
-    1. Primero intenta verificar JWT en Authorization header (para usuarios JWT)
-    2. Si no hay JWT, verifica sesión Django (para usuarios Auth0)
-    3. Si ninguno está presente, retorna 401
-    """
-    try:
-        user = request.user
-        
-        # Obtener el token del header si existe
-        auth_header = request.headers.get('Authorization', '')
-        has_bearer_token = auth_header.startswith('Bearer ')
-        
-        # Si viene con Bearer token, requiere autenticación válida
-        if has_bearer_token:
-            if not user.is_authenticated:
-                return Response(
-                    {'error': 'Token inválido o expirado'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-        else:
-            # Si no hay Bearer token, verifica sesión Django
-            # Para Auth0 users que vienen de la sesión de Django
-            if not user.is_authenticated:
-                return Response(
-                    {'error': 'No autenticado. Requiere Bearer token o sesión válida'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-        
-        # Si llegamos aquí, el usuario está autenticado (vía JWT o sesión)
-        # Obtener información del usuario
-        response_data = {
-            'id': str(user.id),
-            'username': user.username,
-            'email': user.email,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-        }
-        
-        # Intentar obtener el perfil extendido Usuario
-        try:
-            usuario = user.perfil_autenticacion
-            response_data.update({
-                'empresa': usuario.empresa,
-                'rol': usuario.rol,
-                'activo': usuario.activo,
-            })
-        except Exception:
-            response_data.update({
-                'empresa': 'Unknown',
-                'rol': 'usuario',
-                'activo': True,
-            })
-        
-        # Obtener rol de social_auth si existe (Auth0)
-        try:
-            social_user = user.social_auth.filter(provider='auth0').first()
-            if social_user:
-                from .auth0backend import getRole  # ajusta el import según tu estructura
-                rol = getRole(request)
-                response_data['rol'] = rol
-        except Exception as e:
-           logger.warning(f"No se pudo obtener rol de Auth0: {e}") 
-        
-        return Response(response_data, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        logger.error(f"Error en auth0_me: {str(e)}", exc_info=True)
-        return Response(
-            {'error': 'Error al obtener información del usuario'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
-# ======================== TEMPLATE VIEWS ========================
 
 @require_http_methods(["GET"])
 def login_view(request):
-    """Renderiza la página de login"""
+    """Renderiza la pagina de login"""
     return render(request, 'autenticacion/login.html')
 
 
 @require_http_methods(["GET"])
 def seguridad_view(request):
-    """Renderiza la página de seguridad y auditoria"""
+    """Renderiza la pagina de seguridad y auditoria"""
     if not request.user.is_authenticated:
-        return Response(
-            {'error': 'Requiere autenticación'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return redirect('/login/')
     return render(request, 'autenticacion/seguridad.html')
-
-
-@require_http_methods(["GET"])
-def auth0_callback_view(request):
-    """
-    Vista que captura los tokens JWT de la sesión (generados por el pipeline)
-    y redirige al dashboard con los tokens en la URL.
-    """
-    try:
-        access_token = request.session.pop('auth0_access_token', None)
-        refresh_token = request.session.pop('auth0_refresh_token', None)
-        
-        if access_token:
-            # Redirigir al dashboard con tokens en la URL
-            # El frontend JavaScript capturará estos tokens
-            redirect_url = f'/finops_platform/?auth_token={access_token}'
-            if refresh_token:
-                redirect_url += f'&refresh_token={refresh_token}'
-            return redirect(redirect_url)
-        else:
-            # Si no hay tokens, redirigir al login con error
-            return redirect('/?error=auth0_callback_failed')
-            
-    except Exception as e:
-        logger.error(f"Error en auth0_callback_view: {str(e)}", exc_info=True)
-        return redirect('/?error=auth0_callback_exception')
