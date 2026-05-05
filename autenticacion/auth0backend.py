@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 import requests
 import json
 import base64
+from rest_framework import response
 from social_core.backends.oauth import BaseOAuth2
 from django.conf import settings
 
@@ -43,7 +44,8 @@ class Auth0(BaseOAuth2):
         resp = requests.get(url, headers=headers) 
 
         userinfo = resp.json() 
-
+        print("=== USERINFO ===", userinfo)
+        print("=== RESPONSE KEYS ===", list(response.keys()))
 
         return {'username': userinfo['nickname'], 
 
