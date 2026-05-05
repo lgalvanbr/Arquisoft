@@ -123,12 +123,18 @@ async function loadOverview() {
 
 async function loadUserInfo() {
   const token = localStorage.getItem('access_token');
+  
+  if (!token) {                          // ← guard antes del fetch
+    window.location.href = '/';
+    return;
+  }
+  
   try {
     const res = await fetch('/autenticacion/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    if (!res) {
+    if (!res.ok) {
       window.location.href = '/';
       return;
     }
