@@ -8,3 +8,4 @@ requests==2.31.0
 social-auth-app-django==5.4.3
 PyJWT==2.10.1
 gunicorn==21.2.0
+djangorestframework-simplejwt==5.3.1
