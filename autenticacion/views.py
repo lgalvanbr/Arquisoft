@@ -352,8 +352,6 @@ def refresh_token(request):
         )
 
 
-@api_view(['GET']) 
-@permission_classes([AllowAny])
 def logout(request):
     try:
         username = request.user.username if request.user.is_authenticated else 'anonymous'

@@ -162,12 +162,12 @@ async function checkAuth() {
 function doLogout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
-  window.location.href = '/autenticacion/logout';
+  window.location.href = '/autenticacion/logout/';
 }
 
 async function loadUserData() {
   try {
-    const res = await fetchWithAuth('/autenticacion/me');
+    const res = await fetchWithAuth('/autenticacion/me/');
     if (!res.ok) {
       return;
     }

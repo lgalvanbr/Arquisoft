@@ -121,7 +121,7 @@ async function loadAuditHistory() {
   const resultBox = document.getElementById('audit-result');
 
   try {
-    const response = await fetchWithAuth('/autenticacion/audit/historial');
+    const response = await fetchWithAuth('/autenticacion/audit/historial/');
 
     if (response.status === 403) {
       const data = await response.json();
@@ -182,7 +182,7 @@ async function loadIntegrityRejections() {
   const resultBox = document.getElementById('integrity-result');
 
   try {
-    const response = await fetchWithAuth('/autenticacion/rechazos/integridad');
+    const response = await fetchWithAuth('/autenticacion/rechazos/integridad/');
 
     if (response.status === 403) {
       const data = await response.json();
