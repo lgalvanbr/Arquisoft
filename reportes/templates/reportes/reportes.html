@@ -165,7 +165,7 @@
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Consumo Cloud</h2><p class="text-sm text-on-surface-variant mt-1">Recursos AWS y GCP por servicio y proyecto.</p></div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
           <div class="flex gap-3 mb-5 flex-wrap">
-            <button onclick="fetchEndpoint('/reportes/consumo','consumo-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">cloud</span>Ver consumo</button>
+            <button onclick="fetchEndpoint('/reportes/consumo/','consumo-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">cloud</span>Ver consumo</button>
           </div>
           <pre id="consumo-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona un botón para cargar datos...</pre>
         </div>
@@ -176,7 +176,7 @@
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Gastos por Servicio</h2><p class="text-sm text-on-surface-variant mt-1">Desglose de costos por tipo de servicio cloud.</p></div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
           <div class="flex gap-3 mb-5">
-            <button onclick="fetchEndpoint('/reportes/gastos','gastos-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">payments</span>Cargar gastos</button>
+            <button onclick="fetchEndpoint('/reportes/gastos/','gastos-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">payments</span>Cargar gastos</button>
           </div>
           <pre id="gastos-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar análisis de gastos...</pre>
         </div>
@@ -187,7 +187,7 @@
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Análisis de Optimización</h2><p class="text-sm text-on-surface-variant mt-1">Oportunidades de ahorro detectadas.</p></div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
           <div class="flex gap-3 mb-4">
-            <button onclick="fetchEndpoint('/reportes/analisis','analisis-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">query_stats</span>Ejecutar análisis</button>
+            <button onclick="fetchEndpoint('/reportes/analisis/','analisis-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">query_stats</span>Ejecutar análisis</button>
           </div>
           <pre id="analisis-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para iniciar el análisis...</pre>
         </div>
@@ -198,7 +198,7 @@
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Tendencias &amp; Anomalías</h2><p class="text-sm text-on-surface-variant mt-1">Patrones de consumo y detección de comportamientos inusuales.</p></div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
           <div class="flex gap-3 mb-4">
-            <button onclick="fetchEndpoint('/reportes/tendencias','tendencias-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">trending_up</span>Cargar tendencias</button>
+            <button onclick="fetchEndpoint('/reportes/tendencias/','tendencias-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">trending_up</span>Cargar tendencias</button>
           </div>
           <pre id="tendencias-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar análisis de tendencias...</pre>
         </div>
@@ -209,7 +209,7 @@
         <div class="mb-8"><h2 class="text-2xl font-bold text-on-surface tracking-tight">Historial de Reportes</h2><p class="text-sm text-on-surface-variant mt-1">Registro de todos los reportes generados.</p></div>
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
           <div class="flex gap-3 mb-4">
-            <button onclick="fetchEndpoint('/reportes/historial','historial-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">history</span>Cargar historial</button>
+            <button onclick="fetchEndpoint('/reportes/historial/','historial-result')" class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"><span class="material-symbols-outlined text-[16px]">history</span>Cargar historial</button>
           </div>
           <pre id="historial-result" class="text-[11px] font-mono text-on-surface-variant bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll whitespace-pre-wrap">Presiona para cargar historial de reportes...</pre>
         </div>
@@ -229,7 +229,15 @@ async function fetchCostosEmpresa() {
     return;
   }
   try {
-    const response = await fetchWithAuth(`/reportes/costos/empresa/${empresaId}`);
+    const response = await fetchWithAuth(`/reportes/costos/empresa/${empresaId}/`);
+    
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      document.getElementById('costos-result').textContent = 'Error HTTP ' + response.status + ': Respuesta no JSON\n\n' + text.substring(0, 500);
+      return;
+    }
+    
     const data = await response.json();
     document.getElementById('costos-result').textContent = JSON.stringify(data, null, 2);
   } catch (error) {
@@ -272,11 +280,20 @@ async function crearReporte() {
       periodo: periodo
     };
     
-    const response = await fetchWithAuth(`/reportes/crear/${empresaId}`, {
+    const response = await fetchWithAuth(`/reportes/crear/${empresaId}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      document.getElementById('crear-result').textContent = 'Error HTTP ' + response.status + ': Respuesta no JSON\n\n' + text.substring(0, 500);
+      document.getElementById('crear-error').textContent = 'Error del servidor (HTTP ' + response.status + ')';
+      document.getElementById('crear-error').classList.remove('hidden');
+      return;
+    }
     
     const data = await response.json();
     

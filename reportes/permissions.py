@@ -153,10 +153,11 @@ def check_company_access(view_func):
 
 def _log_unauthorized_access(request, requested_company, user_company):
     """Registra intento de acceso no autorizado en la BD"""
-    from autenticacion.models import IntentoAccesoNoAutorizado
+    from autenticacion.models import IntentoAccesoNoAutorizado, Usuario as UsuarioModel
     from django.utils import timezone
     
     token_id = 'UNKNOWN'
+    usuario_obj = None
     try:
         social_user = request.user.social_auth.filter(provider='auth0').first()
         if social_user:
@@ -164,15 +165,23 @@ def _log_unauthorized_access(request, requested_company, user_company):
     except:
         pass
     
-    IntentoAccesoNoAutorizado.objects.create(
-        usuario=request.user if request.user.is_authenticated else None,
-        empresa_solicitada_id=requested_company,
-        empresa_autorizada_id=user_company,
-        endpoint=request.path,
-        direccion_ip=get_client_ip(request),
-        token_identifier=token_id,
-        fecha_intento=timezone.now()
-    )
+    try:
+        usuario_obj = UsuarioModel.objects.filter(usuario_django=request.user).first()
+    except:
+        pass
+    
+    try:
+        IntentoAccesoNoAutorizado.objects.create(
+            usuario=usuario_obj,
+            empresa_solicitada_id=requested_company,
+            empresa_autorizada_id=user_company,
+            endpoint=request.path,
+            direccion_ip=get_client_ip(request),
+            token_identifier=token_id,
+            fecha_intento=timezone.now()
+        )
+    except Exception as e:
+        print("=== _log_unauthorized_access ERROR:", str(e), "===")
 
 
 def get_client_ip(request):
