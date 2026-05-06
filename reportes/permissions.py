@@ -155,49 +155,56 @@ def check_company_access(view_func):
 
 
 def _log_unauthorized_access(request, requested_company, user_company):
-    """Registra intento de acceso no autorizado en la BD"""
-    from autenticacion.models import IntentoAccesoNoAutorizado, Usuario as UsuarioModel
-    from django.utils import timezone
-    import traceback
-    
-    token_id = 'UNKNOWN'
-    usuario_obj = None
+    """Registra intento de acceso no autorizado en la BD usando AuditLog"""
     try:
-        social_user = request.user.social_auth.filter(provider='auth0').first()
-        if social_user:
-            token_id = social_user.extra_data.get('sub', 'UNKNOWN')
-    except:
-        pass
-    
-    try:
-        usuario_obj = UsuarioModel.objects.filter(usuario_django=request.user).first()
-    except:
-        pass
-    
-    ip_address = get_client_ip(request)
-    
-    print("=== _log_unauthorized_access: START ===")
-    print("=== usuario_obj:", usuario_obj)
-    print("=== requested_company:", requested_company)
-    print("=== user_company:", user_company)
-    print("=== endpoint:", request.path)
-    print("=== ip:", ip_address)
-    print("=== token_id:", token_id)
-    
-    try:
-        IntentoAccesoNoAutorizado.objects.create(
-            usuario=usuario_obj,
-            empresa_solicitada_id=requested_company,
-            empresa_autorizada_id=user_company,
-            endpoint=request.path,
-            direccion_ip=ip_address,
-            token_identifier=token_id,
-            fecha_intento=timezone.now()
+        from autenticacion.models import AuditLog
+        from django.utils import timezone
+        import traceback
+        import json
+        
+        token_id = 'UNKNOWN'
+        try:
+            social_user = request.user.social_auth.filter(provider='auth0').first()
+            if social_user:
+                token_id = social_user.extra_data.get('sub', 'UNKNOWN')[:255]
+        except:
+            pass
+        
+        ip_address = get_client_ip(request)
+        if not ip_address or ip_address == 'UNKNOWN':
+            ip_address = '0.0.0.0'
+        
+        empresa_solicitada = str(requested_company)[:100]
+        empresa_autorizada = str(user_company)[:100]
+        endpoint_path = str(request.path)[:255]
+        
+        print("=== _log_unauthorized_access: ATTEMPTING INSERT ===")
+        print("=== user:", request.user)
+        print("=== empresa_solicitada:", empresa_solicitada)
+        print("=== empresa_autorizada:", empresa_autorizada)
+        print("=== endpoint:", endpoint_path)
+        print("=== ip:", ip_address)
+        print("=== token_id:", token_id)
+        
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action='ACCESO_NO_AUTORIZADO',
+            resource=endpoint_path,
+            method=request.method,
+            ip_address=ip_address,
+            status_code=403,
+            request_data={
+                'empresa_solicitada': empresa_solicitada,
+                'empresa_autorizada': empresa_autorizada,
+                'token_identifier': token_id,
+            },
+            token_id=token_id,
+            timestamp=timezone.now()
         )
         print("=== _log_unauthorized_access: SUCCESS ===")
     except Exception as e:
         print("=== _log_unauthorized_access ERROR:", str(e), "===")
-        print("=== TRACEBACK:", traceback.format_exc(), "===")
+        traceback.print_exc()
 
 
 def get_client_ip(request):

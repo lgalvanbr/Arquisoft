@@ -564,36 +564,35 @@ def listar_intentos_acceso_no_autorizado(request):
     """
     ASR Confidencialidad: Listar intentos de acceso no autorizado.
     Solo Admin puede ver todos los intentos.
+    Lee de la tabla AuditLog donde se registran con action='ACCESO_NO_AUTORIZADO'.
     """
-    role = getRole(request)
-    allowed_roles = ["Admin"]
-    
-    print("=== listar_intentos_acceso: role:", role)
-    print("=== listar_intentos_acceso: allowed_roles:", allowed_roles)
-    
-    if role not in allowed_roles:
-        return Response(
-            {'error': 'No tienes acceso a esta zona'},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
     try:
-        usuario = request.user
-        dias = int(request.query_params.get('dias', 7))
+        role = getRole(request)
+        allowed_roles = ["Admin"]
         
+        print("=== listar_intentos_acceso: role:", role)
+        print("=== listar_intentos_acceso: allowed_roles:", allowed_roles)
+        
+        if role not in allowed_roles:
+            return Response(
+                {'error': 'No tienes acceso a esta zona'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        dias = int(request.query_params.get('dias', 30))
         desde = timezone.now() - timezone.timedelta(days=dias)
         
-        query = IntentoAccesoNoAutorizado.objects.filter(
-            fecha_intento__gte=desde
-        ).order_by('-fecha_intento')
+        print("=== listar_intentos_acceso: dias:", dias)
         
-        usuario_id = request.query_params.get('usuario_id')
-        if usuario_id:
-            query = query.filter(usuario_id=usuario_id)
+        total_all = AuditLog.objects.filter(action='ACCESO_NO_AUTORIZADO').count()
+        print("=== listar_intentos_acceso: total ACCESO_NO_AUTORIZADO records:", total_all)
         
-        empresa_solicitada = request.query_params.get('empresa_solicitada_id')
-        if empresa_solicitada:
-            query = query.filter(empresa_solicitada_id=empresa_solicitada)
+        query = AuditLog.objects.filter(
+            action='ACCESO_NO_AUTORIZADO',
+            timestamp__gte=desde
+        ).order_by('-timestamp')
+        
+        print("=== listar_intentos_acceso: query count (last", dias, "days):", query.count())
         
         page = int(request.query_params.get('page', 1))
         page_size = int(request.query_params.get('page_size', 50))
@@ -607,13 +606,15 @@ def listar_intentos_acceso_no_autorizado(request):
         datos = [
             {
                 'id': str(i.id),
-                'usuario': i.usuario.usuario_django.email if i.usuario else 'unknown',
-                'empresa_solicitada_id': i.empresa_solicitada_id,
-                'empresa_autorizada_id': i.empresa_autorizada_id,
-                'endpoint': i.endpoint,
-                'direccion_ip': i.direccion_ip,
-                'token_identifier': i.token_identifier,
-                'fecha_intento': i.fecha_intento.isoformat(),
+                'usuario': i.user.username if i.user else 'unknown',
+                'usuario_email': i.user.email if i.user else 'unknown',
+                'empresa_solicitada_id': i.request_data.get('empresa_solicitada', 'N/A'),
+                'empresa_autorizada_id': i.request_data.get('empresa_autorizada', 'N/A'),
+                'endpoint': i.resource,
+                'direccion_ip': i.ip_address,
+                'token_identifier': i.token_id or 'N/A',
+                'fecha_intento': i.timestamp.isoformat(),
+                'status_code': i.status_code,
             }
             for i in intentos
         ]
@@ -629,6 +630,9 @@ def listar_intentos_acceso_no_autorizado(request):
         )
     
     except Exception as e:
+        import traceback
+        print("=== listar_intentos_acceso: ERROR:", str(e))
+        traceback.print_exc()
         logger.error(f"Error listando intentos de acceso: {str(e)}")
         return Response(
             {'error': 'Error al listar intentos'},
