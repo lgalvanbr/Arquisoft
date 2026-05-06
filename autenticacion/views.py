@@ -365,6 +365,6 @@ def health_check(request):
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         return Response(
-            {'status': 'unhealthy'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {'status': 'unhealthy', 'service': 'auth_service'},
+            status=status.HTTP_503_INTERNAL_SERVER_ERROR
         )

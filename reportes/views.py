@@ -82,6 +82,4 @@ def health_check(request):
         return Response({
             'status': 'unhealthy',
             'service': 'reportes',
-            'error': str(e),
-            'timestamp': timezone.now().isoformat()
         }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
