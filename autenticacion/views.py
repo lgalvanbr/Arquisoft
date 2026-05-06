@@ -612,7 +612,6 @@ def listar_intentos_acceso_no_autorizado(request):
                 'empresa_autorizada_id': i.request_data.get('empresa_autorizada', 'N/A'),
                 'endpoint': i.resource,
                 'direccion_ip': i.ip_address,
-                'token_identifier': i.token_id or 'N/A',
                 'fecha_intento': i.timestamp.isoformat(),
                 'status_code': i.status_code,
             }
