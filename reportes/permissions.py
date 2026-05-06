@@ -94,6 +94,7 @@ def check_company_access(view_func):
                 print("=== check_company_access: Manager - user_company:", user_company)
                 
                 if not user_company:
+                    _log_unauthorized_access(request, requested_company, "sin_empresa")
                     return JsonResponse({
                         'error': 'Acceso Denegado',
                         'detail': 'No se encontro informacion de empresa para este usuario'
@@ -101,6 +102,7 @@ def check_company_access(view_func):
                 
                 if str(user_company).upper() != str(requested_company).upper():
                     # INTENTO DE ACCESO NO AUTORIZADO - REGISTRAR
+                    print("=== check_company_access: ACCESS DENIED - logging unauthorized access ===")
                     _log_unauthorized_access(request, requested_company, user_company)
                     return JsonResponse({
                         'error': 'Acceso Denegado',
@@ -134,6 +136,7 @@ def check_company_access(view_func):
         print("=== check_company_access: rol no reconocido - user_company:", user_company)
         
         if not user_company:
+            _log_unauthorized_access(request, requested_company, "sin_empresa")
             return JsonResponse({
                 'error': 'Acceso Denegado',
                 'detail': 'No se encontro informacion de empresa para este usuario'
@@ -155,6 +158,7 @@ def _log_unauthorized_access(request, requested_company, user_company):
     """Registra intento de acceso no autorizado en la BD"""
     from autenticacion.models import IntentoAccesoNoAutorizado, Usuario as UsuarioModel
     from django.utils import timezone
+    import traceback
     
     token_id = 'UNKNOWN'
     usuario_obj = None
@@ -170,18 +174,30 @@ def _log_unauthorized_access(request, requested_company, user_company):
     except:
         pass
     
+    ip_address = get_client_ip(request)
+    
+    print("=== _log_unauthorized_access: START ===")
+    print("=== usuario_obj:", usuario_obj)
+    print("=== requested_company:", requested_company)
+    print("=== user_company:", user_company)
+    print("=== endpoint:", request.path)
+    print("=== ip:", ip_address)
+    print("=== token_id:", token_id)
+    
     try:
         IntentoAccesoNoAutorizado.objects.create(
             usuario=usuario_obj,
             empresa_solicitada_id=requested_company,
             empresa_autorizada_id=user_company,
             endpoint=request.path,
-            direccion_ip=get_client_ip(request),
+            direccion_ip=ip_address,
             token_identifier=token_id,
             fecha_intento=timezone.now()
         )
+        print("=== _log_unauthorized_access: SUCCESS ===")
     except Exception as e:
         print("=== _log_unauthorized_access ERROR:", str(e), "===")
+        print("=== TRACEBACK:", traceback.format_exc(), "===")
 
 
 def get_client_ip(request):
