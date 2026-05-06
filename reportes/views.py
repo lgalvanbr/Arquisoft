@@ -14,10 +14,66 @@ from django.contrib.auth.decorators import login_required
 
 from .validators import validate_payload_integrity, validate_report_request
 from .permissions import check_company_access, require_authentication
-
+from autenticacion.auth0backend import getRole
 
 
 logger = logging.getLogger(__name__)
+
+
+def _check_role(request, empresa_id=None):
+    """
+    Verificacion de rol inline para endpoints de reportes.
+    
+    Admin: acceso a cualquier empresa
+    Manager: solo su propia empresa (verificada en DB)
+    
+    Returns (error_response, user_company) o (None, user_company)
+    """
+    role = getRole(request)
+    allowed_roles = ["Admin", "Manager"]
+    
+    print("=== _check_role: role:", role)
+    print("=== _check_role: allowed_roles:", allowed_roles)
+    print("=== _check_role: empresa_id:", empresa_id)
+    
+    if role not in allowed_roles:
+        return JsonResponse({
+            'error': 'Acceso Denegado',
+            'detail': 'No tienes acceso a esta zona'
+        }, status=403), None
+    
+    if role == "Admin":
+        print("=== _check_role: Admin - acceso permitido a cualquier empresa ===")
+        return None, "any"
+    
+    # Manager: verificar que empresa_id coincida con su empresa en DB
+    from autenticacion.models import Usuario as UsuarioModel
+    user_company = None
+    try:
+        local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
+        if local_usuario and local_usuario.empresa:
+            user_company = str(local_usuario.empresa.id)
+    except:
+        pass
+    
+    print("=== _check_role: Manager - user_company:", user_company)
+    
+    if not user_company:
+        return JsonResponse({
+            'error': 'Acceso Denegado',
+            'detail': 'No se encontro informacion de empresa para este usuario'
+        }, status=403), None
+    
+    if empresa_id and str(user_company).upper() != str(empresa_id).upper():
+        from .permissions import _log_unauthorized_access
+        _log_unauthorized_access(request, empresa_id, user_company)
+        return JsonResponse({
+            'error': 'Acceso Denegado',
+            'detail': 'No tienes permiso para acceder a esta empresa'
+        }, status=403), None
+    
+    print("=== _check_role: Manager - acceso permitido a su empresa ===")
+    return None, user_company
 
 
 # ==================== REPORTES DE COSTOS ====================
@@ -39,9 +95,31 @@ def listar_reportes_costos(request, empresa_id):
     - Log incluye: fecha, IP origen, usuario, token ID
     """
     try:
-        usuario = request.user
+        role = getRole(request)
+        allowed_roles = ["Admin", "Manager"]
         
-        # GET: Obtener reportes existentes
+        if role not in allowed_roles:
+            return JsonResponse({
+                'error': 'Acceso Denegado',
+                'detail': 'No tienes acceso a esta zona'
+            }, status=403)
+        
+        if role == "Admin":
+            print("=== listar_reportes_costos: Admin - acceso permitido ===")
+        elif role == "Manager":
+            from autenticacion.models import Usuario as UsuarioModel
+            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
+            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            if not user_company or str(user_company).upper() != str(empresa_id).upper():
+                from .permissions import _log_unauthorized_access
+                _log_unauthorized_access(request, empresa_id, user_company or "N/A")
+                return JsonResponse({
+                    'error': 'Acceso Denegado',
+                    'detail': 'No tienes permiso para acceder a esta empresa'
+                }, status=403)
+            print("=== listar_reportes_costos: Manager - acceso permitido a su empresa ===")
+        
+        usuario = request.user
         reportes = [
             {
                 'id': f"rpt_{empresa_id}_2025_05",
@@ -112,6 +190,30 @@ def crear_reporte_costos(request, empresa_id):
     - Log incluye: fecha, IP origen, usuario, token ID
     """
     try:
+        role = getRole(request)
+        allowed_roles = ["Admin", "Manager"]
+        
+        if role not in allowed_roles:
+            return JsonResponse({
+                'error': 'Acceso Denegado',
+                'detail': 'No tienes acceso a esta zona'
+            }, status=403)
+        
+        if role == "Admin":
+            print("=== crear_reporte_costos: Admin - acceso permitido a cualquier empresa ===")
+        elif role == "Manager":
+            from autenticacion.models import Usuario as UsuarioModel
+            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
+            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            if not user_company or str(user_company).upper() != str(empresa_id).upper():
+                from .permissions import _log_unauthorized_access
+                _log_unauthorized_access(request, empresa_id, user_company or "N/A")
+                return JsonResponse({
+                    'error': 'Acceso Denegado',
+                    'detail': 'No tienes permiso para acceder a esta empresa'
+                }, status=403)
+            print("=== crear_reporte_costos: Manager - acceso permitido a su empresa ===")
+        
         usuario = request.user
         
         # POST: Crear reporte
@@ -192,12 +294,31 @@ def eliminar_reporte(request, empresa_id):
     - Ningún dato es eliminado de la base de datos
     """
     try:
-        usuario = request.user
+        role = getRole(request)
+        allowed_roles = ["Admin", "Manager"]
         
-        logger.info(
-            f"[DELETE REPORTE INTENTADO] Empresa: {empresa_id} | "
-            f"Usuario: {usuario.email} | IP: {request.META.get('REMOTE_ADDR', 'UNKNOWN')}"
-        )
+        if role not in allowed_roles:
+            return JsonResponse({
+                'error': 'Acceso Denegado',
+                'detail': 'No tienes acceso a esta zona'
+            }, status=403)
+        
+        if role == "Admin":
+            print("=== eliminar_reporte: Admin - acceso permitido ===")
+        elif role == "Manager":
+            from autenticacion.models import Usuario as UsuarioModel
+            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
+            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            if not user_company or str(user_company).upper() != str(empresa_id).upper():
+                from .permissions import _log_unauthorized_access
+                _log_unauthorized_access(request, empresa_id, user_company or "N/A")
+                return JsonResponse({
+                    'error': 'Acceso Denegado',
+                    'detail': 'No tienes permiso para acceder a esta empresa'
+                }, status=403)
+            print("=== eliminar_reporte: Manager - acceso permitido a su empresa ===")
+        
+        usuario = request.user
         
         # En producción, aquí se eliminaría el reporte de la base de datos
         # Para esta demo, simulamos el éxito
@@ -249,8 +370,26 @@ def listar_reportes_empresa(request, empresa_id):
         return JsonResponse({'error': 'No autorizado'}, status=401)
     
     try:
-        # Validar acceso a empresa
-        from .permissions import check_company_access
+        role = getRole(request)
+        allowed_roles = ["Admin", "Manager"]
+        
+        if role not in allowed_roles:
+            return JsonResponse({
+                'error': 'Acceso Denegado',
+                'detail': 'No tienes acceso a esta zona'
+            }, status=403)
+        
+        if role == "Manager":
+            from autenticacion.models import Usuario as UsuarioModel
+            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
+            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            if not user_company or str(user_company).upper() != str(empresa_id).upper():
+                from .permissions import _log_unauthorized_access
+                _log_unauthorized_access(request, empresa_id, user_company or "N/A")
+                return JsonResponse({
+                    'error': 'Acceso Denegado',
+                    'detail': 'No tienes permiso para acceder a esta empresa'
+                }, status=403)
         
         reportes = [
             {

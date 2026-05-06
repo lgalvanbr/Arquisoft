@@ -361,10 +361,27 @@ def logout(request):
 def historial_acceso(request):
     """Endpoint para obtener el historial de acceso del usuario"""
     try:
+        role = getRole(request)
+        allowed_roles = ["Admin"]
+        
+        if role not in allowed_roles:
+            return Response(
+                {'error': 'No tienes acceso a esta zona'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         usuario = request.user
         dias = int(request.query_params.get('dias', 7))
+
+        from autenticacion.models import Usuario as UsuarioModel
+        local_usuario = UsuarioModel.objects.filter(usuario_django=usuario).first()
+        if not local_usuario:
+            return Response(
+                {'error': 'Perfil de usuario no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
-        historial = AuditoriaManager.obtener_historial_acceso(usuario, dias)
+        historial = AuditoriaManager.obtener_historial_acceso(local_usuario, dias)
         
         datos_historial = [
             {
@@ -423,33 +440,35 @@ def health_check(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-@require_scope('read:integrity_logs')
 def listar_rechazos_integridad(request):
     """
     ASR Integridad: Listar todos los rechazos por integridad.
-    
-    Parámetros query:
-    - dias: Número de días atrás a consultar (default: 7)
-    - empresa_id: Filtrar por empresa (admin solo)
-    - endpoint: Filtrar por endpoint
-    
-    Solo admin puede ver rechazos de otras empresas.
+    Solo Admin puede acceder.
     """
+    role = getRole(request)
+    allowed_roles = ["Admin"]
+    
+    print("=== listar_rechazos_integridad: role:", role)
+    print("=== listar_rechazos_integridad: allowed_roles:", allowed_roles)
+    
+    if role not in allowed_roles:
+        return Response(
+            {'error': 'No tienes acceso a esta zona'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     try:
         from .models import RechazoIntegridad
         
         usuario = request.user
         dias = int(request.query_params.get('dias', 7))
         
-        # Calcular fecha desde hace N días
         desde = timezone.now() - timezone.timedelta(days=dias)
         
-        # Base query
         query = RechazoIntegridad.objects.filter(
             fecha_rechazo__gte=desde
         ).order_by('-fecha_rechazo')
         
-        # Filtros opcionales
         endpoint = request.query_params.get('endpoint')
         if endpoint:
             query = query.filter(endpoint__icontains=endpoint)
@@ -458,7 +477,6 @@ def listar_rechazos_integridad(request):
         if ip_cliente:
             query = query.filter(direccion_ip=ip_cliente)
         
-        # Paginación
         page = int(request.query_params.get('page', 1))
         page_size = int(request.query_params.get('page_size', 50))
         
@@ -503,42 +521,38 @@ def listar_rechazos_integridad(request):
 def listar_intentos_acceso_no_autorizado(request):
     """
     ASR Confidencialidad: Listar intentos de acceso no autorizado.
-    
-    Parámetros query:
-    - dias: Número de días atrás a consultar (default: 7)
-    - usuario_id: Filtrar por usuario
-    - empresa_id: Filtrar por empresa solicitada
-    
-    Solo admin puede ver intentos de otras empresas.
-    Los usuarios normales solo ven sus propios intentos.
+    Solo Admin puede ver todos los intentos.
     """
+    role = getRole(request)
+    allowed_roles = ["Admin"]
+    
+    print("=== listar_intentos_acceso: role:", role)
+    print("=== listar_intentos_acceso: allowed_roles:", allowed_roles)
+    
+    if role not in allowed_roles:
+        return Response(
+            {'error': 'No tienes acceso a esta zona'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     try:
         usuario = request.user
         dias = int(request.query_params.get('dias', 7))
         
-        # Calcular fecha desde hace N días
         desde = timezone.now() - timezone.timedelta(days=dias)
         
-        # Base query
         query = IntentoAccesoNoAutorizado.objects.filter(
             fecha_intento__gte=desde
         ).order_by('-fecha_intento')
         
-        # Si no es admin, solo ver sus propios intentos
-        es_admin = getattr(usuario, 'auth0_rol', '') == 'admin'
-        if not es_admin:
-            query = query.filter(usuario=usuario)
-        
-        # Filtros opcionales
         usuario_id = request.query_params.get('usuario_id')
-        if usuario_id and es_admin:
+        if usuario_id:
             query = query.filter(usuario_id=usuario_id)
         
         empresa_solicitada = request.query_params.get('empresa_solicitada_id')
         if empresa_solicitada:
             query = query.filter(empresa_solicitada_id=empresa_solicitada)
         
-        # Paginación
         page = int(request.query_params.get('page', 1))
         page_size = int(request.query_params.get('page_size', 50))
         
@@ -590,6 +604,18 @@ def estadisticas_asr(request):
     - Intentos de acceso no autorizado por empresa
     - Top IPs sospechosas
     """
+    role = getRole(request)
+    allowed_roles = ["Admin"]
+    
+    print("=== estadisticas_asr: role:", role)
+    print("=== estadisticas_asr: allowed_roles:", allowed_roles)
+    
+    if role not in allowed_roles:
+        return Response(
+            {'error': 'No tienes acceso a esta zona'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     try:
         from .models import RechazoIntegridad
         from django.db.models import Count
