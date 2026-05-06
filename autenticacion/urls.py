@@ -25,7 +25,9 @@ urlpatterns = [
     
     # ======================== ENDPOINTS DE AUDITORIA ========================
     path('audit/historial/', views.historial_acceso, name='historial_acceso'),
+    path('audit/accesos-denegados/', views.listar_intentos_acceso_no_autorizado, name='listar_intentos_acceso'),
     path('rechazos/integridad/', views.listar_rechazos_integridad, name='listar_rechazos_integridad'),
+    path('audit/estadisticas/', views.estadisticas_asr, name='estadisticas_asr'),
     
     # ======================== HEALTH CHECK ========================
     path('health/', views.health_check, name='health_check'),

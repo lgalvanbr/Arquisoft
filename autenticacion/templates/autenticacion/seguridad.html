@@ -17,6 +17,7 @@
       <p class="text-[9px] font-bold text-outline uppercase tracking-widest px-3 mt-2 mb-1">Seguridad</p>
       <button onclick="showPage('seguridad',this)" data-page="seguridad" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all duration-150 bg-secondary-container text-on-secondary-container w-full text-left"><span class="material-symbols-outlined text-[19px]">security</span>Auditoría</button>
       <button onclick="showPage('integridad',this)" data-page="integridad" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">verified</span>Integridad</button>
+      <button onclick="showPage('accesos',this)" data-page="accesos" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-150 text-on-surface-variant hover:text-on-surface hover:bg-surface-container w-full text-left"><span class="material-symbols-outlined text-[19px]">block</span>Accesos Denegados</button>
     </div>
     <div class="mt-auto pt-4 border-t border-outline-variant/50 px-1">
        <div class="flex items-center gap-3">
@@ -107,6 +108,35 @@
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
           <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Eventos de Integridad</h3><span class="text-[10px] font-semibold text-error bg-error-container/40 px-2 py-1 rounded font-mono">GET /autenticacion/rechazos/integridad</span></div>
           <pre id="integrity-result" class="text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll leading-relaxed whitespace-pre-wrap break-words">Cargando...</pre>
+        </div>
+      </div>
+
+      <!-- ACCESOS DENEGADOS -->
+      <div class="page" id="page-accesos">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Accesos No Autorizados</h2><p class="text-sm text-on-surface-variant mt-1">Intentos de acceso a empresas no asignadas. Detecta accesos cruzados entre empresas.</p></div>
+          <button onclick="loadDeniedAccess()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Actualizar</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Total Intentos</h3><span class="material-symbols-outlined text-error bg-error-container/40 p-1.5 rounded-lg text-[19px]">block</span></div>
+            <div class="flex items-baseline gap-2"><span class="text-3xl font-bold text-on-surface" id="denied-total">-</span><span class="text-xs text-error flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">warning</span>Últimos 30 días</span></div>
+            <p class="text-xs text-on-surface-variant mt-2">Accesos no autorizados registrados</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Último Intento</h3><span class="material-symbols-outlined text-secondary bg-secondary-fixed/50 p-1.5 rounded-lg text-[19px]">schedule</span></div>
+            <span class="text-xl font-bold text-on-surface" id="denied-recent">Hace -</span>
+            <p class="text-xs text-on-surface-variant mt-2" id="denied-recent-time">-</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+            <div class="flex justify-between items-start mb-4"><h3 class="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">Estado Seguridad</h3><span class="material-symbols-outlined text-[#10b981] bg-[#dcfce7] p-1.5 rounded-lg text-[19px]">security</span></div>
+            <span class="text-xl font-bold text-[#10b981]">Monitoreando</span>
+            <p class="text-xs text-on-surface-variant mt-2">Detección de accesos cruzados activa</p>
+          </div>
+        </div>
+        <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-base font-semibold text-on-surface">Intentos de Acceso No Autorizado</h3><span class="text-[10px] font-semibold text-error bg-error-container/40 px-2 py-1 rounded font-mono">GET /autenticacion/audit/accesos-denegados</span></div>
+          <pre id="denied-result" class="text-[11px] text-on-surface-variant font-mono bg-surface-container rounded-lg p-4 min-h-[200px] overflow-auto terminal-scroll leading-relaxed whitespace-pre-wrap break-words">Cargando...</pre>
         </div>
       </div>
 
@@ -210,10 +240,60 @@ async function loadIntegrityRejections() {
   }
 }
 
+async function loadDeniedAccess() {
+  const resultBox = document.getElementById('denied-result');
+
+  try {
+    const response = await fetchWithAuth('/autenticacion/audit/accesos-denegados/');
+
+    if (response.status === 403) {
+      const data = await response.json();
+      resultBox.textContent = 'Acceso denegado: ' + (data.error || 'Se requieren permisos de Administrador.');
+      document.getElementById('denied-total').textContent = '-';
+      document.getElementById('denied-recent').textContent = 'No autorizado';
+      return;
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      resultBox.textContent = 'Error HTTP ' + response.status + ': ' + (data.error || 'Desconocido') + (data.detail ? '\n\nDetail: ' + data.detail : '');
+      return;
+    }
+
+    resultBox.textContent = JSON.stringify(data, null, 2);
+
+    if (data.intentos) {
+      document.getElementById('denied-total').textContent = data.total || data.intentos.length;
+
+      if (data.intentos.length > 0) {
+        const recent = data.intentos[0];
+        const fecha = new Date(recent.fecha_intento);
+        const ahora = new Date();
+        const diffMs = ahora - fecha;
+        const diffMin = Math.floor(diffMs / 60000);
+        const diffHrs = Math.floor(diffMs / 3600000);
+
+        if (diffMin < 1) {
+          document.getElementById('denied-recent').textContent = 'Hace segundos';
+        } else if (diffMin < 60) {
+          document.getElementById('denied-recent').textContent = `Hace ${diffMin} min`;
+        } else {
+          document.getElementById('denied-recent').textContent = `Hace ${diffHrs}h`;
+        }
+        document.getElementById('denied-recent-time').textContent = fecha.toLocaleString('es-ES');
+      }
+    }
+  } catch (error) {
+    resultBox.textContent = 'Error de conexion: ' + error.message;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   loadUserData();
   loadAuditHistory();
   loadIntegrityRejections();
+  loadDeniedAccess();
 });
 </script>
 {% endblock %}
