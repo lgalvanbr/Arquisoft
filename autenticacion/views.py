@@ -499,8 +499,7 @@ def listar_rechazos_integridad(request):
             )
         
         print("=== listar_rechazos_integridad DEBUG - ACCESS GRANTED ===")
-    
-    try:
+        
         from .models import RechazoIntegridad
         
         usuario = request.user
