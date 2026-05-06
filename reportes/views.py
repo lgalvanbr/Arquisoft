@@ -20,6 +20,29 @@ from autenticacion.auth0backend import getRole
 logger = logging.getLogger(__name__)
 
 
+def _get_user_company(request):
+    """Obtiene la empresa del usuario, primero de Usuario.empresa, luego de AsociacionUsuarioEmpresa."""
+    from autenticacion.models import Usuario as UsuarioModel
+    try:
+        local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
+        if local_usuario and local_usuario.empresa:
+            return str(local_usuario.empresa.id)
+    except:
+        pass
+    
+    try:
+        from empresa.models import AsociacionUsuarioEmpresa
+        asociacion = AsociacionUsuarioEmpresa.objects.filter(
+            usuario=request.user, activo=True
+        ).select_related('empresa').first()
+        if asociacion:
+            return asociacion.empresa.id
+    except:
+        pass
+    
+    return None
+
+
 def _check_role(request, empresa_id=None):
     """
     Verificacion de rol inline para endpoints de reportes.
@@ -47,14 +70,7 @@ def _check_role(request, empresa_id=None):
         return None, "any"
     
     # Manager: verificar que empresa_id coincida con su empresa en DB
-    from autenticacion.models import Usuario as UsuarioModel
-    user_company = None
-    try:
-        local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
-        if local_usuario and local_usuario.empresa:
-            user_company = str(local_usuario.empresa.id)
-    except:
-        pass
+    user_company = _get_user_company(request)
     
     print("=== _check_role: Manager - user_company:", user_company)
     
@@ -107,9 +123,7 @@ def listar_reportes_costos(request, empresa_id):
         if role == "Admin":
             print("=== listar_reportes_costos: Admin - acceso permitido ===")
         elif role == "Manager":
-            from autenticacion.models import Usuario as UsuarioModel
-            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
-            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            user_company = _get_user_company(request)
             if not user_company or str(user_company).upper() != str(empresa_id).upper():
                 from .permissions import _log_unauthorized_access
                 _log_unauthorized_access(request, empresa_id, user_company or "N/A")
@@ -196,9 +210,7 @@ def crear_reporte_costos(request, empresa_id):
         if role == "Admin":
             print("=== crear_reporte_costos: Admin - acceso permitido a cualquier empresa ===")
         elif role == "Manager":
-            from autenticacion.models import Usuario as UsuarioModel
-            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
-            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            user_company = _get_user_company(request)
             if not user_company or str(user_company).upper() != str(empresa_id).upper():
                 from .permissions import _log_unauthorized_access
                 _log_unauthorized_access(request, empresa_id, user_company or "N/A")
@@ -300,9 +312,7 @@ def eliminar_reporte(request, empresa_id):
         if role == "Admin":
             print("=== eliminar_reporte: Admin - acceso permitido ===")
         elif role == "Manager":
-            from autenticacion.models import Usuario as UsuarioModel
-            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
-            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            user_company = _get_user_company(request)
             if not user_company or str(user_company).upper() != str(empresa_id).upper():
                 from .permissions import _log_unauthorized_access
                 _log_unauthorized_access(request, empresa_id, user_company or "N/A")
@@ -374,9 +384,7 @@ def listar_reportes_empresa(request, empresa_id):
             }, status=403)
         
         if role == "Manager":
-            from autenticacion.models import Usuario as UsuarioModel
-            local_usuario = UsuarioModel.objects.filter(usuario_django=request.user).first()
-            user_company = str(local_usuario.empresa.id) if local_usuario and local_usuario.empresa else None
+            user_company = _get_user_company(request)
             if not user_company or str(user_company).upper() != str(empresa_id).upper():
                 from .permissions import _log_unauthorized_access
                 _log_unauthorized_access(request, empresa_id, user_company or "N/A")

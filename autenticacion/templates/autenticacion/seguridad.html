@@ -132,10 +132,22 @@ async function loadAuditHistory() {
       return;
     }
 
+    if (response.status === 404) {
+      const data = await response.json();
+      resultBox.textContent = 'Error: ' + (data.error || 'Perfil de usuario no encontrado');
+      return;
+    }
+
     const data = await response.json();
+
+    if (!response.ok) {
+      resultBox.textContent = 'Error HTTP ' + response.status + ': ' + (data.error || 'Desconocido') + (data.detail ? '\n\nDetail: ' + data.detail : '');
+      return;
+    }
+
     resultBox.textContent = JSON.stringify(data, null, 2);
 
-    if (response.ok && data.historial) {
+    if (data.historial) {
       document.getElementById('audit-total').textContent = data.total || data.historial.length;
 
       if (data.historial.length > 0) {
@@ -160,8 +172,6 @@ async function loadAuditHistory() {
         ).length;
         document.getElementById('audit-failed').textContent = fallidos;
       }
-    } else {
-      resultBox.textContent = 'Error: ' + (data.error || 'No se pudo cargar el historial');
     }
   } catch (error) {
     resultBox.textContent = 'Error de conexion: ' + error.message;
@@ -183,13 +193,17 @@ async function loadIntegrityRejections() {
     }
 
     const data = await response.json();
+
+    if (!response.ok) {
+      resultBox.textContent = 'Error HTTP ' + response.status + ': ' + (data.error || 'Desconocido') + (data.detail ? '\n\nDetail: ' + data.detail : '');
+      return;
+    }
+
     resultBox.textContent = JSON.stringify(data, null, 2);
 
-    if (response.ok && data.rechazos) {
+    if (data.rechazos) {
       document.getElementById('integrity-total').textContent = data.total || data.rechazos.length;
       document.getElementById('integrity-tokens').textContent = data.total || data.rechazos.length;
-    } else {
-      resultBox.textContent = 'Error: ' + (data.error || 'No se pudieron cargar los rechazos');
     }
   } catch (error) {
     resultBox.textContent = 'Error de conexion: ' + error.message;

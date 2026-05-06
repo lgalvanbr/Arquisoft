@@ -102,6 +102,58 @@ def asignar_rol(request):
         }, status=500)
 
 
+@require_http_methods(["DELETE"])
+def eliminar_usuario(request):
+    """
+    DELETE /usuario/eliminar/
+    Elimina un usuario del sistema (Django User + Usuario model)
+
+    Body:
+    {
+        "usuario_id": int
+    }
+    """
+    try:
+        data = json.loads(request.body)
+
+        usuario_id = data.get('usuario_id')
+
+        if not usuario_id:
+            return JsonResponse({
+                'error': 'usuario_id es requerido'
+            }, status=400)
+
+        try:
+            django_user = User.objects.get(id=usuario_id)
+        except User.DoesNotExist:
+            return JsonResponse({
+                'error': f'Usuario con id {usuario_id} no existe'
+            }, status=404)
+
+        username = django_user.username
+
+        from autenticacion.models import Usuario as UsuarioModel
+        usuario_model = UsuarioModel.objects.filter(usuario_django=django_user).first()
+
+        if usuario_model:
+            usuario_model.delete()
+
+        django_user.delete()
+
+        return JsonResponse({
+            'mensaje': f'Usuario "{username}" eliminado exitosamente',
+        }, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'JSON invalido en body'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e)
+        }, status=500)
+
+
 def usuario_view(request):
     """
     GET /usuario/

@@ -36,11 +36,12 @@
                   <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Usuario</th>
                   <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Email</th>
                   <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Rol</th>
+                  <th class="px-4 py-3 text-left font-semibold text-[11px] uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody id="usuarios-tbody">
                 <tr class="border-b border-outline-variant/30">
-                  <td colspan="4" class="px-4 py-8 text-center text-on-surface-variant">Cargando usuarios...</td>
+                  <td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">Cargando usuarios...</td>
                 </tr>
               </tbody>
             </table>
@@ -124,6 +125,11 @@ async function cargarUsuarios() {
           <td class="px-4 py-3 text-on-surface font-medium">${usuario.username}</td>
           <td class="px-4 py-3 text-on-surface-variant text-[12px]">${usuario.email || '-'}</td>
           <td class="px-4 py-3 text-on-surface"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${getRolBadge(usuario.rol)}">${usuario.rol || 'usuario'}</span></td>
+          <td class="px-4 py-3">
+            <button onclick="eliminarUsuario(${usuario.id}, '${usuario.username}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-error-container/50 text-error hover:bg-error-container transition-colors">
+              <span class="material-symbols-outlined text-[14px]">delete</span>Eliminar
+            </button>
+          </td>
         `;
         tbody.appendChild(row);
 
@@ -133,7 +139,7 @@ async function cargarUsuarios() {
         selectAsignar.appendChild(option);
       });
     } else {
-      tbody.innerHTML = '<tr class="border-b border-outline-variant/30"><td colspan="4" class="px-4 py-8 text-center text-on-surface-variant">No hay usuarios</td></tr>';
+      tbody.innerHTML = '<tr class="border-b border-outline-variant/30"><td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">No hay usuarios</td></tr>';
     }
   } catch (error) {
     document.getElementById('usuarios-result').textContent = `Error: ${error.message}`;
@@ -198,6 +204,30 @@ async function asignarRol() {
     document.getElementById('asignar-result').textContent = `Error: ${error.message}`;
     document.getElementById('asignar-error').textContent = error.message;
     document.getElementById('asignar-error').classList.remove('hidden');
+  }
+}
+
+async function eliminarUsuario(usuarioId, username) {
+  if (!confirm(`¿Estas seguro de eliminar al usuario "${username}"? Esta accion no se puede deshacer.`)) {
+    return;
+  }
+
+  try {
+    const response = await fetchWithAuth('/usuario/eliminar/', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: parseInt(usuarioId) })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      cargarUsuarios();
+    } else {
+      alert('Error al eliminar: ' + (data.error || 'Error desconocido'));
+    }
+  } catch (error) {
+    alert('Error de conexion: ' + error.message);
   }
 }
 

@@ -80,6 +80,17 @@ def check_company_access(view_func):
                 except:
                     pass
                 
+                if not user_company:
+                    try:
+                        from empresa.models import AsociacionUsuarioEmpresa
+                        asociacion = AsociacionUsuarioEmpresa.objects.filter(
+                            usuario=request.user, activo=True
+                        ).select_related('empresa').first()
+                        if asociacion:
+                            user_company = asociacion.empresa.id
+                    except:
+                        pass
+                
                 print("=== check_company_access: Manager - user_company:", user_company)
                 
                 if not user_company:
@@ -108,6 +119,17 @@ def check_company_access(view_func):
                 user_company = str(local_usuario.empresa.id)
         except:
             pass
+        
+        if not user_company:
+            try:
+                from empresa.models import AsociacionUsuarioEmpresa
+                asociacion = AsociacionUsuarioEmpresa.objects.filter(
+                    usuario=request.user, activo=True
+                ).select_related('empresa').first()
+                if asociacion:
+                    user_company = asociacion.empresa.id
+            except:
+                pass
         
         print("=== check_company_access: rol no reconocido - user_company:", user_company)
         

@@ -15,6 +15,7 @@ from django.views.decorators.http import require_http_methods
 
 from .models import Usuario, Permiso, RolPermiso, RechazoIntegridad, IntentoAccesoNoAutorizado
 from .utilities import JWTManager, DetectorAnomalias, AuditoriaManager, require_scope
+from .auth0backend import getRole
 
 logger = logging.getLogger(__name__)
 
@@ -235,10 +236,26 @@ def obtener_usuario_actual(request):
         from autenticacion.models import Usuario as UsuarioModel
         local_usuario = UsuarioModel.objects.filter(usuario_django=usuario).first()
 
+        rol = None
+        empresa = ''
+
         if local_usuario:
             print("local_usuario found, rol:", local_usuario.rol)
             rol = local_usuario.rol
-            empresa = str(local_usuario.empresa) if local_usuario.empresa else ''
+            empresa = str(local_usuario.empresa.id) if local_usuario.empresa else ''
+            print("empresa from local_usuario.empresa:", empresa)
+
+            if not empresa:
+                try:
+                    from empresa.models import AsociacionUsuarioEmpresa
+                    asociacion = AsociacionUsuarioEmpresa.objects.filter(
+                        usuario=usuario, activo=True
+                    ).select_related('empresa').first()
+                    if asociacion:
+                        empresa = asociacion.empresa.id
+                        print("empresa from AsociacionUsuarioEmpresa:", empresa)
+                except Exception as e:
+                    print("Error checking AsociacionUsuarioEmpresa:", e)
         elif social:
             print("Falling back to Auth0 getRole")
             from autenticacion.auth0backend import getRole
@@ -249,6 +266,10 @@ def obtener_usuario_actual(request):
             from autenticacion.auth0backend import getRole
             rol = getRole(request)
             empresa = ''
+
+        if not rol:
+            from autenticacion.auth0backend import getRole
+            rol = getRole(request)
 
         print("rol final:", rol)
         print("empresa final:", empresa)
@@ -270,6 +291,10 @@ def obtener_usuario_actual(request):
             status=status.HTTP_200_OK
         )
     except Exception as e:
+        import traceback
+        print("=== obtener_usuario_actual DEBUG - EXCEPTION ===")
+        print("Exception:", str(e))
+        traceback.print_exc()
         logger.error(f"Error obteniendo usuario actual: {str(e)}")
         return Response(
             {'error': 'Error al obtener usuario'},
@@ -360,10 +385,16 @@ def logout(request):
 def historial_acceso(request):
     """Endpoint para obtener el historial de acceso del usuario"""
     try:
+        print("=== historial_acceso DEBUG START ===")
+        print("request.user:", request.user)
+        print("request.user.is_authenticated:", request.user.is_authenticated)
+        
         role = getRole(request)
+        print("role from getRole:", role)
         allowed_roles = ["Admin"]
         
         if role not in allowed_roles:
+            print("Access denied - role not in allowed_roles")
             return Response(
                 {'error': 'No tienes acceso a esta zona'},
                 status=status.HTTP_403_FORBIDDEN
@@ -371,9 +402,12 @@ def historial_acceso(request):
 
         usuario = request.user
         dias = int(request.query_params.get('dias', 7))
+        print("dias:", dias)
 
         from autenticacion.models import Usuario as UsuarioModel
         local_usuario = UsuarioModel.objects.filter(usuario_django=usuario).first()
+        print("local_usuario:", local_usuario)
+        
         if not local_usuario:
             return Response(
                 {'error': 'Perfil de usuario no encontrado'},
@@ -381,6 +415,7 @@ def historial_acceso(request):
             )
         
         historial = AuditoriaManager.obtener_historial_acceso(local_usuario, dias)
+        print("historial count:", historial.count())
         
         datos_historial = [
             {
@@ -393,6 +428,8 @@ def historial_acceso(request):
             for h in historial
         ]
         
+        print("=== historial_acceso DEBUG END - SUCCESS ===")
+        
         return Response(
             {
                 'usuario': usuario.username,
@@ -403,9 +440,13 @@ def historial_acceso(request):
         )
     
     except Exception as e:
+        import traceback
+        print("=== historial_acceso DEBUG - EXCEPTION ===")
+        print("Exception:", str(e))
+        traceback.print_exc()
         logger.error(f"Error obteniendo historial: {str(e)}")
         return Response(
-            {'error': 'Error al obtener historial'},
+            {'error': 'Error al obtener historial', 'detail': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -444,17 +485,22 @@ def listar_rechazos_integridad(request):
     ASR Integridad: Listar todos los rechazos por integridad.
     Solo Admin puede acceder.
     """
-    role = getRole(request)
-    allowed_roles = ["Admin"]
-    
-    print("=== listar_rechazos_integridad: role:", role)
-    print("=== listar_rechazos_integridad: allowed_roles:", allowed_roles)
-    
-    if role not in allowed_roles:
-        return Response(
-            {'error': 'No tienes acceso a esta zona'},
-            status=status.HTTP_403_FORBIDDEN
-        )
+    try:
+        print("=== listar_rechazos_integridad DEBUG START ===")
+        print("request.user:", request.user)
+        
+        role = getRole(request)
+        print("role from getRole:", role)
+        allowed_roles = ["Admin"]
+        
+        if role not in allowed_roles:
+            print("Access denied - role not in allowed_roles")
+            return Response(
+                {'error': 'No tienes acceso a esta zona'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        print("=== listar_rechazos_integridad DEBUG - ACCESS GRANTED ===")
     
     try:
         from .models import RechazoIntegridad
