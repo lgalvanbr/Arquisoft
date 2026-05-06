@@ -28,9 +28,10 @@ class Usuario(models.Model):
     rol = models.CharField(
         max_length=50,
         choices=[
-            ('admin', 'Administrador'),
-            ('usuario', 'Usuario'),
+            ('Admin', 'Administrador'),
+            ('suario', 'Usuario'),
             ('gerente', 'Gerente'),
+            ('manager', 'Manager'),
         ],
         default='usuario'
     )
