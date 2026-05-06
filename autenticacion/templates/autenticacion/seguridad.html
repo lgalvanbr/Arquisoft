@@ -56,7 +56,7 @@
       <div class="page active" id="page-seguridad">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Auditoría de Acceso</h2><p class="text-sm text-on-surface-variant mt-1">Historial completo de accesos, logins y operaciones realizadas.</p></div>
-          <button onclick="fetchEndpoint('/autenticacion/audit/historial','audit-result')" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Actualizar</button>
+          <button onclick="loadAuditHistory()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Actualizar</button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
           <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
@@ -85,7 +85,7 @@
       <div class="page" id="page-integridad">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div><h2 class="text-2xl font-bold text-on-surface tracking-tight">Verificación de Integridad</h2><p class="text-sm text-on-surface-variant mt-1">Detección y registro de intentos de acceso no autorizados.</p></div>
-          <button onclick="fetchEndpoint('/autenticacion/rechazos/integridad','integrity-result')" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Verificar</button>
+          <button onclick="loadIntegrityRejections()" class="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 shadow-[0_4px_14px_rgba(0,101,145,0.25)] hover:opacity-90 transition-opacity self-start"><span class="material-symbols-outlined text-[17px]">refresh</span>Verificar</button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
           <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 soft-glow">
@@ -122,8 +122,17 @@ async function loadAuditHistory() {
 
   try {
     const response = await fetchWithAuth('/autenticacion/audit/historial');
-    const data = await response.json();
 
+    if (response.status === 403) {
+      const data = await response.json();
+      resultBox.textContent = 'Acceso denegado: ' + (data.error || 'Se requieren permisos de Administrador.');
+      document.getElementById('audit-total').textContent = '-';
+      document.getElementById('audit-recent').textContent = 'No autorizado';
+      document.getElementById('audit-failed').textContent = '-';
+      return;
+    }
+
+    const data = await response.json();
     resultBox.textContent = JSON.stringify(data, null, 2);
 
     if (response.ok && data.historial) {
@@ -164,8 +173,16 @@ async function loadIntegrityRejections() {
 
   try {
     const response = await fetchWithAuth('/autenticacion/rechazos/integridad');
-    const data = await response.json();
 
+    if (response.status === 403) {
+      const data = await response.json();
+      resultBox.textContent = 'Acceso denegado: ' + (data.error || 'Se requieren permisos de Administrador.');
+      document.getElementById('integrity-total').textContent = '-';
+      document.getElementById('integrity-tokens').textContent = '-';
+      return;
+    }
+
+    const data = await response.json();
     resultBox.textContent = JSON.stringify(data, null, 2);
 
     if (response.ok && data.rechazos) {

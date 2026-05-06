@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
-from .validators import validate_payload_integrity, validate_report_request
+from .validators import validate_report_request
 from .permissions import check_company_access, require_authentication
 from autenticacion.auth0backend import getRole
 
@@ -165,7 +165,6 @@ def listar_reportes_costos(request, empresa_id):
 @require_authentication
 @check_company_access
 @validate_report_request
-@validate_payload_integrity
 def crear_reporte_costos(request, empresa_id):
     """
     POST /api/reportes/crear/{empresa_id}
@@ -178,11 +177,6 @@ def crear_reporte_costos(request, empresa_id):
         "ano": 2025,
         "periodo": "mensual"  // opcional
     }
-    
-    ASR Integridad:
-    - Valida integridad del payload (X-Payload-Signature header)
-    - Si está adulterado: 401 Unauthorized + log
-    - 100% de mensajes manipulados son rechazados
     
     ASR Confidencialidad:
     - Solo acceso a empresa propia
