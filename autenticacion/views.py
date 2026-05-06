@@ -13,7 +13,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
 
-from .models import Usuario, Permiso, RolPermiso, RechazoIntegridad, IntentoAccesoNoAutorizado
+from .models import Usuario, Permiso, RolPermiso, RechazoIntegridad, IntentoAccesoNoAutorizado, AuditLog
 from .utilities import JWTManager, DetectorAnomalias, AuditoriaManager, require_scope
 from .auth0backend import getRole
 
@@ -635,7 +635,7 @@ def listar_intentos_acceso_no_autorizado(request):
         traceback.print_exc()
         logger.error(f"Error listando intentos de acceso: {str(e)}")
         return Response(
-            {'error': 'Error al listar intentos'},
+            {'error': 'Error al listar intentos', 'detail': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
