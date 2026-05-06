@@ -29,10 +29,8 @@ def check_session(request):
     """Verifica si hay sesion activa de Django (Auth0). Retorna info basica del usuario."""
     if request.user.is_authenticated:
         social = request.user.social_auth.filter(provider='auth0').first()
-        rol = 'usuario'
-        if social:
-            from autenticacion.auth0backend import getRole
-            rol = getRole(request) or 'usuario'
+        from autenticacion.auth0backend import getRole
+        rol = getRole(request)
         return Response({
             'authenticated': True,
             'username': request.user.username,
@@ -244,11 +242,12 @@ def obtener_usuario_actual(request):
         elif social:
             print("Falling back to Auth0 getRole")
             from autenticacion.auth0backend import getRole
-            rol = getRole(request) or 'usuario'
+            rol = getRole(request)
             empresa = social.extra_data.get('https://finops-api/empresa', '') or social.extra_data.get('empresa', '')
         else:
-            print("No local_usuario, no social — defaulting to usuario")
-            rol = 'usuario'
+            print("No local_usuario, no social — calling getRole")
+            from autenticacion.auth0backend import getRole
+            rol = getRole(request)
             empresa = ''
 
         print("rol final:", rol)
