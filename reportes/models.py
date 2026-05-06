@@ -37,7 +37,7 @@ class ConsumoNube(models.Model):
 class ReporteMensual(models.Model):
     """Modelo para reportes mensuales de costos"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    empresa_id = models.UUIDField(db_index=True)
+    empresa_id = models.CharField(max_length=100, db_index=True)
     ano = models.IntegerField()
     mes = models.IntegerField()
     costo_total = models.DecimalField(max_digits=15, decimal_places=4)

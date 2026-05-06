@@ -14,6 +14,7 @@ from django.contrib.auth.decorators import login_required
 
 from .validators import validate_report_request
 from .permissions import check_company_access, require_authentication
+from .models import ReporteMensual
 from autenticacion.auth0backend import getRole
 
 
@@ -133,33 +134,26 @@ def listar_reportes_costos(request, empresa_id):
                 }, status=403)
             print("=== listar_reportes_costos: Manager - acceso permitido a su empresa ===")
         
-        usuario = request.user
+        reportes_db = ReporteMensual.objects.filter(empresa_id=empresa_id).order_by('-fecha_generacion')
+        
         reportes = [
             {
-                'id': f"rpt_{empresa_id}_2025_05",
-                'empresa_id': empresa_id,
-                'mes': 5,
-                'ano': 2025,
-                'usuario': usuario.email,
-                'costo_total': 2345.67,  # Simulado
-                'fecha_generacion': timezone.now().isoformat(),
-                'status': 'disponible',
-            },
-            {
-                'id': f"rpt_{empresa_id}_2025_04",
-                'empresa_id': empresa_id,
-                'mes': 4,
-                'ano': 2025,
-                'usuario': usuario.email,
-                'costo_total': 2150.45,  # Simulado
-                'fecha_generacion': timezone.now().isoformat(),
-                'status': 'disponible',
+                'id': str(r.id),
+                'empresa_id': r.empresa_id,
+                'mes': r.mes,
+                'ano': r.ano,
+                'costo_total': float(r.costo_total),
+                'costo_aws': float(r.costo_aws),
+                'costo_gcp': float(r.costo_gcp),
+                'fecha_generacion': r.fecha_generacion.isoformat(),
+                'ultima_actualizacion': r.ultima_actualizacion.isoformat(),
             }
+            for r in reportes_db
         ]
         
         logger.info(
             f"[REPORTES CONSULTADOS] Empresa: {empresa_id} | "
-            f"Usuario: {usuario.email} | Total: {len(reportes)}"
+            f"Usuario: {request.user.email} | Total: {len(reportes)}"
         )
         
         return JsonResponse({
@@ -222,7 +216,6 @@ def crear_reporte_costos(request, empresa_id):
         
         usuario = request.user
         
-        # POST: Crear reporte
         try:
             payload = json.loads(request.body)
         except:
@@ -253,15 +246,33 @@ def crear_reporte_costos(request, empresa_id):
                 'detail': 'El año debe estar entre 2020 y 2099'
             }, status=400)
         
+        existing = ReporteMensual.objects.filter(empresa_id=empresa_id, ano=ano, mes=mes).first()
+        if existing:
+            existing.costo_total = 1250.50
+            existing.ultima_actualizacion = timezone.now()
+            existing.save()
+            reporte_obj = existing
+        else:
+            reporte_obj = ReporteMensual.objects.create(
+                empresa_id=empresa_id,
+                ano=ano,
+                mes=mes,
+                costo_total=1250.50,
+                costo_aws=0,
+                costo_gcp=0,
+            )
+        
         reporte = {
-            'id': f"rpt_{empresa_id}_{ano}_{mes:02d}",
-            'empresa_id': empresa_id,
-            'mes': mes,
-            'ano': ano,
+            'id': str(reporte_obj.id),
+            'empresa_id': reporte_obj.empresa_id,
+            'mes': reporte_obj.mes,
+            'ano': reporte_obj.ano,
             'periodo': periodo,
             'usuario': usuario.email,
-            'costo_total': 1250.50,  # Simulado
-            'fecha_generacion': timezone.now().isoformat(),
+            'costo_total': float(reporte_obj.costo_total),
+            'costo_aws': float(reporte_obj.costo_aws),
+            'costo_gcp': float(reporte_obj.costo_gcp),
+            'fecha_generacion': reporte_obj.fecha_generacion.isoformat(),
             'status': 'generado',
         }
         
@@ -324,12 +335,18 @@ def eliminar_reporte(request, empresa_id):
         
         usuario = request.user
         
-        # En producción, aquí se eliminaría el reporte de la base de datos
-        # Para esta demo, simulamos el éxito
+        eliminados, _ = ReporteMensual.objects.filter(empresa_id=empresa_id).delete()
+        
+        logger.info(
+            f"[REPORTES ELIMINADOS] Empresa: {empresa_id} | "
+            f"Usuario: {usuario.email} | Eliminados: {eliminados}"
+        )
+        
         return JsonResponse({
-            'mensaje': f'Reporte de empresa {empresa_id} eliminado exitosamente',
+            'mensaje': f'{eliminados} reporte(s) de empresa {empresa_id} eliminados exitosamente',
             'empresa_id': empresa_id,
             'usuario': usuario.email,
+            'eliminados': eliminados,
         }, status=200)
     
     except Exception as e:
