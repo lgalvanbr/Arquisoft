@@ -97,8 +97,8 @@ def _check_role(request, empresa_id=None):
 
 @require_http_methods(["GET"])
 @require_authentication
-@check_company_access
 @validate_report_request
+@check_company_access
 def listar_reportes_costos(request, empresa_id):
     """
     GET /api/reportes/costos/empresa/{empresa_id}
@@ -171,8 +171,8 @@ def listar_reportes_costos(request, empresa_id):
 
 @require_http_methods(["POST"])
 @require_authentication
-@check_company_access
 @validate_report_request
+@check_company_access
 def crear_reporte_costos(request, empresa_id):
     """
     POST /api/reportes/crear/{empresa_id}
@@ -298,6 +298,7 @@ def crear_reporte_costos(request, empresa_id):
 @require_http_methods(["DELETE"])
 @require_authentication
 @validate_report_request
+@check_company_access
 def eliminar_reporte(request, empresa_id):
     """
     DELETE /reportes/eliminar/{empresa_id}
