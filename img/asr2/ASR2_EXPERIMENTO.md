@@ -1,8 +1,308 @@
-# Experimento ASR 2 — Disponibilidad 99.5% Anual
+# Experimento ASR 2 - Disponibilidad 99.5% Anual
 
-## Descripción del ASR
+## Descripcion del ASR
 
-> Yo como usuario, dado que la plataforma es utilizada para la toma de decisiones financieras críticas, cuando accedo al sistema en cualquier momento, quiero que la plataforma esté disponible sin interrupciones, garantizando una disponibilidad mínima del **99.5% anual** sin caídas del servicio.
+> Yo como usuario, dado que la plataforma es utilizada para la toma de decisiones financieras criticas, cuando accedo al sistema en cualquier momento, quiero que la plataforma este disponible sin interrupciones, garantizando una disponibilidad minima del **99.5% anual** sin caidas del servicio.
+
+---
+
+## Hipotesis del experimento
+
+> **Si** se produce una falla en alguno de los componentes criticos de la plataforma (instancia de aplicacion o base de datos), **entonces** el sistema debe continuar respondiendo correctamente en un tiempo inferior al presupuesto de caida permitido, de modo que la disponibilidad anual acumulada no baje del 99.5%.
+
+---
+
+## Diseño del experimento
+
+### Tipo de experimento
+
+**Chaos Engineering** - inyeccion controlada de fallos en produccion/staging para verificar la resiliencia real de la arquitectura ante condiciones adversas.
+
+### Ambiente
+
+| Parametro | Valor |
+|---|---|
+| Ambiente | AWS - misma infraestructura de produccion |
+| Region | us-east-1 |
+| Instancias app | Gestionadas por ASG (min. 2), distribuidas en todas las AZs disponibles |
+| Base de datos | RDS PostgreSQL Multi-AZ |
+| Load Balancer | Application Load Balancer (ALB) |
+| Endpoint de prueba | GET /api/reportes/health y GET /api/reportes/mensual |
+
+---
+
+## Escenarios de prueba
+
+Se definen **3 escenarios** en orden creciente de severidad.
+
+---
+
+### Escenario 1 - Caida de una instancia (ALB health check + ASG self-healing)
+
+#### Objetivo
+
+Verificar que el ALB detecta la instancia caida, redirige el trafico a las instancias sanas, y que el ASG lanza automaticamente una instancia de reemplazo.
+
+#### Obtener ID de una instancia del ASG
+
+```bash
+ASG_NAME=$(aws autoscaling describe-auto-scaling-groups \
+  --query "AutoScalingGroups[?starts_with(AutoScalingGroupName,'report')].AutoScalingGroupName" \
+  --output text)
+
+INSTANCE_ID=$(aws autoscaling describe-auto-scaling-groups \
+  --auto-scaling-group-names $ASG_NAME \
+  --query "AutoScalingGroups[0].Instances[0].InstanceId" --output text)
+
+echo "Instancia a terminar: $INSTANCE_ID"
+```
+
+#### Estimulo
+
+Terminar una instancia directamente (simula fallo de instancia):
+
+```bash
+aws ec2 terminate-instances --instance-ids $INSTANCE_ID
+```
+
+#### Monitor de medicion
+
+```bash
+ALB_DNS=$(aws elbv2 describe-load-balancers \
+  --query "LoadBalancers[?starts_with(LoadBalancerName,'report')].DNSName" \
+  --output text)
+
+while true; do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$ALB_DNS/api/reportes/health)
+  echo "$(date '+%H:%M:%S') - HTTP $STATUS"
+  sleep 1
+done
+```
+
+#### Resultado esperado
+
+| Metrica | Valor esperado |
+|---|---|
+| Tiempo hasta deteccion por ALB | menor o igual a 20s (2 x health check interval) |
+| Servicio interrumpido para el usuario | 0s (instancias sanas absorben el trafico) |
+| Tiempo hasta lanzamiento de instancia nueva (ASG) | ~5 min (paralelo, transparente al usuario) |
+| Instancias en ASG tras recuperacion | 2 |
+| HTTP 200 sobre el total | mayor o igual a 99.5% |
+
+#### Criterio de exito
+
+- El usuario no percibe errores (trafico redirigido instantaneamente).
+- El ASG lanza automaticamente una nueva instancia para reponer la caida.
+
+#### Verificar que el ASG reemplazo la instancia
+
+```bash
+aws autoscaling describe-auto-scaling-groups \
+  --auto-scaling-group-names $ASG_NAME \
+  --query "AutoScalingGroups[0].Instances[*].{ID:InstanceId,State:LifecycleState,Health:HealthStatus}" \
+  --output table
+```
+
+---
+
+### Escenario 2 - Crash del proceso Gunicorn (reinicio por systemd)
+
+#### Objetivo
+
+Verificar que `systemd` reinicia Gunicorn automaticamente en menos de 5 segundos y que el ALB absorbe el trafico en la otra instancia durante ese intervalo.
+
+#### Estimulo via SSM (sin SSH)
+
+```bash
+INSTANCE_ID=$(aws autoscaling describe-auto-scaling-groups \
+  --auto-scaling-group-names $ASG_NAME \
+  --query "AutoScalingGroups[0].Instances[0].InstanceId" --output text)
+
+CMD_ID=$(aws ssm send-command \
+  --instance-ids $INSTANCE_ID \
+  --document-name "AWS-RunShellScript" \
+  --parameters 'commands=["kill -9 $(pgrep -f gunicorn | head -1)"]' \
+  --query "Command.CommandId" --output text)
+
+echo "Comando enviado: $CMD_ID"
+```
+
+#### Monitor de medicion
+
+```bash
+while true; do
+  RESPONSE=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" http://$ALB_DNS/api/reportes/health)
+  echo "$(date '+%H:%M:%S') - $RESPONSE"
+  sleep 0.5
+done
+```
+
+#### Resultado esperado
+
+| Metrica | Valor esperado |
+|---|---|
+| Tiempo de reinicio de Gunicorn por systemd | menor o igual a 5 segundos |
+| Peticiones fallidas durante el crash | 0 (ALB redirige a instancia sana) |
+| Recuperacion automatica | Si, sin intervencion humana |
+
+#### Criterio de exito
+
+- `systemd` reinicia el proceso en menos de 5s.
+- El ALB no expone errores porque redirige a la instancia sana.
+
+#### Verificar reinicio en logs
+
+```bash
+aws ssm send-command \
+  --instance-ids $INSTANCE_ID \
+  --document-name "AWS-RunShellScript" \
+  --parameters 'commands=["journalctl -u cloudynet.service --since \"5 minutes ago\""]'
+```
+
+---
+
+### Escenario 3 - Failover de base de datos (RDS Multi-AZ)
+
+#### Objetivo
+
+Verificar que RDS ejecuta el failover automatico a la instancia standby y que la aplicacion se reconecta sin caida prolongada.
+
+#### Estimulo
+
+```bash
+DB_ID=$(aws rds describe-db-instances \
+  --query "DBInstances[?starts_with(DBInstanceIdentifier,'report')].DBInstanceIdentifier" \
+  --output text)
+
+aws rds reboot-db-instance \
+  --db-instance-identifier $DB_ID \
+  --force-failover
+```
+
+#### Monitor de medicion (endpoint que usa la BD)
+
+```bash
+TOKEN=$(curl -s -X POST http://$ALB_DNS/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin1234!"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))")
+
+while true; do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer $TOKEN" \
+    http://$ALB_DNS/api/reportes/mensual)
+  echo "$(date '+%H:%M:%S') - HTTP $STATUS"
+  sleep 2
+done
+```
+
+#### Resultado esperado
+
+| Metrica | Valor esperado |
+|---|---|
+| Tiempo de failover RDS | menor o igual a 60 segundos |
+| Ventana de errores HTTP 500/503 | menor o igual a 60 segundos |
+| Reconexion automatica de la app | Si (sin reinicio manual) |
+| Datos persistidos antes del failover | 100% integros |
+
+#### Criterio de exito
+
+- El sistema vuelve a responder HTTP 200 en menos de 60s tras el inicio del failover.
+- No hay perdida de datos (replicacion sincronica de RDS).
+
+#### Verificacion post-failover
+
+```bash
+aws rds describe-db-instances \
+  --db-instance-identifier $DB_ID \
+  --query "DBInstances[0].{AZ:AvailabilityZone,Status:DBInstanceStatus,MultiAZ:MultiAZ}"
+```
+
+---
+
+## Metricas globales del experimento
+
+| Metrica | Formula | Meta |
+|---|---|---|
+| Disponibilidad medida | (peticiones_200 / total_peticiones) x 100 | mayor o igual a 99.5% |
+| Tiempo medio de recuperacion (MTTR) | suma(duracion_fallos) / numero_fallos | menor o igual a 60s |
+| Peticiones fallidas totales | Conteo de HTTP 4xx/5xx durante experimento | Minimizar |
+| Tiempo maximo de indisponibilidad continua | Mayor ventana de errores consecutivos | menor a 2,628 min/año |
+
+---
+
+## Herramientas
+
+| Herramienta | Uso |
+|---|---|
+| curl en bucle (bash) | Monitor HTTP liviano |
+| Apache JMeter | Carga concurrente + reporte de disponibilidad (configurado en /jmeter/) |
+| AWS CLI | Trigger de failover RDS, inspeccion de health del Target Group |
+| AWS SSM | Enviar comandos a instancias sin par de claves SSH |
+| AWS CloudWatch | Metricas de ALB: HealthyHostCount, UnHealthyHostCount, HTTPCode_Target_5XX_Count |
+
+---
+
+## Secuencia de ejecucion
+
+```
+0. Setup (2 min)
+   - Obtener ALB_DNS y ASG_NAME
+   - Iniciar monitor HTTP en pestaña separada
+
+1. Baseline (5 min)
+   - Trafico continuo sin fallos
+   - Confirmar 100% disponibilidad
+
+2. Escenario 1: Terminar instancia (10 min)
+   - aws ec2 terminate-instances
+   - Medir deteccion del ALB (aprox 20s)
+   - Verificar que el ASG lanzo instancia nueva (~5 min)
+   - Confirmar 2 instancias healthy en el target group
+
+3. Escenario 2: Crash Gunicorn (3 min)
+   - SSM kill -9 gunicorn en una instancia
+   - Medir reinicio de systemd (menor a 5s)
+   - Confirmar que el ALB no expone errores
+
+4. Pausa (5 min)
+   - Estabilizar el sistema antes del escenario 3
+
+5. Escenario 3: Failover RDS (10 min)
+   - rds reboot-db-instance --force-failover
+   - Medir ventana de indisponibilidad de BD (menor a 60s)
+
+6. Analisis post-experimento
+   - Calcular: disponibilidad = peticiones_200 / total x 100
+   - Comparar con meta 99.5%
+```
+
+---
+
+## Tabla de resultados
+
+| Escenario | Hora inicio | Hora fin error | Duracion (s) | HTTP 200% | Cumple |
+|---|---|---|---|---|---|
+| Baseline | | | 0s | 100% | Si |
+| Terminar instancia (ASG self-healing) | | | | | |
+| Crash Gunicorn (systemd restart) | | | | | |
+| Failover RDS | | | | | |
+| TOTAL | | | | | |
+
+---
+
+## Criterio global de aceptacion del ASR
+
+El ASR **SE CUMPLE** si la disponibilidad acumulada de todos los escenarios es **mayor o igual a 99.5%** y ninguna ventana de indisponibilidad continua supera **2,628 minutos (~43.8 horas) en un año**.
+
+**Si algun escenario falla el criterio:**
+
+1. Revisar los logs del ALB y systemd via CloudWatch y SSM.
+2. Verificar configuracion del health check: interval=10, unhealthy_threshold=2.
+3. Confirmar que RDS Multi-AZ esta activo con `aws rds describe-db-instances`.
+4. Verificar que el ASG tiene health_check_type = "ELB" y health_check_grace_period = 300.
+5. Revisar logs de arranque de instancias nuevas: /var/log/cloudynet-setup.log via SSM.
+
 
 ---
 
