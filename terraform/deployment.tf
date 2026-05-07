@@ -11,11 +11,15 @@
 #    - report-trafico-http (puerto 8080)
 #    - report-trafico-lb (puerto 80)
 #
-# 2. Instancias EC2:
-#    - report-db (PostgreSQL instalado y configurado)
-#    - report-app-lb-a/b/c (3 × t3.small)
+# 2. Auto Scaling Group (app):
+#    - Launch Template (Ubuntu 24.04 + Gunicorn + Django)
+#    - ASG: mínimo 2, máximo 4 instancias en AZs distintas
+#    - Auto-reemplazo de instancias caídas (health check ELB)
 #
-# 3. Load Balancer:
+# 3. Base de datos:
+#    - RDS PostgreSQL 16 Multi-AZ (failover automático ~60s)
+#
+# 4. Load Balancer:
 #    - Application Load Balancer (report-alb)
 #    - Target Group (report-app-group) con health check en /api/reportes/health
 #    - Listener en puerto 80
@@ -247,61 +251,63 @@ resource "aws_db_instance" "database" {
   })
 }
 
-# ========== EC2 APP INSTANCES ==========
+# ========== LAUNCH TEMPLATE ==========
+# Define la plantilla que el ASG usa para lanzar cada instancia nueva.
+# Cuando una instancia cae, el ASG lanza una nueva usando esta plantilla
+# automáticamente, sin intervención manual.
 
-resource "aws_instance" "app_instances" {
-  for_each = {
-    a = data.aws_availability_zones.available.names[0]
-    b = data.aws_availability_zones.available.names[1]
+resource "aws_launch_template" "app" {
+  name_prefix   = "${var.project_prefix}-app-"
+  image_id      = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type_app
+
+  # Conecta la instancia a los security groups de HTTP y SSH
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
   }
 
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type_app
-  associate_public_ip_address = true
-  availability_zone           = each.value
-  vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
-
-  user_data = <<-EOT
+  # user_data en base64: se ejecuta en cada instancia al arrancar.
+  # Clona el repo, instala dependencias, corre migraciones y levanta Gunicorn.
+  # migrate es idempotente en Django — seguro correrlo en cada instancia.
+  user_data = base64encode(<<-EOT
 #!/bin/bash
 # =======================================================
-# CloudyNet FinOps - Auto-setup completo para app-${each.key}
-# Ejecutado una sola vez en el primer arranque via cloud-init
-# =======================================================
-# Runs once at first boot via cloud-init
+# CloudyNet FinOps - Auto-setup via ASG Launch Template
+# Se ejecuta automáticamente en cada instancia al arrancar
 # =======================================================
 exec > /var/log/cloudynet-setup.log 2>&1
 
-INSTANCE_ID="${each.key}"
 DB_HOST="${aws_db_instance.database.address}"
 REPO="${local.repository}"
 BRANCH="${local.branch}"
 APP_DIR="/apps/Arquisoft"
 VENV_DIR="/apps/venv"
 
-echo "[$(date)] ===== CloudyNet setup iniciado (instancia: app-$INSTANCE_ID) ====="
+echo "[$(date)] ===== CloudyNet setup iniciado (ASG) ====="
 
-# ── 1. Dependencias del sistema ───────────────────────────────────────
+# ── 1. Dependencias del sistema
 apt-get update -y -q
 apt-get install -y -q python3 python3-pip python3-venv git build-essential libpq-dev python3-dev netcat-openbsd curl
-echo "[$(date)] Paquetes del sistema instalados."
+echo "[$(date)] Paquetes instalados."
 
-# ── 2. Clonar repositorio ─────────────────────────────────────────────
+# ── 2. Clonar repositorio en la rama configurada
 mkdir -p /apps
 if [ ! -d "$APP_DIR/.git" ]; then
-  git clone "$REPO" "$APP_DIR"
+  git clone -b "$BRANCH" "$REPO" "$APP_DIR"
 else
   cd "$APP_DIR" && git fetch origin && git reset --hard origin/$BRANCH
 fi
 cd "$APP_DIR"
-echo "[$(date)] Repositorio listo en $APP_DIR."
+echo "[$(date)] Repositorio listo en $APP_DIR (rama: $BRANCH)."
 
-# ── 3. Entorno virtual Python ─────────────────────────────────────────
+# ── 3. Entorno virtual Python
 python3 -m venv "$VENV_DIR"
 "$VENV_DIR/bin/pip" install --upgrade pip -q
 "$VENV_DIR/bin/pip" install -r "$APP_DIR/requirements.txt" -q
-echo "[$(date)] Virtualenv y dependencias instaladas en $VENV_DIR."
+echo "[$(date)] Virtualenv y dependencias instaladas."
 
-# ── 4. Variables de entorno (nombres que usa settings.py) ─────────────
+# ── 4. Variables de entorno
 cat > /etc/cloudynet.env <<ENVEOF
 DATABASE_HOST=$DB_HOST
 DB_NAME=monitoring_db
@@ -312,12 +318,10 @@ DJANGO_SETTINGS_MODULE=finops_platform.settings
 PYTHONUNBUFFERED=1
 ENVEOF
 chmod 644 /etc/cloudynet.env
-
-# Exportar para los comandos que siguen
 set -a; source /etc/cloudynet.env; set +a
 echo "[$(date)] Variables de entorno configuradas."
 
-# ── 5. Esperar PostgreSQL (máx 5 min) ─────────────────────────────────
+# ── 5. Esperar RDS PostgreSQL (máx 5 min)
 echo "[$(date)] Esperando PostgreSQL en $DB_HOST:5432..."
 for i in $(seq 1 30); do
   if nc -z "$DB_HOST" 5432 2>/dev/null; then
@@ -328,28 +332,21 @@ for i in $(seq 1 30); do
   sleep 10
 done
 
-# ── 6. Migraciones ────────────────────────────────────────────────────
-if [ "$INSTANCE_ID" = "a" ]; then
-  echo "[$(date)] app-a: ejecutando migraciones..."
-  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
-  echo "[$(date)] Migraciones completadas."
-  echo "[$(date)] app-a: creando usuarios por defecto..."
-  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username admin --email admin@bite.co --password Admin1234! --empresa BITE.CO --rol admin
-  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username usuario1 --email usuario1@bite.co --password Usuario1234! --empresa BITE.CO --rol usuario
-  echo "[$(date)] Seed usuarios completado."
-else
-  echo "[$(date)] app-b: esperando 90 s a que app-a migre..."
-  sleep 90
-  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
-  echo "[$(date)] Migraciones verificadas en app-b."
-fi
+# ── 6. Migraciones + seed (idempotentes — seguros en cada instancia del ASG)
+cd "$APP_DIR"
+"$VENV_DIR/bin/python" manage.py migrate --noinput
+echo "[$(date)] Migraciones completadas."
+# || true: no falla si el usuario ya existe (otra instancia lo creó primero)
+"$VENV_DIR/bin/python" manage.py seed_user --username admin --email admin@bite.co --password Admin1234! --empresa BITE.CO --rol admin || true
+"$VENV_DIR/bin/python" manage.py seed_user --username usuario1 --email usuario1@bite.co --password Usuario1234! --empresa BITE.CO --rol usuario || true
+echo "[$(date)] Seed usuarios completado."
 
-# ── 7. Servicio systemd ───────────────────────────────────────────────
+# ── 7. Servicio systemd (Restart=always: si Gunicorn cae, se reinicia en 5s)
 GUNICORN_BIN="$VENV_DIR/bin/gunicorn"
 
 cat > /etc/systemd/system/cloudynet.service <<SVCEOF
 [Unit]
-Description=CloudyNet FinOps Gunicorn (app-${each.key})
+Description=CloudyNet FinOps Gunicorn
 After=network-online.target
 Wants=network-online.target
 
@@ -369,7 +366,7 @@ StandardError=append:/var/log/gunicorn-error.log
 WantedBy=multi-user.target
 SVCEOF
 
-# ── 8. Script de actualización rápida (git pull + restart) ───────────
+# ── 8. Script de actualización rápida
 cat > /usr/local/bin/cloudynet-update <<UPDEOF
 #!/bin/bash
 cd $APP_DIR
@@ -384,22 +381,70 @@ echo "Actualización completada."
 UPDEOF
 chmod +x /usr/local/bin/cloudynet-update
 
-# ── 9. Habilitar e iniciar ────────────────────────────────────────────
+# ── 9. Habilitar e iniciar
 systemctl daemon-reload
 systemctl enable cloudynet.service
 systemctl start cloudynet.service
 
-echo "[$(date)] Servicio cloudynet.service activo y habilitado en reboot."
-echo "[$(date)] ===== Setup completado app-$INSTANCE_ID ====="
-echo "[$(date)] Para futuras actualizaciones: sudo cloudynet-update"
+echo "[$(date)] Servicio cloudynet.service activo."
+echo "[$(date)] ===== Setup completado ====="
 EOT
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(local.common_tags, {
+      Name = "${var.project_prefix}-app-asg"
+      Role = "application"
+    })
+  }
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_prefix}-app-lb-${each.key}"
-    Role = "application"
+    Name = "${var.project_prefix}-launch-template"
   })
 
   depends_on = [aws_db_instance.database]
+}
+
+# ========== AUTO SCALING GROUP ==========
+# Mantiene siempre mínimo 2 instancias activas en AZs distintas.
+# Si una instancia falla el health check del ALB, el ASG la termina
+# y lanza una nueva usando el Launch Template automáticamente.
+
+resource "aws_autoscaling_group" "app" {
+  name                      = "${var.project_prefix}-asg"
+  min_size                  = 2   # siempre hay al menos 2 instancias
+  max_size                  = 4   # puede escalar hasta 4 bajo carga
+  desired_capacity          = 2
+  vpc_zone_identifier       = data.aws_subnets.default.ids  # distribuye en todas las AZs disponibles
+  health_check_type         = "ELB"   # usa el health check del ALB (no solo EC2)
+  health_check_grace_period = 300     # 5 min para que la instancia arranque antes de evaluarla
+
+  launch_template {
+    id      = aws_launch_template.app.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "${var.project_prefix}-app-asg"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Project"
+    value               = local.project_name
+    propagate_at_launch = true
+  }
+}
+
+# ========== ASG → ALB ATTACHMENT ==========
+# Registra el ASG en el target group del ALB.
+# Las instancias nuevas que el ASG lance se registran automáticamente.
+
+resource "aws_autoscaling_attachment" "app" {
+  autoscaling_group_name = aws_autoscaling_group.app.id
+  lb_target_group_arn    = aws_lb_target_group.app_group.arn
 }
 
 # ========== TARGET GROUP ==========
@@ -458,16 +503,6 @@ resource "aws_lb_listener" "app_listener" {
   }
 }
 
-# ========== TARGET GROUP ATTACHMENT ==========
-
-resource "aws_lb_target_group_attachment" "app_attachment" {
-  for_each = aws_instance.app_instances
-
-  target_group_arn = aws_lb_target_group.app_group.arn
-  target_id        = each.value.id
-  port             = 8080
-}
-
 # ========== OUTPUTS ==========
 
 output "alb_dns_name" {
@@ -500,12 +535,12 @@ output "database_port" {
   value       = aws_db_instance.database.port
 }
 
-output "app_instances_public_ips" {
-  description = "Public IP addresses of the application instances"
-  value       = { for id, instance in aws_instance.app_instances : id => instance.public_ip }
+output "asg_name" {
+  description = "Name of the Auto Scaling Group managing app instances"
+  value       = aws_autoscaling_group.app.name
 }
 
-output "app_instances_private_ips" {
-  description = "Private IP addresses of the application instances"
-  value       = { for id, instance in aws_instance.app_instances : id => instance.private_ip }
+output "launch_template_id" {
+  description = "ID of the Launch Template used by the ASG"
+  value       = aws_launch_template.app.id
 }
