@@ -71,6 +71,11 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', 'isis2503'),
         'HOST': os.getenv('DATABASE_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,  # reutiliza conexiones durante 60 segundos para mejorar el rendimiento
+        'CONN_HEALTH_CHECKS': True,  # habilita chequeos de salud para conexiones inactivas
+        'OPTIONS': {
+            'connect_timeout': 5,  # si la base de datos no responde en 5 segundos, se considera un error
+        },
     }
 }
 
