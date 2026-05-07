@@ -366,5 +366,5 @@ def health_check(request):
         logger.error(f"Health check failed: {str(e)}")
         return Response(
             {'status': 'unhealthy', 'service': 'auth_service'},
-            status=status.HTTP_503_INTERNAL_SERVER_ERROR
+            status=status.HTTP_503_INTERNAL_SERVER_UNAVAILABLE
         )
