@@ -2,12 +2,12 @@
 Views para el servicio de reportes - FinOps
 """
 import logging
+from django.utils import timezone
+from django.db import connection
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from django.db import connection
-from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -67,18 +67,21 @@ def obtener_historial_reportes(request):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def health_check(request):
-    """GET /api/health - Health check del servicio de reportes"""
+    """GET /api/reportes/health — Kong usa este endpoint para decidir si la instancia está sana"""
     try:
+        # Verifica conectividad real con la BD — si falla, Kong retira esta instancia
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
         return Response({
             'status': 'healthy',
             'service': 'reportes',
-            'timestamp': timezone.now().isoformat()
+            'timestamp': timezone.now().isoformat(),
         }, status=status.HTTP_200_OK)
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
+        # 503 es la señal correcta para Kong — no 500
         return Response({
             'status': 'unhealthy',
             'service': 'reportes',
