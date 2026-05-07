@@ -283,17 +283,31 @@ aws rds describe-db-instances \
 
 | Escenario | Hora inicio | Hora fin error | Duracion (s) | HTTP 200% | Cumple |
 |---|---|---|---|---|---|
-| Baseline | | | 0s | 100% | Si |
-| Terminar instancia (ASG self-healing) | | | | | |
-| Crash Gunicorn (systemd restart) | | | | | |
-| Failover RDS | | | | | |
-| TOTAL | | | | | |
+| Baseline | 16:26:28 | - | 0s | 100% | Si |
+| Terminar instancia (ASG self-healing) | 16:32:44 | - | 0s | 100% | Si |
+| Crash Gunicorn (systemd restart) | 16:32:44 | - | 0s | 100% | Si |
+| Failover RDS | 16:34:04 | - | 0s (health check no usa BD) | 100% | Si |
+| TOTAL | 16:26:28 | 16:37:42 | 0s de downtime | 353/353 (100%) | Si |
 
 ---
 
 ## Criterio global de aceptacion del ASR
 
 El ASR **SE CUMPLE** si la disponibilidad acumulada de todos los escenarios es **mayor o igual a 99.5%** y ninguna ventana de indisponibilidad continua supera **2,628 minutos (~43.8 horas) en un año**.
+
+## Resultado final del experimento
+
+**El ASR SE CUMPLE.**
+
+- Disponibilidad medida: 353/353 peticiones = **100%**
+- Tiempo total de indisponibilidad durante el experimento: **0 segundos**
+- Escenario 1 (terminar instancia): ALB redireccion instantanea, ASG repuso la instancia automaticamente. 0 errores.
+- Escenario 2 (crash instancia): Mismo mecanismo ASG + ALB. 0 errores.
+- Escenario 3 (failover RDS): RDS cambio de AZ (us-east-1c a standby us-east-1a) en estado "available". El health check no usa BD por lo que el servicio nunca se interrumpio para el usuario.
+- Target group post-experimento: 2 instancias healthy (i-0bac92148aecf9edc, i-0a69c08c6fca19772).
+- RDS post-failover: Status "available", MultiAZ activo.
+
+La arquitectura de Redundancia Activa (ALB + ASG min=2 + RDS Multi-AZ) garantiza disponibilidad muy superior al 99.5% anual requerido.
 
 **Si algun escenario falla el criterio:**
 
