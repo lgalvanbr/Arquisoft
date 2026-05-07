@@ -1,18 +1,33 @@
 _format_version: "1.1"
 
+# IPs privadas de autenticacion
+AUTH_A="172.31.X.X"
+AUTH_B="172.31.X.X"
+AUTH_C="172.31.X.X"
+
+# IPs privadas de reportes
+REP_A="172.31.X.X"
+REP_B="172.31.X.X"
+REP_C="172.31.X.X"
+
+cat > ~/kong.yml << EOF
+_format_version: "1.1"
+
 services:
-  - name: finops_auth_service
-    host: finops_upstream
+  - name: autenticacion_service
+    host: autenticacion_upstream
     protocol: http
+    port: 8000
     routes:
       - name: auth_routes
         paths:
           - /api/auth
         strip_path: false
-  
-  - name: finops_reportes_service
-    host: finops_upstream
+
+  - name: reportes_service
+    host: reportes_upstream
     protocol: http
+    port: 8001
     routes:
       - name: reportes_routes
         paths:
@@ -24,13 +39,33 @@ services:
         strip_path: false
 
 upstreams:
-  - name: finops_upstream
+  - name: autenticacion_upstream
     targets:
-      - target: <IP-PRIVADA-APP-A>:8080
+      - target: ${AUTH_A}:8000
         weight: 100
-      - target: <IP-PRIVADA-APP-B>:8080
+      - target: ${AUTH_B}:8000
         weight: 100
-      - target: <IP-PRIVADA-APP-C>:8080
+      - target: ${AUTH_C}:8000
+        weight: 100
+    healthchecks:
+      threshold: 66
+      active:
+        http_path: /api/auth/health
+        timeout: 5
+        healthy:
+          successes: 2
+          interval: 5
+        unhealthy:
+          tcp_failures: 2
+          interval: 5
+
+  - name: reportes_upstream
+    targets:
+      - target: ${REP_A}:8001
+        weight: 100
+      - target: ${REP_B}:8001
+        weight: 100
+      - target: ${REP_C}:8001
         weight: 100
     healthchecks:
       threshold: 66
@@ -43,3 +78,6 @@ upstreams:
         unhealthy:
           tcp_failures: 2
           interval: 5
+EOF
+
+cat ~/kong.yml   # verifica que todas las IPs quedaron bien
