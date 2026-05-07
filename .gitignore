@@ -41,6 +41,10 @@ db.sqlite3
 .DS_Store
 Thumbs.db
 
+# Archivos locales / documentación (no necesarios en producción)
+db.sqlite3
+img/
+
 # Terraform
 terraform/.terraform/
 terraform/.terraform.lock.hcl

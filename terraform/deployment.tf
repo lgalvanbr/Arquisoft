@@ -47,12 +47,18 @@ variable "instance_type_app" {
   default     = "t2.nano"
 }
 
+variable "branch" {
+  description = "Git branch to deploy on the app instances"
+  type        = string
+  default     = "ASR1Disponibilidad"
+}
+
 # ========== LOCALS ==========
 
 locals {
   project_name = "${var.project_prefix}-arquisoft"
   repository   = "https://github.com/lgalvanbr/Arquisoft.git"
-  branch       = "main"
+  branch       = var.branch
 
   common_tags = {
     Project   = local.project_name
@@ -101,6 +107,10 @@ data "aws_subnets" "default" {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
+}
+
+data "aws_availability_zones" "available" {
+  state = "available"
 }
 
 # ========== SECURITY GROUPS ==========
@@ -205,57 +215,31 @@ resource "aws_security_group" "traffic_lb" {
   })
 }
 
-# ========== EC2 DATABASE ==========
+# ========== RDS DATABASE (Multi-AZ) ==========
 
-resource "aws_instance" "database" {
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type_db
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.traffic_db.id, aws_security_group.traffic_ssh.id]
+resource "aws_db_subnet_group" "main" {
+  name       = "${var.project_prefix}-db-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
 
-  user_data = <<-EOT
-#!/bin/bash
-exec > /var/log/cloudynet-db-setup.log 2>&1
-echo "[$(date)] Iniciando setup PostgreSQL..."
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-db-subnet-group"
+  })
+}
 
-apt-get update -y -q
-apt-get install -y -q postgresql postgresql-contrib
-
-# Esperar a que postgres arranque
-sleep 5
-
-# Crear usuario y base de datos (idempotente)
-sudo -u postgres psql <<SQLEOF
-DO \$\$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'report_user') THEN
-    CREATE USER report_user WITH PASSWORD 'isis2503';
-  END IF;
-END
-\$\$;
-SQLEOF
-
-sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'monitoring_db'" | grep -q 1 || \
-  sudo -u postgres createdb -O report_user monitoring_db
-
-# Permitir conexiones remotas
-PG_HBA="/etc/postgresql/16/main/pg_hba.conf"
-PG_CONF="/etc/postgresql/16/main/postgresql.conf"
-
-grep -q "^host all all 0.0.0.0/0" "$PG_HBA" || \
-  echo "host all all 0.0.0.0/0 trust" >> "$PG_HBA"
-
-sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONF" || \
-  grep -q "^listen_addresses" "$PG_CONF" || \
-  echo "listen_addresses='*'" >> "$PG_CONF"
-
-echo "max_connections=500" >> "$PG_CONF"
-
-systemctl enable postgresql
-systemctl restart postgresql
-
-echo "[$(date)] PostgreSQL listo. Usuario: report_user / DB: monitoring_db"
-EOT
+resource "aws_db_instance" "database" {
+  identifier             = "${var.project_prefix}-db"
+  engine                 = "postgres"
+  engine_version         = "16"
+  instance_class         = "db.t3.micro"
+  allocated_storage      = 20
+  db_name                = "monitoring_db"
+  username               = "report_user"
+  password               = "isis2503"
+  multi_az               = true
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.traffic_db.id]
+  skip_final_snapshot    = true
+  publicly_accessible    = false
 
   tags = merge(local.common_tags, {
     Name = "${var.project_prefix}-db"
@@ -266,11 +250,15 @@ EOT
 # ========== EC2 APP INSTANCES ==========
 
 resource "aws_instance" "app_instances" {
-  for_each = toset(["a", "b"])
+  for_each = {
+    a = data.aws_availability_zones.available.names[0]
+    b = data.aws_availability_zones.available.names[1]
+  }
 
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_app
   associate_public_ip_address = true
+  availability_zone           = each.value
   vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
 
   user_data = <<-EOT
@@ -284,7 +272,7 @@ resource "aws_instance" "app_instances" {
 exec > /var/log/cloudynet-setup.log 2>&1
 
 INSTANCE_ID="${each.key}"
-DB_HOST="${aws_instance.database.private_ip}"
+DB_HOST="${aws_db_instance.database.address}"
 REPO="${local.repository}"
 BRANCH="${local.branch}"
 APP_DIR="/apps/Arquisoft"
@@ -411,7 +399,7 @@ EOT
     Role = "application"
   })
 
-  depends_on = [aws_instance.database]
+  depends_on = [aws_db_instance.database]
 }
 
 # ========== TARGET GROUP ==========
@@ -428,7 +416,7 @@ resource "aws_lb_target_group" "app_group" {
     healthy_threshold   = 2
     unhealthy_threshold = 2
     timeout             = 5
-    interval            = 30
+    interval            = 10
     path                = "/api/reportes/health"
     matcher             = "200"
     protocol            = "HTTP"
@@ -502,14 +490,14 @@ output "target_group_arn" {
   value       = aws_lb_target_group.app_group.arn
 }
 
-output "database_public_ip" {
-  description = "Public IP address of the database instance"
-  value       = aws_instance.database.public_ip
+output "database_endpoint" {
+  description = "RDS endpoint address for the database"
+  value       = aws_db_instance.database.address
 }
 
-output "database_private_ip" {
-  description = "Private IP address of the database instance"
-  value       = aws_instance.database.private_ip
+output "database_port" {
+  description = "RDS port for the database"
+  value       = aws_db_instance.database.port
 }
 
 output "app_instances_public_ips" {
