@@ -277,7 +277,7 @@ EOT
 # ========== EC2 APP INSTANCES ==========
 
 resource "aws_instance" "app_instances" {
-  for_each = toset(["a"])
+  for_each = toset(["a", "b"])
 
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_app
@@ -455,11 +455,93 @@ EOT
   depends_on = [aws_instance.database]
 }
 
+# ========== TARGET GROUP ==========
 
+resource "aws_lb_target_group" "app_group" {
+  name        = "${var.project_prefix}-app-group"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
 
+  load_balancing_algorithm_type = "round_robin"
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    path                = "/reportes/health"
+    matcher             = "200"
+    protocol            = "HTTP"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-app-group"
+  })
+}
+
+# ========== APPLICATION LOAD BALANCER ==========
+
+resource "aws_lb" "app_alb" {
+  name               = "${var.project_prefix}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.traffic_lb.id]
+  subnets            = data.aws_subnets.default.ids
+
+  enable_deletion_protection = false
+  enable_http2               = true
+  enable_cross_zone_load_balancing = true
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-alb"
+  })
+}
+
+# ========== ALB LISTENER ==========
+
+resource "aws_lb_listener" "app_listener" {
+  load_balancer_arn = aws_lb.app_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app_group.arn
+  }
+}
+
+# ========== TARGET GROUP ATTACHMENT ==========
+
+resource "aws_lb_target_group_attachment" "app_attachment" {
+  for_each = aws_instance.app_instances
+
+  target_group_arn = aws_lb_target_group.app_group.arn
+  target_id        = each.value.id
+  port             = 8080
+}
 
 # ========== OUTPUTS ==========
 
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = aws_lb.app_alb.dns_name
+}
+
+output "access_url" {
+  description = "URL to access the application through the load balancer"
+  value       = "http://${aws_lb.app_alb.dns_name}"
+}
+
+output "alb_arn" {
+  description = "ARN of the Application Load Balancer"
+  value       = aws_lb.app_alb.arn
+}
+
+output "target_group_arn" {
+  description = "ARN of the Target Group"
+  value       = aws_lb_target_group.app_group.arn
+}
 
 output "database_public_ip" {
   description = "Public IP address of the database instance"
