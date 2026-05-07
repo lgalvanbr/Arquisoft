@@ -78,6 +78,3 @@ upstreams:
         unhealthy:
           tcp_failures: 2
           interval: 5
-EOF
-
-cat ~/kong.yml   # verifica que todas las IPs quedaron bien
