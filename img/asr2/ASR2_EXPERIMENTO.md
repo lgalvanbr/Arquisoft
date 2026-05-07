@@ -1,8 +1,8 @@
-# Experimento ASR 2 — Disponibilidad 99.5% Mensual
+# Experimento ASR 2 — Disponibilidad 99.5% Anual
 
 ## Descripción del ASR
 
-> Yo como usuario, dado que la plataforma es utilizada para la toma de decisiones financieras críticas, cuando accedo al sistema en cualquier momento, quiero que la plataforma esté disponible sin interrupciones, garantizando una disponibilidad mínima del **99.5% mensual** sin caídas del servicio.
+> Yo como usuario, dado que la plataforma es utilizada para la toma de decisiones financieras críticas, cuando accedo al sistema en cualquier momento, quiero que la plataforma esté disponible sin interrupciones, garantizando una disponibilidad mínima del **99.5% anual** sin caídas del servicio.
 
 ---
 
@@ -205,7 +205,7 @@ aws rds describe-db-instances \
 | Disponibilidad medida | `(peticiones_200 / total_peticiones) × 100` | ≥ 99.5% |
 | Tiempo medio de recuperación (MTTR) | `suma(duración_fallos) / número_fallos` | ≤ 60s |
 | Peticiones fallidas totales | Conteo de HTTP 4xx/5xx durante experimento | Minimizar |
-| Tiempo máximo de indisponibilidad continua | Mayor ventana de errores consecutivos | ≤ 216 min/mes |
+| Tiempo máximo de indisponibilidad continua | Mayor ventana de errores consecutivos | ≤ 2,628 min/año |
 
 ---
 
@@ -281,7 +281,7 @@ aws cloudwatch get-metric-statistics \
 
 ## Criterio global de aceptación del ASR
 
-> El ASR **SE CUMPLE** si la disponibilidad acumulada de todos los escenarios es **≥ 99.5%** y ninguna ventana de indisponibilidad continua supera **216 minutos en un mes equivalente**.
+> El ASR **SE CUMPLE** si la disponibilidad acumulada de todos los escenarios es **≥ 99.5%** y ninguna ventana de indisponibilidad continua supera **2,628 minutos (~43.8 horas) en un año**.
 
 Si algún escenario falla el criterio:
 1. Revisar los logs del ALB y systemd (CloudWatch + SSM).

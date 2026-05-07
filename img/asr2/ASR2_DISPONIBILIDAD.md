@@ -1,8 +1,8 @@
-# ASR 2 — Disponibilidad 99.5% Mensual
+# ASR 2 — Disponibilidad 99.5% Anual
 
 ## Enunciado
 
-> Yo como usuario, dado que la plataforma es utilizada para la toma de decisiones financieras críticas, cuando accedo al sistema en cualquier momento, quiero que la plataforma esté disponible sin interrupciones. Esto debe suceder garantizando una disponibilidad mínima del **99.5% mensual** sin caídas del servicio.
+> Yo como usuario, dado que la plataforma es utilizada para la toma de decisiones financieras críticas, cuando accedo al sistema en cualquier momento, quiero que la plataforma esté disponible sin interrupciones. Esto debe suceder garantizando una disponibilidad mínima del **99.5% anual** sin caídas del servicio.
 
 ---
 
@@ -10,11 +10,12 @@
 
 | Período | Tiempo total | Caída máxima permitida (0.5%) |
 |---------|-------------|-------------------------------|
-| Mes (30 días) | 43,200 min | **216 minutos (~3.6 horas)** |
+| Año (365 días) | 525,600 min | **2,628 minutos (~43.8 horas)** |
+| Mes (30 días) | 43,200 min | ~216 minutos (~3.6 horas) |
 | Semana | 10,080 min | ~50 minutos |
 | Día | 1,440 min | ~7 minutos |
 
-Cualquier fallo no mitigado que dure más de 3.6 horas en un mes rompe el ASR.
+Cualquier fallo no mitigado que acumule más de 43.8 horas de indisponibilidad en un año rompe el ASR.
 
 ---
 
@@ -138,7 +139,7 @@ La distribución equitativa de carga entre instancias evita que una instancia se
 | Failover de RDS Multi-AZ | ~60s |
 | Falla total de AZ (ASG relanza en otra AZ) | ~5 min (instancias nuevas en AZ sana) |
 
-El peor caso para el usuario es el failover RDS (~60s). El reemplazo por ASG ocurre en paralelo sin interrumpir el servicio (las instancias sanas siguen activas). **Disponibilidad estimada: >99.9%**, cumpliendo holgadamente el ASR de 99.5%.
+El peor caso para el usuario es el failover RDS (~60s). El reemplazo por ASG ocurre en paralelo sin interrumpir el servicio (las instancias sanas siguen activas). **Disponibilidad estimada: >99.9%**, cumpliendo holgadamente el ASR de 99.5% anual.
 
 ---
 
