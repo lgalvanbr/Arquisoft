@@ -2,55 +2,66 @@
 # ****** Departamento de Ingeniería de Sistemas y Computación ******
 # ********** Arquitectura y diseño de Software - ISIS2503 **********
 #
-# Infraestructura para laboratorio de Circuit Breaker - Arquisoft FinOps
-# Kong como Load Balancer + Circuit Breaker (sin ALB)
-# ==========================================
+# Infraestructura para laboratorio de Load Balancer - Arquisoft FinOps
+#
+# Elementos a desplegar en AWS:
+# 1. Grupos de seguridad:
+#    - report-trafico-ssh (puerto 22)
+#    - report-trafico-db (puerto 5432)
+#    - report-trafico-http (puerto 8080)
+#    - report-trafico-lb (puerto 80)
+#
+# 2. Instancias EC2:
+#    - report-db (PostgreSQL instalado y configurado)
+#    - report-app-lb-a/b/c (3 × t3.small)
+#
+# 3. Load Balancer:
+#    - Application Load Balancer (report-alb)
+#    - Target Group (report-app-group) con health check en /api/reportes/health
+#    - Listener en puerto 80
+# ******************************************************************
 
-# ============================================================
-# Variables
-# ============================================================
-variable "key_name" {
-  description = "Nombre del Key Pair en AWS"
-  type        = string
-  default     = "finops-key"
-}
+# ========== VARIABLES ==========
 
 variable "region" {
-  description = "AWS region"
+  description = "AWS region for deployment"
   type        = string
   default     = "us-east-1"
 }
 
-variable "instance_type_app" {
-  type    = string
-  default = "t2.nano"
-}
-
-variable "instance_type_kong" {
-  type    = string
-  default = "t2.micro"
+variable "project_prefix" {
+  description = "Prefix used for naming AWS resources"
+  type        = string
+  default     = "report"
 }
 
 variable "instance_type_db" {
-  type    = string
-  default = "t3.micro"
+  description = "EC2 instance type for database"
+  type        = string
+  default     = "t3.micro"
 }
 
-variable "project_prefix" {
-  type    = string
-  default = "cbd"
+variable "instance_type_app" {
+  description = "EC2 instance type for application hosts"
+  type        = string
+  default     = "t2.nano"
 }
+
+# ========== LOCALS ==========
 
 locals {
+  project_name = "${var.project_prefix}-arquisoft"
+  repository   = "https://github.com/lgalvanbr/Arquisoft.git"
+  branch       = "main"
+
   common_tags = {
-    Project     = "FinOps-CircuitBreaker"
-    Environment = "lab"
+    Project   = local.project_name
+    ManagedBy = "Terraform"
   }
 }
 
-# ============================================================
-# Provider
-# ============================================================
+# ========== PROVIDER ==========
+
 terraform {
   required_providers {
     aws = {
@@ -64,78 +75,67 @@ provider "aws" {
   region = var.region
 }
 
-# ============================================================
-# AMI Ubuntu 24.04
-# ============================================================
+# ========== DATA SOURCES ==========
+
 data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"]
+    most_recent = true
+    owners      = ["099720109477"]
 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
+    filter {
+        name   = "name"
+        values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    }
 
+    filter {
+        name   = "virtualization-type"
+        values = ["hvm"]
+    }
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
   filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
 }
 
-# ============================================================
-# Security Groups
-# ============================================================
+# ========== SECURITY GROUPS ==========
 
-# SSH - acceso administrativo
 resource "aws_security_group" "traffic_ssh" {
-  name        = "${var.project_prefix}-traffic-ssh"
-  description = "SSH access"
+    name        = "${var.project_prefix}-trafico-ssh"
+    description = "Allow SSH access"
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    ingress {
+        description = "SSH access from anywhere"
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    egress {
+        description = "Allow all outbound traffic"
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
 
-  tags = merge(local.common_tags, { Name = "${var.project_prefix}-traffic-ssh" })
+    tags = merge(local.common_tags, {
+        Name = "${var.project_prefix}-trafico-ssh"
+    })
 }
 
-# App Django - puerto 8080
-resource "aws_security_group" "traffic_django" {
-  name        = "${var.project_prefix}-traffic-django"
-  description = "Django app traffic on port 8080"
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(local.common_tags, { Name = "${var.project_prefix}-traffic-django" })
-}
-
-# Base de datos PostgreSQL - puerto 5432
 resource "aws_security_group" "traffic_db" {
-  name        = "${var.project_prefix}-traffic-db"
-  description = "PostgreSQL traffic on port 5432"
+  name        = "${var.project_prefix}-trafico-db"
+  description = "Allow PostgreSQL access"
 
   ingress {
+    description = "Traffic from anywhere to DB"
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
@@ -143,247 +143,425 @@ resource "aws_security_group" "traffic_db" {
   }
 
   egress {
+    description = "Allow all outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(local.common_tags, { Name = "${var.project_prefix}-traffic-db" })
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-trafico-db"
+  })
 }
 
-# Kong - puertos 8000 (proxy) y 8001 (admin API)
-resource "aws_security_group" "traffic_kong" {
-  name        = "${var.project_prefix}-traffic-kong"
-  description = "Kong Gateway proxy and admin ports"
+resource "aws_security_group" "traffic_http" {
+  name        = "${var.project_prefix}-trafico-http"
+  description = "Allow HTTP traffic to application"
 
   ingress {
-    description = "Kong proxy - punto de entrada del sistema"
+    description = "HTTP access for application"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-trafico-http"
+  })
+}
+
+resource "aws_security_group" "traffic_lb" {
+  name        = "${var.project_prefix}-trafico-lb"
+  description = "Allow HTTP traffic from internet to load balancer"
+
+  ingress {
+    description = "HTTP traffic for load balancer"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-trafico-lb"
+  })
+}
+
+#grupos de seguridad para kong
+
+resource "aws_security_group" "traffic_kong" {
+  name        = "cbd-traffic-kong"
+  description = "Allow Kong proxy traffic on port 8000"
+
+  ingress {
     from_port   = 8000
     to_port     = 8000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   ingress {
-    description = "Kong admin API - monitoreo del circuit breaker"
     from_port   = 8001
     to_port     = 8001
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = merge(local.common_tags, { Name = "${var.project_prefix}-traffic-kong" })
+  tags = { Name = "cbd-traffic-kong" }
 }
 
-# ============================================================
-# Base de datos PostgreSQL
-# ============================================================
+# ========== EC2 DATABASE ==========
+
 resource "aws_instance" "database" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type_db
-  key_name                    = var.key_name
   associate_public_ip_address = true
-  vpc_security_group_ids = [
-    aws_security_group.traffic_db.id,
-    aws_security_group.traffic_ssh.id
-  ]
+  vpc_security_group_ids      = [aws_security_group.traffic_db.id, aws_security_group.traffic_ssh.id]
 
   user_data = <<-EOT
-    #!/bin/bash
-    sudo apt-get update -y
-    sudo apt-get install -y postgresql-16 postgresql-contrib
+#!/bin/bash
+exec > /var/log/cloudynet-db-setup.log 2>&1
+echo "[$(date)] Iniciando setup PostgreSQL..."
 
-    sudo -u postgres psql -c "CREATE DATABASE monitoring_db;"
-    sudo -u postgres psql -c "CREATE USER report_user WITH PASSWORD 'isis2503';"
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE monitoring_db TO report_user;"
-    sudo -u postgres psql -d monitoring_db -c "GRANT ALL ON SCHEMA public TO report_user;"
+apt-get update -y -q
+apt-get install -y -q postgresql postgresql-contrib
 
-    sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" \
-      /etc/postgresql/16/main/postgresql.conf
-    sudo sed -i "s/max_connections = 100/max_connections = 500/" \
-      /etc/postgresql/16/main/postgresql.conf
+# Esperar a que postgres arranque
+sleep 5
 
-    echo "host all all 0.0.0.0/0 md5" | \
-      sudo tee -a /etc/postgresql/16/main/pg_hba.conf
+# Crear usuario y base de datos (idempotente)
+sudo -u postgres psql <<SQLEOF
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'report_user') THEN
+    CREATE USER report_user WITH PASSWORD 'isis2503';
+  END IF;
+END
+\$\$;
+SQLEOF
 
-    sudo systemctl restart postgresql
-    sudo systemctl enable postgresql
-  EOT
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'monitoring_db'" | grep -q 1 || \
+  sudo -u postgres createdb -O report_user monitoring_db
 
-  tags = merge(local.common_tags, { Name = "${var.project_prefix}-db" })
-}
+# Permitir conexiones remotas
+PG_HBA="/etc/postgresql/16/main/pg_hba.conf"
+PG_CONF="/etc/postgresql/16/main/postgresql.conf"
 
-# ============================================================
-# Instancias App Django (a, b, c) — 3 instancias para threshold 66%
-# ============================================================
-resource "aws_instance" "app_instances" {
-  for_each = toset(["a", "b", "c"])
+grep -q "^host all all 0.0.0.0/0" "$PG_HBA" || \
+  echo "host all all 0.0.0.0/0 trust" >> "$PG_HBA"
 
-  ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type_app
-  key_name                    = var.key_name
-  associate_public_ip_address = true
-  vpc_security_group_ids = [
-    aws_security_group.traffic_django.id,
-    aws_security_group.traffic_ssh.id
-  ]
+sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" "$PG_CONF" || \
+  grep -q "^listen_addresses" "$PG_CONF" || \
+  echo "listen_addresses='*'" >> "$PG_CONF"
 
-  user_data = <<-EOT
-    #!/bin/bash
-    export DATABASE_HOST="${aws_instance.database.private_ip}"
-    echo "DATABASE_HOST=${aws_instance.database.private_ip}" | \
-      sudo tee -a /etc/environment
+echo "max_connections=500" >> "$PG_CONF"
 
-    sudo apt-get update -y
-    sudo apt-get install -y python3-pip git build-essential \
-      libpq-dev python3-dev
+systemctl enable postgresql
+systemctl restart postgresql
 
-    mkdir -p /labs
-    cd /labs
-
-    git clone https://github.com/lgalvanbr/Arquisoft.git
-    cd Arquisoft
-
-    sudo pip3 install --break-system-packages \
-      Django==4.2.0 \
-      psycopg2-binary==2.9.6 \
-      djangorestframework==3.14.0 \
-      djangorestframework-simplejwt==5.2.2 \
-      django-cors-headers==4.0.0 \
-      python-decouple==3.8 \
-      PyJWT==2.8.0 \
-      gunicorn==21.2.0 \
-      gevent==23.9.1 \
-      whitenoise==6.6.0
-
-    # Solo app-a corre las migraciones (evita conflictos de concurrencia)
-    if [ "${each.key}" = "a" ]; then
-      sleep 30  # espera que PostgreSQL esté listo
-      export DATABASE_HOST="${aws_instance.database.private_ip}"
-      sudo -E python3 manage.py migrate --noinput || true
-      sudo -E python3 manage.py migrate --run-syncdb --noinput || true
-    fi
-  EOT
-
-  depends_on = [aws_instance.database]
+echo "[$(date)] PostgreSQL listo. Usuario: report_user / DB: monitoring_db"
+EOT
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_prefix}-app-${each.key}"
-    Role = "app-instance"
+    Name = "${var.project_prefix}-db"
+    Role = "database"
   })
 }
 
-# ============================================================
-# Instancia Kong — Load Balancer + Circuit Breaker
-# ============================================================
+# ========== EC2 APP INSTANCES ==========
+
+resource "aws_instance" "app_instances" {
+  for_each = toset(["a", "b", "c"]) #modificacion para tener 3 instancias y threshold de 66%
+
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type_app
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.traffic_http.id, aws_security_group.traffic_ssh.id]
+
+  user_data = <<-EOT
+#!/bin/bash
+# =======================================================
+# CloudyNet FinOps - Auto-setup completo para app-${each.key}
+# Ejecutado una sola vez en el primer arranque via cloud-init
+# =======================================================
+# Runs once at first boot via cloud-init
+# =======================================================
+exec > /var/log/cloudynet-setup.log 2>&1
+
+INSTANCE_ID="${each.key}"
+DB_HOST="${aws_instance.database.private_ip}"
+REPO="${local.repository}"
+BRANCH="${local.branch}"
+APP_DIR="/apps/Arquisoft"
+VENV_DIR="/apps/venv"
+
+echo "[$(date)] ===== CloudyNet setup iniciado (instancia: app-$INSTANCE_ID) ====="
+
+# ── 1. Dependencias del sistema ───────────────────────────────────────
+apt-get update -y -q
+apt-get install -y -q python3 python3-pip python3-venv git build-essential libpq-dev python3-dev netcat-openbsd curl
+echo "[$(date)] Paquetes del sistema instalados."
+
+# ── 2. Clonar repositorio ─────────────────────────────────────────────
+mkdir -p /apps
+if [ ! -d "$APP_DIR/.git" ]; then
+  git clone "$REPO" "$APP_DIR"
+else
+  cd "$APP_DIR" && git fetch origin && git reset --hard origin/$BRANCH
+fi
+cd "$APP_DIR"
+echo "[$(date)] Repositorio listo en $APP_DIR."
+
+# ── 3. Entorno virtual Python ─────────────────────────────────────────
+python3 -m venv "$VENV_DIR"
+"$VENV_DIR/bin/pip" install --upgrade pip -q
+"$VENV_DIR/bin/pip" install -r "$APP_DIR/requirements.txt" -q
+echo "[$(date)] Virtualenv y dependencias instaladas en $VENV_DIR."
+
+# ── 4. Variables de entorno (nombres que usa settings.py) ─────────────
+cat > /etc/cloudynet.env <<ENVEOF
+DATABASE_HOST=$DB_HOST
+DB_NAME=monitoring_db
+DB_USER=report_user
+DB_PASSWORD=isis2503
+DB_PORT=5432
+DJANGO_SETTINGS_MODULE=finops_platform.settings
+PYTHONUNBUFFERED=1
+ENVEOF
+chmod 644 /etc/cloudynet.env
+
+# Exportar para los comandos que siguen
+set -a; source /etc/cloudynet.env; set +a
+echo "[$(date)] Variables de entorno configuradas."
+
+# ── 5. Esperar PostgreSQL (máx 5 min) ─────────────────────────────────
+echo "[$(date)] Esperando PostgreSQL en $DB_HOST:5432..."
+for i in $(seq 1 30); do
+  if nc -z "$DB_HOST" 5432 2>/dev/null; then
+    echo "[$(date)] PostgreSQL disponible en el intento $i."
+    break
+  fi
+  echo "[$(date)] Intento $i/30 — esperando 10 s..."
+  sleep 10
+done
+
+# ── 6. Migraciones ────────────────────────────────────────────────────
+if [ "$INSTANCE_ID" = "a" ]; then
+  echo "[$(date)] app-a: ejecutando migraciones..."
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
+  echo "[$(date)] Migraciones completadas."
+  echo "[$(date)] app-a: creando usuarios por defecto..."
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username admin --email admin@bite.co --password Admin1234! --empresa BITE.CO --rol admin
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py seed_user --username usuario1 --email usuario1@bite.co --password Usuario1234! --empresa BITE.CO --rol usuario
+  echo "[$(date)] Seed usuarios completado."
+else
+  echo "[$(date)] app-b: esperando 90 s a que app-a migre..."
+  sleep 90
+  cd "$APP_DIR" && "$VENV_DIR/bin/python" manage.py migrate --noinput
+  echo "[$(date)] Migraciones verificadas en app-b."
+fi
+
+# ── 7. Servicio systemd ───────────────────────────────────────────────
+GUNICORN_BIN="$VENV_DIR/bin/gunicorn"
+
+cat > /etc/systemd/system/cloudynet.service <<SVCEOF
+[Unit]
+Description=CloudyNet FinOps Gunicorn (app-${each.key})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=root
+WorkingDirectory=$APP_DIR
+EnvironmentFile=/etc/cloudynet.env
+ExecStart=$GUNICORN_BIN finops_platform.wsgi:application --bind 0.0.0.0:8080 --workers 4 --timeout 120 --access-logfile /var/log/gunicorn-access.log --error-logfile /var/log/gunicorn-error.log
+ExecReload=/bin/kill -s HUP \$MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/gunicorn-stdout.log
+StandardError=append:/var/log/gunicorn-error.log
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+# ── 8. Script de actualización rápida (git pull + restart) ───────────
+cat > /usr/local/bin/cloudynet-update <<UPDEOF
+#!/bin/bash
+cd $APP_DIR
+git fetch origin
+git reset --hard origin/$BRANCH
+$VENV_DIR/bin/pip install -r requirements.txt -q
+set -a; source /etc/cloudynet.env; set +a
+$VENV_DIR/bin/python manage.py migrate --noinput
+systemctl restart cloudynet.service
+systemctl is-active cloudynet.service
+echo "Actualización completada."
+UPDEOF
+chmod +x /usr/local/bin/cloudynet-update
+
+# ── 9. Habilitar e iniciar ────────────────────────────────────────────
+systemctl daemon-reload
+systemctl enable cloudynet.service
+systemctl start cloudynet.service
+
+echo "[$(date)] Servicio cloudynet.service activo y habilitado en reboot."
+echo "[$(date)] ===== Setup completado app-$INSTANCE_ID ====="
+echo "[$(date)] Para futuras actualizaciones: sudo cloudynet-update"
+EOT
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-app-lb-${each.key}"
+    Role = "application"
+  })
+
+  depends_on = [aws_instance.database]
+}
+
+#añadir instancia Kong
+
 resource "aws_instance" "kong" {
   ami                         = data.aws_ami.ubuntu.id
-  instance_type               = var.instance_type_kong
-  key_name                    = var.key_name
+  instance_type               = "t2.micro"
   associate_public_ip_address = true
-  vpc_security_group_ids = [
+  vpc_security_group_ids      = [
     aws_security_group.traffic_kong.id,
     aws_security_group.traffic_ssh.id
   ]
-
-  user_data = <<-EOT
-    #!/bin/bash
-    sudo apt-get update -y
-    sudo apt-get install -y ca-certificates curl gnupg lsb-release
-
-    # Instalar Docker
-    sudo mkdir -m 0755 -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-      sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-    echo "deb [arch=$(dpkg --print-architecture) \
-      signed-by=/etc/apt/keyrings/docker.gpg] \
-      https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
-      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    sudo apt-get update -y
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
-      docker-buildx-plugin docker-compose-plugin
-
-    sudo usermod -aG docker ubuntu
-    sudo systemctl enable docker
-    sudo systemctl start docker
-
-    # Pre-descargar la imagen de Kong para que esté lista
-    sudo docker pull kong/kong-gateway:2.7.2.0-alpine
-  EOT
-
-  tags = merge(local.common_tags, { Name = "${var.project_prefix}-kong" })
-}
-
-# ============================================================
-# Outputs — IPs necesarias para configurar Kong y el experimento
-# ============================================================
-output "database_private_ip" {
-  description = "IP privada de la BD (para kong.yml y configuracion de apps)"
-  value       = aws_instance.database.private_ip
-}
-
-output "database_public_ip" {
-  description = "IP publica de la BD (para SSH de verificacion)"
-  value       = aws_instance.database.public_ip
-}
-
-output "app_private_ips" {
-  description = "IPs PRIVADAS de las instancias app — usar en kong.yml como targets"
-  value = {
-    for k, v in aws_instance.app_instances :
-    "app-${k}" => v.private_ip
-  }
-}
-
-output "app_public_ips" {
-  description = "IPs PUBLICAS de las instancias app — usar para SSH"
-  value = {
-    for k, v in aws_instance.app_instances :
-    "app-${k}" => v.public_ip
-  }
+  tags = { Name = "cbd-kong" }
 }
 
 output "kong_public_ip" {
-  description = "IP publica de Kong — PUNTO DE ENTRADA del sistema"
-  value       = aws_instance.kong.public_ip
+  value = aws_instance.kong.public_ip
 }
 
-output "kong_instrucciones" {
-  description = "Comandos listos para configurar Kong (ejecutar por SSH en cbd-kong)"
-  value       = <<-INSTRUCCIONES
-    === PASO 1: Conectarse a Kong ===
-    ssh -i ~/.ssh/finops-key.pem ubuntu@${aws_instance.kong.public_ip}
+# ========== TARGET GROUP ==========
 
-    === PASO 2: Crear kong.yml (reemplaza las IPs reales) ===
-    Ver app_private_ips en outputs de Terraform para las IPs correctas
+resource "aws_lb_target_group" "app_group" {
+  name        = "${var.project_prefix}-app-group"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
 
-    === PASO 3: Levantar Kong ===
-    sudo docker network create kong-net
-    sudo docker run -d --name kong --user root \
-      --network=kong-net \
-      -v "$HOME:/kong/declarative/" \
-      -e "KONG_DATABASE=off" \
-      -e "KONG_DECLARATIVE_CONFIG=/kong/declarative/kong.yml" \
-      -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" \
-      -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" \
-      -e "KONG_PROXY_ERROR_LOG=/dev/stderr" \
-      -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" \
-      -e "KONG_ADMIN_LISTEN=0.0.0.0:8001" \
-      -p 8000:8000 -p 8001:8001 \
-      kong/kong-gateway:2.7.2.0-alpine
+  load_balancing_algorithm_type = "round_robin"
 
-    === PASO 4: Verificar ===
-    curl http://localhost:8001/status
-    curl http://localhost:8000/api/reportes/health
-  INSTRUCCIONES
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    path                = "/api/reportes/health"
+    matcher             = "200"
+    protocol            = "HTTP"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-app-group"
+  })
+}
+
+# ========== APPLICATION LOAD BALANCER ==========
+
+resource "aws_lb" "app_alb" {
+  name               = "${var.project_prefix}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.traffic_lb.id]
+  subnets            = data.aws_subnets.default.ids
+
+  enable_deletion_protection = false
+  enable_http2               = true
+  enable_cross_zone_load_balancing = true
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_prefix}-alb"
+  })
+}
+
+# ========== ALB LISTENER ==========
+
+resource "aws_lb_listener" "app_listener" {
+  load_balancer_arn = aws_lb.app_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app_group.arn
+  }
+}
+
+# ========== TARGET GROUP ATTACHMENT ==========
+
+resource "aws_lb_target_group_attachment" "app_attachment" {
+  for_each = aws_instance.app_instances
+
+  target_group_arn = aws_lb_target_group.app_group.arn
+  target_id        = each.value.id
+  port             = 8080
+}
+
+# ========== OUTPUTS ==========
+
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = aws_lb.app_alb.dns_name
+}
+
+output "access_url" {
+  description = "URL to access the application through the load balancer"
+  value       = "http://${aws_lb.app_alb.dns_name}"
+}
+
+output "alb_arn" {
+  description = "ARN of the Application Load Balancer"
+  value       = aws_lb.app_alb.arn
+}
+
+output "target_group_arn" {
+  description = "ARN of the Target Group"
+  value       = aws_lb_target_group.app_group.arn
+}
+
+output "database_public_ip" {
+  description = "Public IP address of the database instance"
+  value       = aws_instance.database.public_ip
+}
+
+output "database_private_ip" {
+  description = "Private IP address of the database instance"
+  value       = aws_instance.database.private_ip
+}
+
+output "app_instances_public_ips" {
+  description = "Public IP addresses of the application instances"
+  value       = { for id, instance in aws_instance.app_instances : id => instance.public_ip }
+}
+
+output "app_instances_private_ips" {
+  description = "Private IP addresses of the application instances"
+  value       = { for id, instance in aws_instance.app_instances : id => instance.private_ip }
 }
