@@ -535,7 +535,6 @@ def listar_rechazos_integridad(request):
                 'endpoint': r.endpoint,
                 'motivo_rechazo': r.motivo_rechazo,
                 'fecha_rechazo': r.fecha_rechazo.isoformat(),
-                'user_agent': r.user_agent,
             }
             for r in rechazos
         ]
